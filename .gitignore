@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# React Native / Metro
+.metro-health-check*
+*.jsbundle
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+*.hprof
+
+# Signing material must never be committed
+*.jks
+*.keystore
+keystore.properties
+
+# IDEs and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Tests and generated reports
+coverage/
+reports/
+
+# Environment files
+.env
+.env.*
+!.env.example

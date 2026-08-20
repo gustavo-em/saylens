@@ -27,10 +27,11 @@ native module ──> infrastructure adapter contract
 - `application` depends only on `domain` and declares the ports required by use
   cases.
 - `infrastructure` implements those ports using libraries and platform APIs.
-- `presentation` invokes application use cases and renders state. It does not
-  call VisionCamera, MediaPipe, storage, or speech SDKs directly.
+- `presentation` uses MVVM: ViewModels invoke application behavior and expose
+  view-ready state; Views render that state and report user intent. Neither
+  side calls VisionCamera, MediaPipe, storage, or speech SDKs directly.
 - `app` is the composition root. It creates concrete adapters and injects them
-  into the feature.
+  into the feature. Its shell ViewModel owns app-level navigation and settings.
 - `shared` contains intentionally generic primitives. Feature-specific behavior
   must not be moved there for convenience.
 
@@ -38,13 +39,17 @@ native module ──> infrastructure adapter contract
 
 ```text
 src/
-  app/                              Composition root and application shell
+  app/                              Shell, theme, navigation, and app ViewModel
   features/
     learning/
       domain/                       Business rules and stable types
       application/                  Use cases and ports
       infrastructure/               Camera, detector, dictionary, speech adapters
-      presentation/                 Screens, components, hooks, and UI state
+      presentation/
+        screens/                    Thin feature composition and dependency binding
+        views/                      Declarative UI without platform SDK imports
+        view-models/                Presentation state, effects, and user actions
+        models/                     View-facing contracts
   shared/                           Small cross-feature primitives
 
 modules/
@@ -100,11 +105,24 @@ Infrastructure translates external representations into domain types:
 Raw camera frames must not cross into the application or domain layers.
 Platform errors are mapped to application-level failures at this boundary.
 
-### Presentation
+### Presentation with MVVM
 
 Presentation owns the camera screen, animated object overlays, selection
-interaction, and object details sheet. It receives view-ready state from feature
-controllers/hooks and reports user actions back to application use cases.
+interaction, and object details sheet through three explicit responsibilities:
+
+- a **View** renders props and emits user actions;
+- a **ViewModel** coordinates presentation state, effects, and application
+  ports without returning JSX or importing native SDKs;
+- a **Screen** binds the ViewModel to the View and receives concrete renderers
+  from the application composition root when a native view is required.
+
+This is MVVM inside Clean Architecture, not an alternative to it. Clean
+Architecture controls dependencies between layers; MVVM structures the
+presentation layer.
+
+`styled-components` owns static, theme-driven presentation styles. Components
+are defined at module scope. Native camera surfaces and future per-frame overlay
+coordinates remain outside styled-components and React render state.
 
 High-frequency box positions should use UI-thread animation values. React state
 is reserved for lower-frequency changes such as tracks appearing/disappearing

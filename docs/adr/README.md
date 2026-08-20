@@ -9,6 +9,7 @@ consequences of choices that materially shape SpellForMe.
 - [ADR-0002: Android-first product scope](0002-android-first-product-scope.md)
 - [ADR-0003: VisionCamera 5 FrameOutput with a Nitro adapter](0003-visioncamera-frame-output-and-nitro.md)
 - [ADR-0004: MediaPipe EfficientDet-Lite0 for the first detector](0004-mediapipe-efficientdet-lite0.md)
+- [ADR-0005: MVVM presentation with styled-components](0005-mvvm-and-styled-components.md)
 
 ## Lifecycle
 

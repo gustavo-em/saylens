@@ -8,8 +8,44 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
+jest.mock('react-native-vision-camera', () => {
+  const ReactModule = require('react');
+  const { View: MockView } = jest.requireActual('react-native');
+
+  return {
+    Camera: ({ isActive }: { isActive: boolean }) =>
+      ReactModule.createElement(MockView, {
+        isActive,
+        testID: 'camera-preview',
+      }),
+    useCameraDevice: () => ({ id: 'back-camera' }),
+    useCameraPermission: () => ({
+      canRequestPermission: false,
+      hasPermission: true,
+      requestPermission: jest.fn(async () => true),
+      status: 'authorized',
+    }),
+  };
+});
+
+jest.mock(
+  '../src/features/learning/infrastructure/camera/VisionCameraViewport',
+  () => {
+    const ReactModule = require('react');
+    const { View: MockView } = jest.requireActual('react-native');
+
+    return {
+      VisionCameraViewport: ({ isActive }: { isActive: boolean }) =>
+        ReactModule.createElement(MockView, {
+          isActive,
+          testID: 'camera-preview',
+        }),
+    };
+  },
+);
+
 describe('App', () => {
-  it('renders the Android foundation milestone', async () => {
+  it('opens on the camera screen with both navigation tabs', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -19,6 +55,38 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
     expect(renderedTree).toContain('SpellForMe');
-    expect(renderedTree).toContain('ANDROID FOUNDATION READY');
+    expect(renderedTree).toContain('Câmera');
+    expect(renderedTree).toContain('Configurações');
+    expect(renderedTree).toContain('camera-preview');
+  });
+
+  it('pauses the camera while the settings screen is selected', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(true);
+
+    const settingsTabs = renderer!.root.findAllByProps({
+      testID: 'tab-settings',
+    });
+    const pressableSettingsTab = settingsTabs.find(
+      tab => typeof tab.props.onPress === 'function',
+    );
+
+    await ReactTestRenderer.act(() => {
+      pressableSettingsTab!.props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(false);
+    expect(JSON.stringify(renderer!.toJSON())).toContain(
+      'Camera-first foundation',
+    );
   });
 });

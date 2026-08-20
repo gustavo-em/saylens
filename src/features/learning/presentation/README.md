@@ -1,7 +1,16 @@
 # Presentation
 
-Screens, overlays, components, hooks, and presentation state live here.
+The learning presentation layer follows MVVM:
 
-This layer renders application state and reports user intent. It must not call
-MediaPipe or the Kotlin detector directly. High-frequency visual updates should
-remain on the UI thread instead of causing React renders per camera frame.
+- `views/` contains declarative, prop-driven UI;
+- `view-models/` owns presentation state, effects, and user actions;
+- `screens/` binds ViewModels to Views and injected native renderers;
+- `models/` contains contracts used across those presentation roles.
+
+Views and ViewModels must not import VisionCamera, MediaPipe, or the Kotlin
+detector. The app composition root injects native renderers and infrastructure
+implements application ports.
+
+Static UI uses theme-driven styled-components defined at module scope.
+High-frequency overlay positions remain on the UI thread instead of causing a
+React render for every camera frame.

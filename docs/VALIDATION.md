@@ -59,3 +59,35 @@ installable upstream fix is available.
 For the current baseline, the affected package is used by the local Metro asset
 pipeline. The app does not ingest untrusted ICNS, JXL, or HEIF assets at
 runtime. Repository assets should still be treated as reviewed source input.
+
+## Camera-first validation
+
+The Milestone 2 camera foundation was validated on the same physical Samsung
+device on 2026-08-20 with VisionCamera 5.2.2, Nitro Modules 0.37.0, Nitro Image
+0.15.2, and styled-components 6.5.3.
+
+The Android build compiled all native camera dependencies, installed, and
+launched successfully. After granting the runtime permission, Android's camera
+service reported camera `0` open by `com.gustavoem.spellforme` and the UI showed
+the live camera state.
+
+Lifecycle behavior was also verified through the Android camera service:
+
+- opening Settings disconnected the camera and left no active camera client;
+- returning to Camera reconnected camera `0` to the application;
+- disabling the framing guide removed its overlay and enabling it restored the
+  overlay without restarting the app.
+
+![SpellForMe camera settings running on a physical Samsung device](assets/android-camera-settings.png)
+
+The updated local quality gate passed with two application interaction tests:
+
+```text
+prettier --check .       passed
+eslint .                 passed
+tsc --noEmit             passed
+jest --runInBand         1 suite, 2 tests passed
+```
+
+FrameOutput, object detection, bounding boxes, and the five-minute endurance
+session remain explicitly unvalidated and are tracked in the roadmap.

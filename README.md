@@ -6,11 +6,12 @@ into an interactive English-learning experience.
 Point the device at everyday objects, see an English label anchored over each
 object, and tap a label to learn its meaning and pronunciation.
 
-> Status: Milestone 1 complete. The React Native Android foundation is running
-> on a physical device; camera integration is the next milestone.
+> Status: Milestone 2 in progress. The app opens directly on the live rear
+> camera, with permission handling and Camera/Settings navigation validated on
+> a physical Android device.
 
 <p align="center">
-  <img src="docs/assets/android-baseline.png" alt="SpellForMe Android baseline running on a physical Samsung device" width="320" />
+  <img src="docs/assets/android-camera-settings.png" alt="SpellForMe camera settings running on a physical Samsung device" width="320" />
 </p>
 
 ## Product journey
@@ -27,6 +28,8 @@ The first experience is designed to work on-device and without a backend.
 
 - Android first, tested on physical devices.
 - React Native using a feature-first Clean Architecture.
+- MVVM inside the presentation layer, with views free of platform SDKs.
+- styled-components for the shared theme and declarative UI styling.
 - VisionCamera 5 for the camera session and frame output.
 - A local Android Nitro/Kotlin adapter for inference.
 - MediaPipe Tasks with EfficientDet-Lite0 int8 for the first detector.
@@ -41,8 +44,8 @@ These are recorded decisions rather than hidden assumptions. Read the
 
 ```text
 src/
-  app/                    Application shell and dependency composition
-  features/learning/      Domain, use cases, adapters, and presentation
+  app/                    Shell, theme, navigation, and app ViewModel
+  features/learning/      Domain, use cases, adapters, Views, and ViewModels
   shared/                 Proven cross-feature primitives only
 
 android/                  Android application and native build configuration
@@ -55,11 +58,11 @@ docs/
   assets/                 Visual evidence captured from physical devices
 ```
 
-Only the application composition root contains executable feature-independent
-code today. The remaining boundaries contain documentation instead of
-placeholder types and will grow alongside real behavior and tests.
+The camera SDK is isolated in the learning infrastructure layer. Presentation
+Views receive plain state and callbacks from ViewModels, while `app` composes
+the concrete camera adapter, navigation, and theme.
 
-## Run the Android baseline
+## Run the Android app
 
 Requirements:
 
@@ -90,6 +93,10 @@ adb devices -l
 adb -s <device-serial> reverse tcp:8081 tcp:8081
 npm run android -- --device <device-serial>
 ```
+
+The first launch requests camera permission. Switching to Settings pauses the
+native camera session; returning to Camera resumes it without remounting the
+feature screen.
 
 The first build may install the pinned Android SDK components and download the
 Gradle distribution. See the reproducible baseline record in

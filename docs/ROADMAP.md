@@ -39,10 +39,13 @@ hierarchy check, and screenshot from a physical Android 14 device. See the
 
 ## Milestone 2: Camera pipeline
 
-Status: planned
+Status: in progress
 
-- integrate VisionCamera 5 and camera permission handling;
-- render the back-camera preview;
+- [x] integrate VisionCamera 5 and camera permission handling;
+- [x] render the back-camera preview;
+- [x] add Camera and Settings navigation with camera lifecycle control;
+- [x] structure presentation with MVVM and a shared styled-components theme;
+- [ ] validate a continuous five-minute preview session;
 - configure a low-resolution FrameOutput independently from the preview;
 - add asynchronous frame backpressure and lifecycle instrumentation;
 - document frame disposal and orientation behavior.

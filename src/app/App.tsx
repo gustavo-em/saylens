@@ -1,164 +1,66 @@
-import { StatusBar, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback } from 'react';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import styled, { ThemeProvider } from 'styled-components/native';
 
-const architectureLayers = [
-  'Domain',
-  'Application',
-  'Infrastructure',
-  'Presentation',
-] as const;
+import { VisionCameraViewport } from '../features/learning/infrastructure/camera/VisionCameraViewport';
+import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
+import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
+import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
+import { AppTabBar } from './navigation/AppTabBar';
+import { appTheme } from './theme/theme';
+import { useAppViewModel } from './view-models/useAppViewModel';
 
 function AppContent() {
+  const viewModel = useAppViewModel();
+
+  const renderCamera = useCallback(
+    (callbacks: CameraViewportCallbacks) => (
+      <VisionCameraViewport
+        isActive={viewModel.cameraIsActive}
+        {...callbacks}
+      />
+    ),
+    [viewModel.cameraIsActive],
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <Root>
       <StatusBar barStyle="light-content" />
 
-      <View style={styles.content}>
-        <View style={styles.badge}>
-          <View style={styles.badgeDot} />
-          <Text style={styles.badgeText}>ANDROID FOUNDATION READY</Text>
-        </View>
+      <CameraScreen
+        cameraAccess={viewModel.cameraAccess}
+        isActive={viewModel.cameraIsActive}
+        renderCamera={renderCamera}
+        showGuidance={viewModel.showGuidance}
+      />
 
-        <View style={styles.hero}>
-          <Text accessibilityRole="header" style={styles.title}>
-            SpellForMe
-          </Text>
-          <Text style={styles.subtitle}>Point. Discover. Pronounce.</Text>
-        </View>
+      {viewModel.activeTab === 'settings' ? (
+        <SettingsScreen
+          onShowGuidanceChange={viewModel.changeGuidanceVisibility}
+          showGuidance={viewModel.showGuidance}
+        />
+      ) : null}
 
-        <View style={styles.card}>
-          <Text style={styles.cardEyebrow}>MILESTONE 1</Text>
-          <Text style={styles.cardTitle}>The learning shell is running.</Text>
-          <Text style={styles.cardBody}>
-            Camera and on-device detection will enter through isolated adapters
-            in the next milestones.
-          </Text>
-
-          <View style={styles.layers}>
-            {architectureLayers.map(layer => (
-              <View key={layer} style={styles.layerPill}>
-                <Text style={styles.layerText}>{layer}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Text style={styles.footer}>React Native 0.87 · New Architecture</Text>
-      </View>
-    </SafeAreaView>
+      <AppTabBar
+        activeTab={viewModel.activeTab}
+        onSelect={viewModel.selectTab}
+      />
+    </Root>
   );
 }
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AppContent />
-    </SafeAreaProvider>
+    <ThemeProvider theme={appTheme}>
+      <SafeAreaProvider>
+        <AppContent />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
 
-const colors = {
-  background: '#07130F',
-  card: '#10241C',
-  cardBorder: '#275442',
-  accent: '#70F1B5',
-  text: '#F2FFF8',
-  muted: '#9AB7AA',
-} as const;
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-  },
-  badge: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderColor: colors.cardBorder,
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  badgeDot: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    height: 8,
-    width: 8,
-  },
-  badgeText: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-  },
-  hero: {
-    gap: 8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 48,
-    fontWeight: '800',
-    letterSpacing: -1.5,
-  },
-  subtitle: {
-    color: colors.accent,
-    fontSize: 20,
-    fontWeight: '500',
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderColor: colors.cardBorder,
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 12,
-    padding: 24,
-  },
-  cardEyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 30,
-  },
-  cardBody: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  layers: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingTop: 8,
-  },
-  layerPill: {
-    backgroundColor: '#173329',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  layerText: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  footer: {
-    color: colors.muted,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
+const Root = styled.View`
+  flex: 1;
+  background-color: ${({ theme }) => theme.colors.background};
+`;

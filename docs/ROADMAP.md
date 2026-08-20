@@ -18,7 +18,7 @@ Evidence: documentation, ADRs, repository structure, and atomic history.
 
 ## Milestone 1: Android React Native baseline
 
-Status: next
+Status: complete
 
 - create the React Native Android application with the New Architecture;
 - pin Node, Java, Gradle, Android SDK, React Native, and package-manager versions;
@@ -31,6 +31,11 @@ Acceptance criteria:
 - a clean checkout can follow documented setup steps;
 - all quality commands run locally;
 - the Android debug app launches without camera or ML dependencies.
+
+Evidence: React Native 0.87 app with the New Architecture and Hermes, automated
+quality gate, successful debug build, installation, launch, process check, UI
+hierarchy check, and screenshot from a physical Android 14 device. See the
+[validation record](VALIDATION.md).
 
 ## Milestone 2: Camera pipeline
 

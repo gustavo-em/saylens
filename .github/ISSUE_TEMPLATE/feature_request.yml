@@ -1,6 +1,6 @@
 name: Feature request
 description: Propose a focused product or technical capability
-title: "feat: "
+title: 'feat: '
 labels:
   - enhancement
 body:

@@ -6,8 +6,12 @@ into an interactive English-learning experience.
 Point the device at everyday objects, see an English label anchored over each
 object, and tap a label to learn its meaning and pronunciation.
 
-> Status: architecture and repository foundation. Product code and runtime
-> dependencies have intentionally not been introduced yet.
+> Status: Milestone 1 complete. The React Native Android foundation is running
+> on a physical device; camera integration is the next milestone.
+
+<p align="center">
+  <img src="docs/assets/android-baseline.png" alt="SpellForMe Android baseline running on a physical Samsung device" width="320" />
+</p>
 
 ## Product journey
 
@@ -41,15 +45,55 @@ src/
   features/learning/      Domain, use cases, adapters, and presentation
   shared/                 Proven cross-feature primitives only
 
+android/                  Android application and native build configuration
+
 modules/
   vision-object-detector/ Android Nitro/Kotlin boundary
 
 docs/
   adr/                    Architecture Decision Records
+  assets/                 Visual evidence captured from physical devices
 ```
 
-The directories currently contain documentation instead of placeholder code.
-Implementation structure will grow alongside real types and tests.
+Only the application composition root contains executable feature-independent
+code today. The remaining boundaries contain documentation instead of
+placeholder types and will grow alongside real behavior and tests.
+
+## Run the Android baseline
+
+Requirements:
+
+- Node.js 24.11.1 (pinned in `.nvmrc`) and npm 11.6.2;
+- JDK 17;
+- Android SDK Platform 37 and Build Tools 37.0.0;
+- an Android device with USB debugging enabled.
+
+Install dependencies and run the complete local quality gate:
+
+```sh
+nvm use
+npm ci
+npm run validate
+```
+
+Start Metro in one terminal:
+
+```sh
+npm start
+```
+
+List devices, forward Metro to the selected physical device, and run the app in
+another terminal:
+
+```sh
+adb devices -l
+adb -s <device-serial> reverse tcp:8081 tcp:8081
+npm run android -- --device <device-serial>
+```
+
+The first build may install the pinned Android SDK components and download the
+Gradle distribution. See the reproducible baseline record in
+[physical-device validation](docs/VALIDATION.md).
 
 ## Roadmap
 
@@ -64,6 +108,7 @@ See the [roadmap and acceptance criteria](docs/ROADMAP.md).
 - [Architecture and dependency rules](docs/ARCHITECTURE.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Physical-device validation](docs/VALIDATION.md)
 - [Contribution workflow](CONTRIBUTING.md)
 
 ## Contributing

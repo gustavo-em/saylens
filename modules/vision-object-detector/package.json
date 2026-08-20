@@ -1,0 +1,33 @@
+{
+  "name": "react-native-spellforme-object-detector",
+  "version": "0.0.0",
+  "description": "On-device object detection for SpellForMe",
+  "main": "src/index",
+  "react-native": "src/index",
+  "codegenConfig": {
+    "name": "SpellformeObjectDetectorSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.spellformeobjectdetector"
+    }
+  },
+  "author": "Gustavo Rosa <59415818+gustavo-em@users.noreply.github.com> (https://github.com/gustavo-em)",
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/gustavo-em/SpellForMe#readme",
+  "peerDependencies": {
+    "react-native": "*",
+    "react-native-nitro-modules": "0.37.0"
+  },
+  "create-react-native-library": {
+    "type": "nitro-module",
+    "languages": "kotlin-swift",
+    "tools": [
+      "eslint",
+      "jest",
+      "lefthook",
+      "release-it"
+    ],
+    "version": "0.63.0"
+  }
+}

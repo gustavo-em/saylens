@@ -5,3 +5,5 @@
 *.jpeg binary
 *.webp binary
 *.tflite binary
+
+modules/**/nitrogen/generated/** whitespace=-blank-at-eol

@@ -19,5 +19,17 @@ VisionCamera frames to the on-device object detector.
 - playing pronunciation;
 - navigation, analytics, or product state.
 
-No implementation or model binary is committed during the repository planning
-phase.
+## Development
+
+The package is linked locally through the root `package.json`. Its Nitro
+interfaces are generated and committed so consumers do not run code generation
+during an Android build.
+
+After changing a `*.nitro.ts` contract, run from the repository root:
+
+```sh
+npm run generate:detector
+```
+
+The initial scaffold exposes the selected model name. Frame input, MediaPipe,
+and model loading are added as separate, device-validated changes.

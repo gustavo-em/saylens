@@ -1,0 +1,19 @@
+{
+  "cxxNamespace": ["spellformeobjectdetector"],
+  "ios": {
+    "iosModuleName": "SpellformeObjectDetector"
+  },
+  "android": {
+    "androidNamespace": ["spellformeobjectdetector"],
+    "androidCxxLibName": "spellformeobjectdetector"
+  },
+  "autolinking": {
+    "SpellformeObjectDetector": {
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "SpellformeObjectDetector"
+      }
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}

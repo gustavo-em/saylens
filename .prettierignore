@@ -5,6 +5,8 @@ android/.kotlin/
 android/build/
 android/app/.cxx/
 android/app/build/
+modules/**/android/.cxx/
+modules/**/android/build/
 
 coverage/
 reports/

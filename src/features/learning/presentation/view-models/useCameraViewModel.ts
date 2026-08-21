@@ -8,7 +8,8 @@ import type {
 } from '../../domain/DetectedObject';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 
-const DETECTION_PRESENTATION_INTERVAL_MS = 1000 / 15;
+const DETECTION_PRESENTATION_FPS = 30;
+const DETECTION_PRESENTATION_INTERVAL_MS = 1000 / DETECTION_PRESENTATION_FPS;
 
 interface UseCameraViewModelInput {
   cameraAccess: CameraAccess;

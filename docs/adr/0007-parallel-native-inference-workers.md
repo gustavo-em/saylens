@@ -37,7 +37,8 @@ For the performance-first Android slice:
 - publish only the newest completed detection batch so out-of-order worker
   completion cannot move the overlay backwards;
 - keep raw pixels and model execution outside the JavaScript thread;
-- cap React presentation updates at 15 Hz and repeated-empty diagnostics at
+- cap React presentation updates at 30 Hz to match the validated camera and
+  detector throughput, and cap repeated-empty diagnostics at
   1 Hz;
 - ask Android for the display's highest refresh mode, while respecting the
   device owner's system-level refresh-rate policy.

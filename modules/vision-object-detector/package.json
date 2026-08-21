@@ -17,7 +17,8 @@
   "homepage": "https://github.com/gustavo-em/SpellForMe#readme",
   "peerDependencies": {
     "react-native": "*",
-    "react-native-nitro-modules": "0.37.0"
+    "react-native-nitro-modules": "0.37.0",
+    "react-native-vision-camera": "5.2.2"
   },
   "create-react-native-library": {
     "type": "nitro-module",

@@ -55,6 +55,8 @@ namespace margelo::nitro::spellformeobjectdetector {
   public:
     // Methods
     std::string getModelName() override;
+    NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override;
+    void close() override;
 
   private:
     jni::global_ref<JHybridSpellformeObjectDetectorSpec::JavaPart> _javaPart;

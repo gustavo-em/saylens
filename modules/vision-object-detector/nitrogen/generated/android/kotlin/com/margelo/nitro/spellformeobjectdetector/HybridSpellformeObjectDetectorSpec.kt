@@ -11,6 +11,7 @@ import androidx.annotation.Keep
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import dalvik.annotation.optimization.FastNative
+import com.margelo.nitro.camera.HybridFrameSpec
 import com.margelo.nitro.core.HybridObject
 
 /**
@@ -32,6 +33,14 @@ abstract class HybridSpellformeObjectDetectorSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun getModelName(): String
+  
+  @DoNotStrip
+  @Keep
+  abstract fun detect(frame: com.margelo.nitro.camera.HybridFrameSpec): NativeDetectionBatch
+  
+  @DoNotStrip
+  @Keep
+  abstract fun close(): Unit
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

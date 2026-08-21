@@ -15,6 +15,8 @@ namespace margelo::nitro::spellformeobjectdetector {
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("getModelName", &HybridSpellformeObjectDetectorSpec::getModelName);
+      prototype.registerHybridMethod("detect", &HybridSpellformeObjectDetectorSpec::detect);
+      prototype.registerHybridMethod("close", &HybridSpellformeObjectDetectorSpec::close);
     });
   }
 

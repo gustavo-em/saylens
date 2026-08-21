@@ -7,9 +7,26 @@
 
 #include "JHybridSpellformeObjectDetectorSpec.hpp"
 
-
+// Forward declaration of `NativeDetectionBatch` to properly resolve imports.
+namespace margelo::nitro::spellformeobjectdetector { struct NativeDetectionBatch; }
+// Forward declaration of `NativeDetection` to properly resolve imports.
+namespace margelo::nitro::spellformeobjectdetector { struct NativeDetection; }
+// Forward declaration of `NativeDetectionBox` to properly resolve imports.
+namespace margelo::nitro::spellformeobjectdetector { struct NativeDetectionBox; }
+// Forward declaration of `HybridFrameSpec` to properly resolve imports.
+namespace margelo::nitro::camera { class HybridFrameSpec; }
 
 #include <string>
+#include "NativeDetectionBatch.hpp"
+#include "JNativeDetectionBatch.hpp"
+#include "NativeDetection.hpp"
+#include <vector>
+#include "JNativeDetection.hpp"
+#include "NativeDetectionBox.hpp"
+#include "JNativeDetectionBox.hpp"
+#include <memory>
+#include <VisionCamera/HybridFrameSpec.hpp>
+#include <VisionCamera/JHybridFrameSpec.hpp>
 
 namespace margelo::nitro::spellformeobjectdetector {
 
@@ -48,6 +65,15 @@ namespace margelo::nitro::spellformeobjectdetector {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getModelName");
     auto __result = method(_javaPart);
     return __result->toStdString();
+  }
+  NativeDetectionBatch JHybridSpellformeObjectDetectorSpec::detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNativeDetectionBatch>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */)>("detect");
+    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart());
+    return __result->toCpp();
+  }
+  void JHybridSpellformeObjectDetectorSpec::close() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("close");
+    method(_javaPart);
   }
 
 } // namespace margelo::nitro::spellformeobjectdetector

@@ -13,9 +13,15 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `NativeDetectionBatch` to properly resolve imports.
+namespace margelo::nitro::spellformeobjectdetector { struct NativeDetectionBatch; }
+// Forward declaration of `HybridFrameSpec` to properly resolve imports.
+namespace margelo::nitro::camera { class HybridFrameSpec; }
 
 #include <string>
+#include "NativeDetectionBatch.hpp"
+#include <memory>
+#include <VisionCamera/HybridFrameSpec.hpp>
 
 namespace margelo::nitro::spellformeobjectdetector {
 
@@ -49,6 +55,8 @@ namespace margelo::nitro::spellformeobjectdetector {
     public:
       // Methods
       virtual std::string getModelName() = 0;
+      virtual NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
+      virtual void close() = 0;
 
     protected:
       // Hybrid Setup

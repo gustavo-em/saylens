@@ -6,9 +6,9 @@ into an interactive English-learning experience.
 Point the device at everyday objects, see an English label anchored over each
 object, and tap a label to learn its meaning and pronunciation.
 
-> Status: Milestone 2 in progress. The app opens directly on the live rear
-> camera, with permission handling and Camera/Settings navigation validated on
-> a physical Android device.
+> Status: the first on-device learning slice is operational. The Android app
+> streams camera frames to EfficientDet, maps detections into clickable labels,
+> and opens local vocabulary details without sending images to a server.
 
 <p align="center">
   <img src="docs/assets/android-camera-settings.png" alt="SpellForMe camera settings running on a physical Samsung device" width="320" />
@@ -33,8 +33,10 @@ The first experience is designed to work on-device and without a backend.
 - VisionCamera 5 for the camera session and frame output.
 - A local Android Nitro/Kotlin adapter for inference.
 - MediaPipe Tasks with EfficientDet-Lite0 int8 for the first detector.
-- React Native overlays with UI-thread animation and native press handling.
-- Local vocabulary content and device text-to-speech for the MVP.
+- React Native overlays with native press handling and bounded metadata updates.
+- A local vocabulary catalog for the first common-object labels.
+- UI-thread smoothing and device text-to-speech are the next product polish
+  steps.
 
 These are recorded decisions rather than hidden assumptions. Read the
 [architecture](docs/ARCHITECTURE.md) and the
@@ -97,6 +99,11 @@ npm run android -- --device <device-serial>
 The first launch requests camera permission. Switching to Settings pauses the
 native camera session; returning to Camera resumes it without remounting the
 feature screen.
+
+Object detection runs locally. The first Android build packages the pinned
+EfficientDet model, so no model download or backend is required at runtime.
+The model source, limitations, and checksum are recorded in the
+[model card](modules/vision-object-detector/MODEL_CARD.md).
 
 The first build may install the pinned Android SDK components and download the
 Gradle distribution. See the reproducible baseline record in

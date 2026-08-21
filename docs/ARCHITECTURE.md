@@ -76,8 +76,8 @@ The domain owns concepts that remain valid even if the UI and detector change:
 - pronunciation request;
 - detection track lifecycle rules.
 
-Expected examples include `DetectedObject`, `BoundingBox`, `VocabularyEntry`,
-and repository interfaces. These names are illustrative, not pre-created code.
+The implemented core values are `DetectedObject`, normalized bounds,
+`DetectionFrame`, and `VocabularyEntry`.
 
 ### Application
 
@@ -121,12 +121,13 @@ Architecture controls dependencies between layers; MVVM structures the
 presentation layer.
 
 `styled-components` owns static, theme-driven presentation styles. Components
-are defined at module scope. Native camera surfaces and future per-frame overlay
-coordinates remain outside styled-components and React render state.
+are defined at module scope. Native camera surfaces stay in infrastructure;
+dynamic box geometry is applied as a plain native style after frame-to-preview
+coordinate mapping.
 
-High-frequency box positions should use UI-thread animation values. React state
-is reserved for lower-frequency changes such as tracks appearing/disappearing
-and the selected object changing.
+Detector metadata is capped before it enters React state, and repeated empty
+frames do not render again. UI-thread smoothing remains planned for tracking
+polish; raw camera-frequency values must not drive the React tree.
 
 ## Native boundary
 
@@ -162,11 +163,12 @@ outside the React Native thread.
 ## Concurrency and backpressure
 
 - Camera preview and inference are independent outputs.
-- At most one inference runs at a time.
-- A frame is dropped when the inference runner is busy; frames are never queued.
+- FrameOutput executes one detector call synchronously on its dedicated worklet
+  callback; `dropFramesWhileBusy` discards new frames instead of queueing them.
 - Native resources are released in success and failure paths.
 - The JavaScript thread never performs pixel conversion or model inference.
-- UI animation does not depend on React rendering every camera frame.
+- Repeated empty results are ignored and non-empty metadata updates are capped
+  at five per second.
 
 ## Testing boundaries
 

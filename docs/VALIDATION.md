@@ -89,5 +89,35 @@ tsc --noEmit             passed
 jest --runInBand         1 suite, 2 tests passed
 ```
 
-FrameOutput, object detection, bounding boxes, and the five-minute endurance
-session remain explicitly unvalidated and are tracked in the roadmap.
+## On-device detector validation
+
+The first complete detector path was validated on the same Samsung device on
+2026-08-20 with these pinned components:
+
+```text
+VisionCamera                    5.2.2
+VisionCamera Worklets           5.2.2
+React Native Worklets           0.12.1
+Nitro Modules                   0.37.0
+MediaPipe Tasks Vision          0.10.35
+EfficientDet-Lite0 int8 SHA-256 0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb
+```
+
+The full Android app compiled and installed with the model packaged at
+`assets/efficientdet_lite0_int8.tflite`. Android reported camera `0` active for
+the application, the UI received successful detection batches, and no native,
+MediaPipe, Worklets, or React fatal error appeared. A live physical-device
+sample reported 195 ms inference latency at the requested 640 by 360 RGB frame
+resolution.
+
+The camera's current scene did not contain a confidently recognizable COCO
+object, so it correctly remained in `PROCURANDO`. A deterministic presentation
+test injects a 91% `bottle` detection, lays out the preview, presses its overlay,
+and verifies the word, Portuguese meaning, pronunciation hint, and confidence.
+Pure mapping tests cover upright and 90-degree frame coordinates plus bounds
+clamping.
+
+The current quality gate covers two suites and six tests. Physical validation
+of known-object box alignment, latency percentiles, and the five-minute thermal
+session remains open and is called out in the roadmap rather than implied as
+complete.

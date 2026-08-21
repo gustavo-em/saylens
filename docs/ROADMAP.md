@@ -46,9 +46,9 @@ Status: in progress
 - [x] add Camera and Settings navigation with camera lifecycle control;
 - [x] structure presentation with MVVM and a shared styled-components theme;
 - [ ] validate a continuous five-minute preview session;
-- configure a low-resolution FrameOutput independently from the preview;
-- add asynchronous frame backpressure and lifecycle instrumentation;
-- document frame disposal and orientation behavior.
+- [x] configure a low-resolution FrameOutput independently from the preview;
+- [x] drop busy frames and dispose them on success and failure paths;
+- [x] document frame disposal and orientation mapping behavior.
 
 Acceptance criteria:
 
@@ -58,13 +58,14 @@ Acceptance criteria:
 
 ## Milestone 3: Native object detection
 
-Status: planned
+Status: in progress
 
-- scaffold the Android Nitro detector module;
-- record the selected model source, version, license, and checksum;
-- integrate MediaPipe Tasks and EfficientDet-Lite0 int8;
-- map native results to the typed detector contract;
-- measure inference latency on physical hardware.
+- [x] scaffold the Android Nitro detector module;
+- [x] record the selected model source, version, license, and checksum;
+- [x] integrate MediaPipe Tasks and EfficientDet-Lite0 int8;
+- [x] map native results to the typed detector contract;
+- [x] measure an initial inference sample on physical hardware;
+- [ ] record latency percentiles and a known-object physical test set.
 
 Acceptance criteria:
 
@@ -74,12 +75,12 @@ Acceptance criteria:
 
 ## Milestone 4: Stable interactive overlay
 
-Status: planned
+Status: in progress
 
-- convert frame coordinates into preview coordinates;
+- [x] convert frame coordinates into preview coordinates;
 - assign stable track identities using label and bounding-box overlap;
 - smooth visual position and size on the UI thread;
-- render accessible, clickable labels;
+- [x] render accessible, clickable labels;
 - handle stale detections and selection deterministically.
 
 Acceptance criteria:
@@ -90,12 +91,12 @@ Acceptance criteria:
 
 ## Milestone 5: Learning experience
 
-Status: planned
+Status: in progress
 
-- define the first curated vocabulary catalog for supported detector labels;
-- show word, pronunciation, meaning, and example sentence;
+- [x] define the first curated vocabulary catalog for common detector labels;
+- [x] show word, pronunciation, meaning, and example sentence;
 - integrate device text-to-speech;
-- add loading, unknown-label, permission, and failure states;
+- [x] add scanning, unknown-label, permission, and failure states;
 - polish motion, haptics, and visual hierarchy.
 
 Acceptance criteria:

@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
+import { Modal, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
+import type { DetectedObject } from '../../domain/DetectedObject';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
@@ -11,11 +13,49 @@ interface CameraViewProps {
   viewModel: CameraViewModel;
 }
 
+interface ViewportSize {
+  width: number;
+  height: number;
+}
+
+function getObjectStyle(
+  object: DetectedObject,
+  sourceWidth: number,
+  sourceHeight: number,
+  viewport: ViewportSize,
+) {
+  const scale = Math.max(
+    viewport.width / sourceWidth,
+    viewport.height / sourceHeight,
+  );
+  const renderedWidth = sourceWidth * scale;
+  const renderedHeight = sourceHeight * scale;
+  const offsetX = (viewport.width - renderedWidth) / 2;
+  const offsetY = (viewport.height - renderedHeight) / 2;
+
+  return {
+    left: offsetX + object.bounds.x * renderedWidth,
+    top: offsetY + object.bounds.y * renderedHeight,
+    width: object.bounds.width * renderedWidth,
+    height: object.bounds.height * renderedHeight,
+  };
+}
+
 export function CameraView({
   renderCamera,
   showGuidance,
   viewModel,
 }: CameraViewProps) {
+  const [viewport, setViewport] = useState<ViewportSize>({
+    width: 0,
+    height: 0,
+  });
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setViewport({ width, height });
+  }, []);
+
   if (!viewModel.hasPermission) {
     return (
       <PermissionBackground>
@@ -50,27 +90,79 @@ export function CameraView({
     );
   }
 
+  const detectionFrame = viewModel.detectionFrame;
+  const recognitionStatus =
+    viewModel.recognitionError != null
+      ? 'INDISPONÍVEL'
+      : detectionFrame == null
+      ? 'ANALISANDO'
+      : detectionFrame.objects.length === 0
+      ? 'PROCURANDO'
+      : `${detectionFrame.objects.length} ${
+          detectionFrame.objects.length === 1 ? 'OBJETO' : 'OBJETOS'
+        }`;
+  const displayedError = viewModel.cameraError ?? viewModel.recognitionError;
+  const detectorAccessibilityLabel =
+    detectionFrame == null
+      ? `Detector: ${recognitionStatus}`
+      : `Detector: ${recognitionStatus}, inferência ${Math.round(
+          detectionFrame.inferenceTimeMs,
+        )} milissegundos`;
+
   return (
-    <Container>
+    <Container onLayout={handleLayout} testID="camera-container">
       {renderCamera(viewModel.viewportCallbacks)}
       <Scrim pointerEvents="none" />
 
-      <Overlay edges={['top']}>
+      {detectionFrame != null && viewport.width > 0 ? (
+        <DetectionLayer pointerEvents="box-none">
+          {detectionFrame.objects.map(object => (
+            <ObjectTarget
+              accessibilityHint="Abre o significado e a pronúncia"
+              accessibilityLabel={`Aprender a palavra ${object.label}`}
+              accessibilityRole="button"
+              hitSlop={8}
+              key={object.id}
+              onPress={() => viewModel.onObjectPress(object)}
+              style={getObjectStyle(
+                object,
+                detectionFrame.sourceWidth,
+                detectionFrame.sourceHeight,
+                viewport,
+              )}
+              testID={`detected-object-${object.id}`}
+            >
+              <ObjectLabel>
+                <ObjectLabelText numberOfLines={1}>
+                  {object.label.toUpperCase()}
+                </ObjectLabelText>
+                <ObjectConfidence>
+                  {Math.round(object.confidence * 100)}%
+                </ObjectConfidence>
+              </ObjectLabel>
+            </ObjectTarget>
+          ))}
+        </DetectionLayer>
+      ) : null}
+
+      <Overlay edges={['top']} pointerEvents="box-none">
         <Header>
           <BrandGroup>
             <Brand>SpellForMe</Brand>
             <Caption>Explore o inglês ao seu redor</Caption>
           </BrandGroup>
 
-          <LiveBadge>
-            <LiveDot $ready={viewModel.isCameraLive} />
-            <LiveText>
-              {viewModel.isCameraLive ? 'AO VIVO' : 'INICIANDO'}
-            </LiveText>
+          <LiveBadge accessibilityLabel={detectorAccessibilityLabel} accessible>
+            <LiveDot
+              $ready={
+                viewModel.isCameraLive && viewModel.recognitionError == null
+              }
+            />
+            <LiveText>{recognitionStatus}</LiveText>
           </LiveBadge>
         </Header>
 
-        {showGuidance ? (
+        {showGuidance && viewModel.detections.length === 0 ? (
           <FocusArea pointerEvents="none">
             <TopLeftCorner />
             <TopRightCorner />
@@ -82,12 +174,61 @@ export function CameraView({
           </FocusArea>
         ) : null}
 
-        {viewModel.cameraError != null ? (
+        {displayedError != null ? (
           <ErrorBanner>
-            <ErrorText>{viewModel.cameraError}</ErrorText>
+            <ErrorText>{displayedError}</ErrorText>
           </ErrorBanner>
         ) : null}
       </Overlay>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={viewModel.dismissObject}
+        statusBarTranslucent
+        transparent
+        visible={viewModel.selectedVocabulary != null}
+      >
+        <ModalSurface>
+          <ModalDismissArea
+            accessibilityLabel="Fechar detalhes da palavra"
+            accessibilityRole="button"
+            onPress={viewModel.dismissObject}
+          />
+
+          {viewModel.selectedVocabulary != null &&
+          viewModel.selectedObject != null ? (
+            <WordCard>
+              <WordEyebrow>VOCÊ ENCONTROU</WordEyebrow>
+              <WordTitle>{viewModel.selectedVocabulary.word}</WordTitle>
+              <Pronunciation>
+                {viewModel.selectedVocabulary.pronunciation}
+              </Pronunciation>
+              <PronunciationHint>
+                Fale assim: {viewModel.selectedVocabulary.pronunciationHint}
+              </PronunciationHint>
+
+              <Divider />
+
+              <DetailLabel>EM PORTUGUÊS</DetailLabel>
+              <Meaning>{viewModel.selectedVocabulary.meaning}</Meaning>
+              <DetailLabel>EXEMPLO</DetailLabel>
+              <Example>“{viewModel.selectedVocabulary.example}”</Example>
+              <ConfidenceText>
+                Confiança do modelo:{' '}
+                {Math.round(viewModel.selectedObject.confidence * 100)}%
+              </ConfidenceText>
+
+              <CloseButton
+                accessibilityRole="button"
+                onPress={viewModel.dismissObject}
+                testID="close-word-modal"
+              >
+                <CloseButtonText>CONTINUAR EXPLORANDO</CloseButtonText>
+              </CloseButton>
+            </WordCard>
+          ) : null}
+        </ModalSurface>
+      </Modal>
     </Container>
   );
 }
@@ -101,6 +242,47 @@ const Scrim = styled.View`
   position: absolute;
   inset: 0px;
   background-color: rgba(1, 12, 8, 0.12);
+`;
+
+const DetectionLayer = styled.View`
+  position: absolute;
+  inset: 0px;
+`;
+
+const ObjectTarget = styled.Pressable`
+  position: absolute;
+  min-width: 42px;
+  min-height: 42px;
+  border: 2px solid ${({ theme }) => theme.colors.accent};
+  border-radius: 10px;
+  background-color: rgba(7, 19, 15, 0.08);
+`;
+
+const ObjectLabel = styled.View`
+  position: absolute;
+  top: -31px;
+  left: -2px;
+  max-width: 190px;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const ObjectLabelText = styled.Text`
+  flex-shrink: 1;
+  color: ${({ theme }) => theme.colors.background};
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+`;
+
+const ObjectConfidence = styled.Text`
+  color: rgba(7, 19, 15, 0.68);
+  font-size: 10px;
+  font-weight: 800;
 `;
 
 const Overlay = styled(SafeAreaView)`
@@ -303,5 +485,108 @@ const PermissionError = styled.Text`
   margin-top: 14px;
   color: #ffb4ab;
   font-size: 13px;
+  text-align: center;
+`;
+
+const ModalSurface = styled.View`
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 24px 20px 34px;
+  background-color: rgba(0, 0, 0, 0.62);
+`;
+
+const ModalDismissArea = styled.Pressable`
+  position: absolute;
+  inset: 0px;
+`;
+
+const WordCard = styled.View`
+  width: 100%;
+  padding: 28px 24px 22px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.extraLarge}px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const WordEyebrow = styled.Text`
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+`;
+
+const WordTitle = styled.Text`
+  margin-top: 7px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: -1px;
+`;
+
+const Pronunciation = styled.Text`
+  margin-top: 3px;
+  color: ${({ theme }) => theme.colors.mutedStrong};
+  font-size: 17px;
+`;
+
+const PronunciationHint = styled.Text`
+  align-self: flex-start;
+  margin-top: 12px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  color: ${({ theme }) => theme.colors.background};
+  font-size: 12px;
+  font-weight: 800;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const Divider = styled.View`
+  height: 1px;
+  margin: 23px 0px 20px;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const DetailLabel = styled.Text`
+  margin-top: 12px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+`;
+
+const Meaning = styled.Text`
+  margin-top: 5px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 20px;
+  font-weight: 700;
+`;
+
+const Example = styled.Text`
+  margin-top: 5px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 16px;
+  font-style: italic;
+  line-height: 23px;
+`;
+
+const ConfidenceText = styled.Text`
+  margin-top: 19px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11px;
+`;
+
+const CloseButton = styled.Pressable`
+  margin-top: 22px;
+  padding: 15px 18px;
+  border-radius: ${({ theme }) => theme.radii.medium}px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const CloseButtonText = styled.Text`
+  color: ${({ theme }) => theme.colors.background};
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.1px;
   text-align: center;
 `;

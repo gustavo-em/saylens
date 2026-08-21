@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import styled, { ThemeProvider } from 'styled-components/native';
 
 import { VisionCameraViewport } from '../features/learning/infrastructure/camera/VisionCameraViewport';
+import { localVocabularyRepository } from '../features/learning/infrastructure/vocabulary/localVocabularyRepository';
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
@@ -33,6 +34,7 @@ function AppContent() {
         isActive={viewModel.cameraIsActive}
         renderCamera={renderCamera}
         showGuidance={viewModel.showGuidance}
+        vocabularyRepository={localVocabularyRepository}
       />
 
       {viewModel.activeTab === 'settings' ? (

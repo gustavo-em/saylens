@@ -53,16 +53,17 @@ export function SettingsScreen({
               <Separator />
               <InfoRow label="Processamento" value="No dispositivo" />
               <Separator />
-              <InfoRow label="Reconhecimento" value="Próxima etapa" />
+              <InfoRow label="Reconhecimento" value="EfficientDet · ativo" />
             </InfoCard>
           </Section>
 
           <AboutCard>
-            <AboutEyebrow>MILESTONE 2</AboutEyebrow>
-            <AboutTitle>Camera-first foundation</AboutTitle>
+            <AboutEyebrow>MILESTONE 5</AboutEyebrow>
+            <AboutTitle>On-device learning loop</AboutTitle>
             <AboutBody>
-              Preview nativo com VisionCamera 5. O reconhecimento de objetos
-              será conectado sem levar pixels para a thread JavaScript.
+              VisionCamera 5 e MediaPipe reconhecem objetos no Android sem
+              enviar imagens para servidores. O React recebe somente caixas e
+              palavras.
             </AboutBody>
           </AboutCard>
         </Content>

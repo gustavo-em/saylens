@@ -35,11 +35,36 @@ jest.mock(
     const { View: MockView } = jest.requireActual('react-native');
 
     return {
-      VisionCameraViewport: ({ isActive }: { isActive: boolean }) =>
-        ReactModule.createElement(MockView, {
+      VisionCameraViewport: ({
+        isActive,
+        onDetections,
+      }: {
+        isActive: boolean;
+        onDetections: (frame: unknown) => void;
+      }) => {
+        ReactModule.useEffect(() => {
+          if (isActive) {
+            onDetections({
+              objects: [
+                {
+                  id: 'bottle-0',
+                  label: 'bottle',
+                  confidence: 0.91,
+                  bounds: { x: 0.2, y: 0.25, width: 0.3, height: 0.4 },
+                },
+              ],
+              sourceWidth: 360,
+              sourceHeight: 640,
+              inferenceTimeMs: 45,
+            });
+          }
+        }, [isActive, onDetections]);
+
+        return ReactModule.createElement(MockView, {
           isActive,
           testID: 'camera-preview',
-        }),
+        });
+      },
     };
   },
 );
@@ -86,7 +111,38 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
     expect(JSON.stringify(renderer!.toJSON())).toContain(
-      'Camera-first foundation',
+      'On-device learning loop',
     );
+  });
+
+  it('opens vocabulary details after pressing a detected object', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'camera-container' })
+        .props.onLayout({
+          nativeEvent: { layout: { width: 360, height: 640 } },
+        });
+    });
+
+    const bottle = renderer!.root.findByProps({
+      testID: 'detected-object-bottle-0',
+    });
+
+    await ReactTestRenderer.act(() => {
+      bottle.props.onPress();
+    });
+
+    const renderedTree = JSON.stringify(renderer!.toJSON());
+    expect(renderedTree).toContain('Bottle');
+    expect(renderedTree).toContain('garrafa');
+    expect(renderedTree).toContain('BÓ-tl');
+    expect(renderedTree).toContain('Confiança do modelo:');
+    expect(renderedTree).toContain('91');
   });
 });

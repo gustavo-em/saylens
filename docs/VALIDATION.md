@@ -121,3 +121,39 @@ The current quality gate covers two suites and six tests. Physical validation
 of known-object box alignment, latency percentiles, and the five-minute thermal
 session remains open and is called out in the roadmap rather than implied as
 complete.
+
+## Camera and detector performance validation
+
+The performance-first pipeline was validated on the same physical Samsung
+device on 2026-08-21. Measurements below came from the Android debug build with
+the camera active and the 640 by 360 RGB FrameOutput enabled.
+
+```text
+Metric                    Before         Final
+Camera preview            about 10 FPS   29.98 to 30.00 FPS
+Detector throughput       about 5 FPS    29.8 to 30.2 FPS
+Inference latency         195 ms sample  70 to 112 ms warm samples
+Parallel detector workers 1              4
+Process CPU               about 150%     about 324% to 339%
+Resident memory           about 333 MB   about 529 to 533 MB
+```
+
+The selected back camera exposed and negotiated a maximum regular rate of 30
+FPS, so the final detector throughput reached the camera's input ceiling. The
+native pool keeps one frame per worker and does not queue additional frames.
+The preview remained at 30 FPS while all four workers were active.
+
+The device panel advertises 60 and 120 Hz modes. SpellForMe requests the highest
+mode after its window is attached, but this device remained at 60 Hz because of
+its active Samsung system refresh policy. The app does not silently change the
+owner's global display setting.
+
+GPU delegation was tested before selecting the worker pool. The MediaPipe int8
+graph rejected that tensor path, while the float32 graph did not complete
+reliably on this device. The final version therefore uses the verified int8 CPU
+path and documents the trade-off instead of exposing an unverified GPU option.
+
+The final run showed the app process alive, the camera surface stable at 30 FPS,
+all four detector workers initialized, repeated throughput windows near 30 FPS,
+and no fatal entry in the Android crash buffer. A longer thermal/battery run is
+still required before a public performance claim beyond this device and build.

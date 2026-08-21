@@ -8,6 +8,8 @@ import type {
 } from '../../domain/DetectedObject';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 
+const DETECTION_PRESENTATION_INTERVAL_MS = 1000 / 15;
+
 interface UseCameraViewModelInput {
   cameraAccess: CameraAccess;
   isActive: boolean;
@@ -84,15 +86,19 @@ export function useCameraViewModel({
   }, []);
 
   const handleDetections = useCallback((frame: DetectionFrame) => {
+    const now = Date.now();
     if (
       frame.objects.length === 0 &&
-      detectionFrameRef.current?.objects.length === 0
+      detectionFrameRef.current?.objects.length === 0 &&
+      now - lastDetectionUpdate.current < 1000
     ) {
       return;
     }
 
-    const now = Date.now();
-    if (now - lastDetectionUpdate.current < 200) {
+    if (
+      now - lastDetectionUpdate.current <
+      DETECTION_PRESENTATION_INTERVAL_MS
+    ) {
       return;
     }
 

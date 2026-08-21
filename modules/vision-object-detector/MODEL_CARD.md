@@ -14,6 +14,12 @@ model for its Android-first proof of concept.
 The model is used only for on-device inference. Camera pixels are not uploaded
 or copied to the React Native JavaScript thread.
 
+The int8 variant is intentionally used by four parallel native inference workers.
+This keeps camera preview work independent from recognition, uses more CPU cores
+on modern Android devices, and avoids queuing stale frames. GPU delegation was
+tested on the physical validation device but did not complete the MediaPipe task
+graph reliably, so it is not presented as an acceleration path in this version.
+
 The upstream task guide describes EfficientDet-Lite0 as its recommended balance
 between latency and accuracy. It also documents that the model is trained on
 COCO and therefore recognizes only its supported categories. SpellForMe must

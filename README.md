@@ -42,6 +42,15 @@ These are recorded decisions rather than hidden assumptions. Read the
 [architecture](docs/ARCHITECTURE.md) and the
 [Architecture Decision Records](docs/adr/README.md) for context and trade-offs.
 
+### Physical-device performance snapshot
+
+The performance-first debug configuration was measured on a Samsung SM-M536B
+running Android 14. Four bounded native workers processed 29.8 to 30.2 detector
+frames per second while the camera preview remained at approximately 30 FPS.
+This intentionally favors modern hardware: the measured process cost was about
+324% to 339% CPU and 529 to 533 MB resident memory. Reproducible context and
+limitations are in [physical-device validation](docs/VALIDATION.md).
+
 ## Repository layout
 
 ```text

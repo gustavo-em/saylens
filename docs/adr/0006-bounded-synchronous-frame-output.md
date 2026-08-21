@@ -1,6 +1,7 @@
 # ADR-0006: Bounded synchronous FrameOutput for the first detector
 
-- Status: Accepted
+- Status: Superseded by
+  [ADR-0007](0007-parallel-native-inference-workers.md)
 - Date: 2026-08-20
 - Owners: project maintainers
 - Supersedes: the async-runner execution detail in ADR-0003 and the initial

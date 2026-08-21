@@ -9,12 +9,15 @@ import {
   Camera,
   useCameraDevice,
   useFrameOutput,
+  type CameraSessionConfig,
   type CameraViewProps,
+  type Constraint,
 } from 'react-native-vision-camera';
 
 import { mapNativeDetectionBatch } from '../detection/mapNativeDetectionBatch';
 
 const DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
+const MAX_REAL_TIME_CAMERA_FPS = 60;
 
 interface VisionCameraViewportProps {
   isActive: boolean;
@@ -85,6 +88,29 @@ export const VisionCameraViewport = memo(function CameraViewport({
   });
 
   const outputs = useMemo(() => [frameOutput], [frameOutput]);
+  const targetCameraFPS = useMemo(() => {
+    const highestSupportedFPS = device?.supportedFPSRanges.reduce(
+      (highest, range) => Math.max(highest, range.max),
+      30,
+    );
+
+    return Math.min(highestSupportedFPS ?? 30, MAX_REAL_TIME_CAMERA_FPS);
+  }, [device]);
+  const constraints = useMemo<Constraint[]>(
+    () => [{ fps: targetCameraFPS }, { binned: true }],
+    [targetCameraFPS],
+  );
+
+  const handleSessionConfigSelected = useCallback(
+    (config: CameraSessionConfig) => {
+      console.info(
+        `[SpellForMe camera] requested=${targetCameraFPS}fps selected=${
+          config.selectedFPS ?? 'auto'
+        }fps native=${config.nativePixelFormat} binned=${config.isBinned}`,
+      );
+    },
+    [targetCameraFPS],
+  );
 
   const handleError: NonNullable<CameraViewProps['onError']> = () => {
     onError('Não foi possível iniciar a câmera.');
@@ -96,6 +122,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
 
   return (
     <Camera
+      constraints={constraints}
       device={device}
       enableNativeTapToFocusGesture
       enableNativeZoomGesture
@@ -103,6 +130,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
       onError={handleError}
       onPreviewStarted={onPreviewStarted}
       onPreviewStopped={onPreviewStopped}
+      onSessionConfigSelected={handleSessionConfigSelected}
       outputs={outputs}
       resizeMode="cover"
       style={StyleSheet.absoluteFill}

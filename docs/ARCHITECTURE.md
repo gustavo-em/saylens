@@ -163,12 +163,16 @@ outside the React Native thread.
 ## Concurrency and backpressure
 
 - Camera preview and inference are independent outputs.
-- FrameOutput executes one detector call synchronously on its dedicated worklet
-  callback; `dropFramesWhileBusy` discards new frames instead of queueing them.
+- FrameOutput copies an accepted frame into native-owned memory and returns
+  without waiting for model inference.
+- Four dedicated native workers each accept at most one in-flight frame. When
+  all are busy, the new frame is discarded instead of queued.
+- Only the newest completed batch is published, so an older worker cannot move
+  the overlay backwards when it finishes later.
 - Native resources are released in success and failure paths.
 - The JavaScript thread never performs pixel conversion or model inference.
-- Repeated empty results are ignored and non-empty metadata updates are capped
-  at five per second.
+- Detection metadata updates are capped at 15 per second; repeated-empty
+  diagnostics update at most once per second.
 
 ## Testing boundaries
 

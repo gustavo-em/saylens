@@ -1,12 +1,28 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled, { useTheme } from 'styled-components/native';
 
+import {
+  getAvailableLearningLanguages,
+  learningLanguages,
+  type LearningLanguage,
+  type LearningLanguageSettings,
+} from '../../domain/LearningLanguage';
+import type { LearningCopy } from '../localization/learningCopy';
+
 interface SettingsScreenProps {
+  copy: LearningCopy;
+  languageSettings: LearningLanguageSettings;
+  onLearningLanguageChange: (language: LearningLanguage) => void;
+  onNativeLanguageChange: (language: LearningLanguage) => void;
   onShowGuidanceChange: (value: boolean) => void;
   showGuidance: boolean;
 }
 
 export function SettingsScreen({
+  copy,
+  languageSettings,
+  onLearningLanguageChange,
+  onNativeLanguageChange,
   onShowGuidanceChange,
   showGuidance,
 }: SettingsScreenProps) {
@@ -18,23 +34,80 @@ export function SettingsScreen({
         <Content showsVerticalScrollIndicator={false}>
           <Header>
             <Eyebrow>SPELLFORME</Eyebrow>
-            <Title accessibilityRole="header">Configurações</Title>
-            <Subtitle>
-              Ajuste a experiência sem sair do modo de aprendizagem.
-            </Subtitle>
+            <Title accessibilityRole="header">{copy.settings.title}</Title>
+            <Subtitle>{copy.settings.subtitle}</Subtitle>
           </Header>
 
           <Section>
-            <SectionTitle>EXPERIÊNCIA DA CÂMERA</SectionTitle>
+            <SectionTitle>{copy.settings.languagesSection}</SectionTitle>
+            <LanguageCard>
+              <SettingTitle>{copy.settings.nativeLanguageTitle}</SettingTitle>
+              <SettingDescription>
+                {copy.settings.nativeLanguageDescription}
+              </SettingDescription>
+              <LanguageOptions>
+                {learningLanguages.map(language => (
+                  <LanguageOption
+                    accessibilityRole="radio"
+                    accessibilityState={{
+                      checked: languageSettings.nativeLanguage === language,
+                    }}
+                    key={language}
+                    onPress={() => onNativeLanguageChange(language)}
+                    testID={`native-language-${language}`}
+                    $selected={languageSettings.nativeLanguage === language}
+                  >
+                    <LanguageOptionText
+                      $selected={languageSettings.nativeLanguage === language}
+                    >
+                      {copy.languageName(language)}
+                    </LanguageOptionText>
+                  </LanguageOption>
+                ))}
+              </LanguageOptions>
+            </LanguageCard>
+
+            <LanguageCard>
+              <SettingTitle>{copy.settings.learningLanguageTitle}</SettingTitle>
+              <SettingDescription>
+                {copy.settings.learningLanguageDescription}
+              </SettingDescription>
+              <LanguageOptions>
+                {getAvailableLearningLanguages(
+                  languageSettings.nativeLanguage,
+                ).map(language => (
+                  <LanguageOption
+                    accessibilityRole="radio"
+                    accessibilityState={{
+                      checked: languageSettings.learningLanguage === language,
+                    }}
+                    key={language}
+                    onPress={() => onLearningLanguageChange(language)}
+                    testID={`learning-language-${language}`}
+                    $selected={languageSettings.learningLanguage === language}
+                  >
+                    <LanguageOptionText
+                      $selected={languageSettings.learningLanguage === language}
+                    >
+                      {copy.languageName(language)}
+                    </LanguageOptionText>
+                  </LanguageOption>
+                ))}
+              </LanguageOptions>
+            </LanguageCard>
+          </Section>
+
+          <Section>
+            <SectionTitle>{copy.settings.cameraSection}</SectionTitle>
             <SettingCard>
               <SettingCopy>
-                <SettingTitle>Guia de enquadramento</SettingTitle>
+                <SettingTitle>{copy.settings.guidanceTitle}</SettingTitle>
                 <SettingDescription>
-                  Mostra a área visual para apontar aos objetos.
+                  {copy.settings.guidanceDescription}
                 </SettingDescription>
               </SettingCopy>
               <GuidanceSwitch
-                accessibilityLabel="Mostrar guia de enquadramento"
+                accessibilityLabel={copy.settings.guidanceAccessibility}
                 onValueChange={onShowGuidanceChange}
                 thumbColor={showGuidance ? theme.colors.background : '#D8E5DF'}
                 trackColor={{
@@ -47,24 +120,29 @@ export function SettingsScreen({
           </Section>
 
           <Section>
-            <SectionTitle>BASE TÉCNICA</SectionTitle>
+            <SectionTitle>{copy.settings.technicalSection}</SectionTitle>
             <InfoCard>
-              <InfoRow label="Câmera" value="Traseira · pronta" />
+              <InfoRow
+                label={copy.settings.cameraLabel}
+                value={copy.settings.cameraValue}
+              />
               <Separator />
-              <InfoRow label="Processamento" value="No dispositivo" />
+              <InfoRow
+                label={copy.settings.processingLabel}
+                value={copy.settings.processingValue}
+              />
               <Separator />
-              <InfoRow label="Reconhecimento" value="EfficientDet · ativo" />
+              <InfoRow
+                label={copy.settings.recognitionLabel}
+                value={copy.settings.recognitionValue}
+              />
             </InfoCard>
           </Section>
 
           <AboutCard>
             <AboutEyebrow>MILESTONE 5</AboutEyebrow>
-            <AboutTitle>On-device learning loop</AboutTitle>
-            <AboutBody>
-              VisionCamera 5 e MediaPipe reconhecem objetos no Android sem
-              enviar imagens para servidores. O React recebe somente caixas e
-              palavras.
-            </AboutBody>
+            <AboutTitle>{copy.settings.aboutTitle}</AboutTitle>
+            <AboutBody>{copy.settings.aboutBody}</AboutBody>
           </AboutCard>
         </Content>
       </SettingsSafeArea>
@@ -145,6 +223,33 @@ const SettingCard = styled.View`
   border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
   border-radius: ${({ theme }) => theme.radii.large}px;
   background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const LanguageCard = styled(SettingCard)`
+  gap: 12px;
+`;
+
+const LanguageOptions = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const LanguageOption = styled.Pressable<{ $selected: boolean }>`
+  padding: 9px 11px;
+  border: 1px solid
+    ${({ $selected, theme }) =>
+      $selected ? theme.colors.accent : theme.colors.borderSubtle};
+  border-radius: ${({ theme }) => theme.radii.pill}px;
+  background-color: ${({ $selected }) =>
+    $selected ? 'rgba(112, 241, 181, 0.12)' : 'transparent'};
+`;
+
+const LanguageOptionText = styled.Text<{ $selected: boolean }>`
+  color: ${({ $selected, theme }) =>
+    $selected ? theme.colors.accent : theme.colors.muted};
+  font-size: 12px;
+  font-weight: 700;
 `;
 
 const SettingCopy = styled.View`

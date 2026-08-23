@@ -11,10 +11,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
 import type { DetectedObject } from '../../domain/DetectedObject';
+import type { LearningLanguage } from '../../domain/LearningLanguage';
+import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
 interface CameraViewProps {
+  copy: LearningCopy;
+  learningLanguage: LearningLanguage;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   showGuidance: boolean;
   viewModel: CameraViewModel;
@@ -137,6 +141,8 @@ function InterpolatedObjectTarget({
 }
 
 export function CameraView({
+  copy,
+  learningLanguage,
   renderCamera,
   showGuidance,
   viewModel,
@@ -160,12 +166,9 @@ export function CameraView({
               <PermissionLens />
             </PermissionIcon>
             <PermissionTitle accessibilityRole="header">
-              A câmera é o começo
+              {copy.camera.permissionTitle}
             </PermissionTitle>
-            <PermissionBody>
-              O SpellForMe precisa da câmera para mostrar os objetos ao seu
-              redor. Nenhuma imagem é enviada para um servidor.
-            </PermissionBody>
+            <PermissionBody>{copy.camera.permissionBody}</PermissionBody>
             <PermissionButton
               accessibilityRole="button"
               disabled={viewModel.isRequestingPermission}
@@ -188,21 +191,20 @@ export function CameraView({
   const detectionFrame = viewModel.detectionFrame;
   const recognitionStatus =
     viewModel.recognitionError != null
-      ? 'INDISPONÍVEL'
+      ? copy.camera.unavailable
       : detectionFrame == null
-      ? 'ANALISANDO'
+      ? copy.camera.analyzing
       : detectionFrame.objects.length === 0
-      ? 'PROCURANDO'
-      : `${detectionFrame.objects.length} ${
-          detectionFrame.objects.length === 1 ? 'OBJETO' : 'OBJETOS'
-        }`;
+      ? copy.camera.searching
+      : copy.camera.objectsDetected(detectionFrame.objects.length);
   const displayedError = viewModel.cameraError ?? viewModel.recognitionError;
   const detectorAccessibilityLabel =
     detectionFrame == null
-      ? `Detector: ${recognitionStatus}`
-      : `Detector: ${recognitionStatus}, inferência ${Math.round(
-          detectionFrame.inferenceTimeMs,
-        )} milissegundos`;
+      ? copy.camera.detectorAccessibility(recognitionStatus)
+      : copy.camera.detectorAccessibility(
+          recognitionStatus,
+          Math.round(detectionFrame.inferenceTimeMs),
+        );
 
   return (
     <Container onLayout={handleLayout} testID="camera-container">
@@ -223,9 +225,9 @@ export function CameraView({
               <InterpolatedObjectTarget
                 accessibilityLabel={`${vocabulary.word}, ${
                   vocabulary.meaning
-                }. Pronúncia: ${
-                  vocabulary.pronunciationHint
-                }. Confiança ${Math.round(object.confidence * 100)}%`}
+                }. ${vocabulary.pronunciationHint}. ${Math.round(
+                  object.confidence * 100,
+                )}%`}
                 durationMs={viewModel.detectionInterpolationDurationMs}
                 key={object.id}
                 targetStyle={targetStyle}
@@ -252,7 +254,7 @@ export function CameraView({
         <Header>
           <BrandGroup>
             <Brand>SpellForMe</Brand>
-            <Caption>Explore o inglês ao seu redor</Caption>
+            <Caption>{copy.camera.caption(learningLanguage)}</Caption>
           </BrandGroup>
 
           <LiveBadge accessibilityLabel={detectorAccessibilityLabel} accessible>
@@ -272,7 +274,7 @@ export function CameraView({
             <BottomLeftCorner />
             <BottomRightCorner />
             <GuidancePill>
-              <GuidanceText>APONTE PARA UM OBJETO</GuidanceText>
+              <GuidanceText>{copy.camera.guidance}</GuidanceText>
             </GuidancePill>
           </FocusArea>
         ) : null}

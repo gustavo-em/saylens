@@ -20,6 +20,8 @@ const DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
 const MAX_REAL_TIME_CAMERA_FPS = 60;
 
 interface VisionCameraViewportProps {
+  cameraErrorMessage: string;
+  detectionErrorMessage: string;
   isActive: boolean;
   onDetectionError: (message: string) => void;
   onDetections: (batch: ReturnType<typeof mapNativeDetectionBatch>) => void;
@@ -45,6 +47,8 @@ function useAppIsActive() {
 }
 
 export const VisionCameraViewport = memo(function CameraViewport({
+  cameraErrorMessage,
+  detectionErrorMessage,
   isActive,
   onDetectionError,
   onDetections,
@@ -65,8 +69,8 @@ export const VisionCameraViewport = memo(function CameraViewport({
   );
 
   const handleDetectionFailure = useCallback(() => {
-    onDetectionError('O reconhecimento de objetos ficou indisponível.');
-  }, [onDetectionError]);
+    onDetectionError(detectionErrorMessage);
+  }, [detectionErrorMessage, onDetectionError]);
 
   const frameOutput = useFrameOutput({
     dropFramesWhileBusy: true,
@@ -113,7 +117,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
   );
 
   const handleError: NonNullable<CameraViewProps['onError']> = () => {
-    onError('Não foi possível iniciar a câmera.');
+    onError(cameraErrorMessage);
   };
 
   if (device == null) {

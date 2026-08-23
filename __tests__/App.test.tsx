@@ -111,7 +111,7 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
     expect(JSON.stringify(renderer!.toJSON())).toContain(
-      'On-device learning loop',
+      'Ciclo de aprendizado no dispositivo',
     );
   });
 
@@ -136,11 +136,55 @@ describe('App', () => {
 
     const renderedTree = JSON.stringify(renderer!.toJSON());
     expect(renderedTree).toContain('Bottle');
-    expect(renderedTree).toContain('garrafa');
+    expect(renderedTree).toContain('Garrafa');
     expect(renderedTree).toContain('BÓ-tl');
     expect(renderedTree).toContain('91');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),
     ).toHaveLength(0);
+  });
+
+  it('updates the interface and vocabulary when language preferences change', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'native-language-en' })
+        .props.onPress();
+    });
+
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Settings');
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'learning-language-es' })
+        .props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'learning-language-es' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-camera' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-container' })
+        .props.onLayout({
+          nativeEvent: { layout: { width: 360, height: 640 } },
+        });
+    });
+
+    const renderedTree = JSON.stringify(renderer!.toJSON());
+    expect(renderedTree).toContain('Botella');
+    expect(renderedTree).toContain('Bottle');
+    expect(renderedTree).toContain('Explore spanish around you');
   });
 });

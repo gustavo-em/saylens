@@ -5,15 +5,15 @@ import type { AppTab } from './AppTab';
 
 interface AppTabBarProps {
   activeTab: AppTab;
+  labels: { camera: string; settings: string };
   onSelect: (tab: AppTab) => void;
 }
 
-const tabs: ReadonlyArray<{ label: string; value: AppTab }> = [
-  { label: 'Câmera', value: 'camera' },
-  { label: 'Configurações', value: 'settings' },
-];
-
-export function AppTabBar({ activeTab, onSelect }: AppTabBarProps) {
+export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
+  const tabs: ReadonlyArray<{ label: string; value: AppTab }> = [
+    { label: labels.camera, value: 'camera' },
+    { label: labels.settings, value: 'settings' },
+  ];
   return (
     <BottomSafeArea edges={['bottom']} pointerEvents="box-none">
       <TabsContainer>

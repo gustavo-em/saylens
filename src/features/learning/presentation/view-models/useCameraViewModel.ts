@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { DetectionFrame } from '../../domain/DetectedObject';
+import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
+import type { LearningCopy } from '../localization/learningCopy';
 import {
   DEFAULT_DETECTION_INTERPOLATION_MS,
   getDetectionInterpolationDuration,
@@ -15,12 +17,16 @@ const DETECTION_PRESENTATION_INTERVAL_MS = 1000 / DETECTION_PRESENTATION_FPS;
 interface UseCameraViewModelInput {
   cameraAccess: CameraAccess;
   isActive: boolean;
+  languageSettings: LearningLanguageSettings;
+  copy: LearningCopy;
   vocabularyRepository: VocabularyRepository;
 }
 
 export function useCameraViewModel({
   cameraAccess,
   isActive,
+  languageSettings,
+  copy,
   vocabularyRepository,
 }: UseCameraViewModelInput) {
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -44,11 +50,11 @@ export function useCameraViewModel({
     try {
       await cameraAccess.requestPermission();
     } catch {
-      setCameraError('Não foi possível solicitar acesso à câmera.');
+      setCameraError(copy.camera.permissionRequestFailed);
     } finally {
       setIsRequestingPermission(false);
     }
-  }, [cameraAccess]);
+  }, [cameraAccess, copy.camera.permissionRequestFailed]);
 
   useEffect(() => {
     if (
@@ -67,9 +73,9 @@ export function useCameraViewModel({
         : cameraAccess.openSettings();
 
     action.catch(() => {
-      setCameraError('Não foi possível abrir as configurações da câmera.');
+      setCameraError(copy.camera.settingsOpenFailed);
     });
-  }, [cameraAccess, requestPermission]);
+  }, [cameraAccess, copy.camera.settingsOpenFailed, requestPermission]);
 
   const handlePreviewStarted = useCallback(() => {
     setCameraError(null);
@@ -127,9 +133,12 @@ export function useCameraViewModel({
     () =>
       detectionFrame?.objects.map(object => ({
         object,
-        vocabulary: vocabularyRepository.findByLabel(object.label),
+        vocabulary: vocabularyRepository.findByLabel(
+          object.label,
+          languageSettings,
+        ),
       })) ?? [],
-    [detectionFrame, vocabularyRepository],
+    [detectionFrame, languageSettings, vocabularyRepository],
   );
 
   const viewportCallbacks = useMemo<CameraViewportCallbacks>(
@@ -161,10 +170,10 @@ export function useCameraViewModel({
     isRequestingPermission,
     onPermissionAction: handlePermissionAction,
     permissionActionLabel: isRequestingPermission
-      ? 'SOLICITANDO…'
+      ? copy.camera.requestPending
       : canRequestPermission
-      ? 'PERMITIR CÂMERA'
-      : 'ABRIR CONFIGURAÇÕES',
+      ? copy.camera.requestPermission
+      : copy.camera.openSettings,
     recognitionError,
     viewportCallbacks,
   };

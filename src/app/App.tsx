@@ -19,10 +19,12 @@ function AppContent() {
     (callbacks: CameraViewportCallbacks) => (
       <VisionCameraViewport
         isActive={viewModel.cameraIsActive}
+        cameraErrorMessage={viewModel.copy.camera.previewFailed}
+        detectionErrorMessage={viewModel.copy.camera.recognitionUnavailable}
         {...callbacks}
       />
     ),
-    [viewModel.cameraIsActive],
+    [viewModel.cameraIsActive, viewModel.copy.camera],
   );
 
   return (
@@ -32,6 +34,8 @@ function AppContent() {
       <CameraScreen
         cameraAccess={viewModel.cameraAccess}
         isActive={viewModel.cameraIsActive}
+        languageSettings={viewModel.languageSettings}
+        copy={viewModel.copy}
         renderCamera={renderCamera}
         showGuidance={viewModel.showGuidance}
         vocabularyRepository={localVocabularyRepository}
@@ -39,6 +43,10 @@ function AppContent() {
 
       {viewModel.activeTab === 'settings' ? (
         <SettingsScreen
+          copy={viewModel.copy}
+          languageSettings={viewModel.languageSettings}
+          onLearningLanguageChange={viewModel.changeLearningLanguage}
+          onNativeLanguageChange={viewModel.changeNativeLanguage}
           onShowGuidanceChange={viewModel.changeGuidanceVisibility}
           showGuidance={viewModel.showGuidance}
         />
@@ -46,6 +54,7 @@ function AppContent() {
 
       <AppTabBar
         activeTab={viewModel.activeTab}
+        labels={viewModel.copy.tabs}
         onSelect={viewModel.selectTab}
       />
     </Root>

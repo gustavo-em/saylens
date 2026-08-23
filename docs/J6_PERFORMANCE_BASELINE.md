@@ -73,29 +73,30 @@ updates, and predictive UI-thread tracking.
 - Result: release mode reduced total PSS by roughly 60% compared with the same
   final pipeline in debug, without reducing detector throughput.
 
-## Responsive low-end pipeline in release mode
+## Accuracy-balanced low-end pipeline in release mode
 
-To reduce the time before a layer first appears, the low-end profile now uses
-two prewarmed CPU workers and a 0.45 confidence threshold. The detector still
-processes the 256 × 144 buffer and leaves the 30 FPS camera preview on its own
-pipeline.
+To reduce the time before a layer first appears without accepting low-confidence
+labels, the low-end profile uses two prewarmed CPU workers and the original 0.55
+confidence threshold. Its 640 × 360 target negotiates a 720 × 480 detector
+buffer on the J6, giving the model substantially more visual detail than the
+previous 256 × 144 buffer. The 30 FPS camera preview remains on its own pipeline.
 
 - Both model instances finished prewarming before the first camera inference.
-- First inference latency after warm-up: 472–484 ms, compared with roughly
+- First inference latency after warm-up: 474–497 ms, compared with roughly
   983 ms when the first inference also initialized the model.
-- Detector throughput across eleven windows: 3.9–4.5 inferences/s.
-- Latest observed latency: 446–495 ms.
-- Approximate interval between completed attempts: 222–256 ms, down from
+- Detector throughput across five windows: 3.8–4.5 inferences/s.
+- Latest observed latency: 454–518 ms.
+- Approximate interval between completed attempts: 222–263 ms, down from
   455–500 ms with one worker.
-- CPU sample: 260%.
-- Total PSS after a continuous 60-second run: 159 MB.
+- CPU sample: 252%.
+- Total PSS: 163 MB.
 - Swap PSS: 0.14 MB.
 - Camera preview remained negotiated at 30 FPS and the process stayed stable.
 
 The optimization increases throughput rather than making one inference twice
 as fast. It therefore reduces the visible acquisition delay when the first
-sample misses an object, while costing about 24 MB more PSS and an additional
-CPU core under sustained detection.
+sample misses an object. Raising input detail and rejecting detections below
+55% trades a small amount of latency and memory for fewer false positives.
 
 ## Reproduce
 

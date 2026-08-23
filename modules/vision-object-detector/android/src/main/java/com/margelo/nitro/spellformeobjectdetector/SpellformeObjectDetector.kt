@@ -435,13 +435,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       .setBaseOptions(baseOptions)
       .setRunningMode(RunningMode.IMAGE)
       .setMaxResults(MAX_RESULTS)
-      .setScoreThreshold(
-        if (performanceCapabilities.supportsHighPerformance) {
-          DEFAULT_SCORE_THRESHOLD
-        } else {
-          LOW_END_SCORE_THRESHOLD
-        },
-      )
+      .setScoreThreshold(DEFAULT_SCORE_THRESHOLD)
       .build()
 
     return ObjectDetector.createFromOptions(context, options).also {
@@ -619,7 +613,6 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val RESERVED_SYSTEM_PROCESSORS = 2
     const val MAX_RESULTS = 5
     const val DEFAULT_SCORE_THRESHOLD = 0.55f
-    const val LOW_END_SCORE_THRESHOLD = 0.45f
     const val RGBA_BYTES_PER_PIXEL = 4
     const val NANOSECONDS_PER_MILLISECOND = 1_000_000.0
     const val NANOSECONDS_PER_SECOND = 1_000_000_000.0

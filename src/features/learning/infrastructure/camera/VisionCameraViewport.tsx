@@ -21,7 +21,7 @@ import {
 } from '../../domain/PerformanceProfile';
 import { mapNativeDetectionBatch } from '../detection/mapNativeDetectionBatch';
 
-const LOW_END_DETECTION_RESOLUTION = { width: 320, height: 180 } as const;
+const LOW_END_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
 const STANDARD_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
 const MAX_REAL_TIME_CAMERA_FPS = 60;
 

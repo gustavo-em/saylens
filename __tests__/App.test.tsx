@@ -138,6 +138,9 @@ describe('App', () => {
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).toContain('Garrafa');
     expect(renderedTree).toContain('BÓ-tl');
+    expect(renderedTree).toContain('SIGNIFICADO');
+    expect(renderedTree).toContain('PRONÚNCIA');
+    expect(renderedTree).toContain('🧴');
     expect(renderedTree).toContain('91');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),

@@ -19,6 +19,8 @@ export interface LearningCopy {
     analyzing: string;
     searching: string;
     objectsDetected: (count: number) => string;
+    meaningLabel: string;
+    pronunciationLabel: string;
     detectorAccessibility: (status: string, inferenceTimeMs?: number) => string;
   };
   settings: {
@@ -77,6 +79,8 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       analyzing: 'ANALISANDO',
       searching: 'PROCURANDO',
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
+      meaningLabel: 'SIGNIFICADO',
+      pronunciationLabel: 'PRONÚNCIA',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inferência em ${time} milissegundos`
@@ -127,6 +131,8 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       analyzing: 'ANALYZING',
       searching: 'SEARCHING',
       objectsDetected: count => `${count} OBJECT${count === 1 ? '' : 'S'}`,
+      meaningLabel: 'MEANING',
+      pronunciationLabel: 'PRONUNCIATION',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inference in ${time} milliseconds`
@@ -179,6 +185,8 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       analyzing: 'ANALIZANDO',
       searching: 'BUSCANDO',
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
+      meaningLabel: 'SIGNIFICADO',
+      pronunciationLabel: 'PRONUNCIACIÓN',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inferencia en ${time} milisegundos`

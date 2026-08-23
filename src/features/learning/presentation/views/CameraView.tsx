@@ -34,6 +34,30 @@ const OBJECT_CARD_EDGE_INSET = 8;
 const OBJECT_CARD_TOP_OFFSET = -57;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
 
+const OBJECT_ICONS: Record<string, string> = {
+  backpack: '🎒',
+  book: '📖',
+  bottle: '🧴',
+  car: '🚗',
+  cat: '🐱',
+  chair: '🪑',
+  'cell phone': '📱',
+  clock: '🕒',
+  couch: '🛋️',
+  cup: '☕',
+  dog: '🐶',
+  keyboard: '⌨️',
+  laptop: '💻',
+  mouse: '🖱️',
+  person: '👤',
+  table: '▦',
+  tv: '📺',
+};
+
+function getObjectIcon(label: string) {
+  return OBJECT_ICONS[label.toLowerCase()] ?? '◈';
+}
+
 function getObjectStyle(
   object: DetectedObject,
   sourceWidth: number,
@@ -235,14 +259,35 @@ export function CameraView({
               >
                 <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
                   <ObjectCardHeader>
-                    <ObjectWord numberOfLines={1}>{vocabulary.word}</ObjectWord>
+                    <ObjectIdentity>
+                      <ObjectIcon>{getObjectIcon(object.label)}</ObjectIcon>
+                      <ObjectWord numberOfLines={1}>
+                        {vocabulary.word}
+                      </ObjectWord>
+                    </ObjectIdentity>
                     <ObjectConfidence>
                       {Math.round(object.confidence * 100)}%
                     </ObjectConfidence>
                   </ObjectCardHeader>
-                  <ObjectLearningHint numberOfLines={1}>
-                    {vocabulary.meaning} · {vocabulary.pronunciationHint}
-                  </ObjectLearningHint>
+                  <ObjectDetails>
+                    <ObjectDetail>
+                      <ObjectDetailLabel>
+                        {copy.camera.meaningLabel}
+                      </ObjectDetailLabel>
+                      <ObjectDetailValue numberOfLines={1}>
+                        {vocabulary.meaning}
+                      </ObjectDetailValue>
+                    </ObjectDetail>
+                    <ObjectDetailDivider />
+                    <ObjectDetail>
+                      <ObjectDetailLabel>
+                        {copy.camera.pronunciationLabel}
+                      </ObjectDetailLabel>
+                      <ObjectDetailValue numberOfLines={1}>
+                        {vocabulary.pronunciationHint}
+                      </ObjectDetailValue>
+                    </ObjectDetail>
+                  </ObjectDetails>
                 </ObjectCard>
               </InterpolatedObjectTarget>
             );
@@ -309,18 +354,18 @@ const ObjectTarget = styled(Animated.View)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
-  border: 2px solid ${({ theme }) => theme.colors.accent};
+  border: 2px solid #1a6fec;
   border-radius: 10px;
-  background-color: rgba(7, 19, 15, 0.08);
+  background-color: rgba(26, 111, 236, 0.09);
 `;
 
 const ObjectCard = styled.View`
   position: absolute;
   width: ${OBJECT_CARD_WIDTH}px;
-  padding: 8px 10px;
-  border: 1px solid rgba(112, 241, 181, 0.38);
-  border-radius: 9px;
-  background-color: rgba(7, 19, 15, 0.92);
+  padding: 10px;
+  border: 1px solid rgba(26, 111, 236, 0.72);
+  border-radius: 12px;
+  background-color: rgba(7, 20, 39, 0.96);
 `;
 
 const ObjectCardHeader = styled.View`
@@ -330,24 +375,70 @@ const ObjectCardHeader = styled.View`
   gap: 8px;
 `;
 
+const ObjectIdentity = styled.View`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+`;
+
+const ObjectIcon = styled.Text`
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 7px;
+  background-color: #1a6fec;
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 24px;
+  text-align: center;
+`;
+
 const ObjectWord = styled.Text`
   flex: 1;
-  color: ${({ theme }) => theme.colors.accent};
+  color: #6fa9ff;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.4px;
 `;
 
-const ObjectLearningHint = styled.Text`
-  flex-shrink: 1;
-  margin-top: 3px;
-  color: ${({ theme }) => theme.colors.text};
+const ObjectDetails = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-top: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background-color: rgba(26, 111, 236, 0.16);
+`;
+
+const ObjectDetail = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const ObjectDetailLabel = styled.Text`
+  color: #82b5ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+`;
+
+const ObjectDetailValue = styled.Text`
+  margin-top: 2px;
+  color: #ffffff;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
+`;
+
+const ObjectDetailDivider = styled.View`
+  width: 1px;
+  height: 26px;
+  margin: 0px 8px;
+  background-color: rgba(130, 181, 255, 0.35);
 `;
 
 const ObjectConfidence = styled.Text`
-  color: ${({ theme }) => theme.colors.mutedStrong};
+  color: #9bc4ff;
   font-size: 10px;
   font-weight: 800;
 `;

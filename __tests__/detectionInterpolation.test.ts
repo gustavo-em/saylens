@@ -15,8 +15,8 @@ describe('getDetectionInterpolationDuration', () => {
   });
 
   it('bounds the animation duration for very fast and stalled updates', () => {
-    expect(getDetectionInterpolationDuration(1_000, 1_005)).toBe(32);
-    expect(getDetectionInterpolationDuration(1_000, 2_000)).toBe(150);
+    expect(getDetectionInterpolationDuration(1_000, 1_005)).toBe(80);
+    expect(getDetectionInterpolationDuration(1_000, 2_000)).toBe(500);
   });
 
   it('falls back when timestamps are not chronological', () => {

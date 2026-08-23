@@ -499,7 +499,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
           Log.i(
             TAG,
             "Object detector worker $id completed its first inference in " +
-              "${batch.inferenceTimeMs.toInt()} ms.",
+              "${batch.inferenceTimeMs.toInt()} ms at ${frame.width}x" +
+              "${frame.height}.",
           )
         }
       } catch (error: RuntimeException) {
@@ -571,7 +572,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val HIGH_PERFORMANCE_PROFILE = "high-performance"
     const val LOW_DEVICE_PROFILE = "low-device"
     const val ULTRA_PERFORMANCE_PROFILE = "ultra-performance"
-    const val LOW_DEVICE_CPU_WORKERS = 2
+    const val LOW_DEVICE_CPU_WORKERS = 1
+    const val CALIBRATION_BASELINE_CPU_WORKERS = 2
     const val DEFAULT_GPU_WORKERS = 0
     const val MIN_CPU_WORKERS = 1
     const val MAX_CPU_WORKERS = 6
@@ -633,7 +635,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     companion object {
       fun create(maxCpuWorkerCount: Int) = WorkerCalibration(
         candidates = intArrayOf(
-          LOW_DEVICE_CPU_WORKERS,
+          CALIBRATION_BASELINE_CPU_WORKERS,
           MIN_HIGH_PERFORMANCE_CPU_WORKERS,
           maxCpuWorkerCount,
         ).distinct().sorted().toIntArray(),

@@ -10,9 +10,7 @@ import {
   getDetectionInterpolationDuration,
 } from '../animation/detectionInterpolation';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
-
-const DETECTION_PRESENTATION_FPS = 30;
-const DETECTION_PRESENTATION_INTERVAL_MS = 1000 / DETECTION_PRESENTATION_FPS;
+import { DetectionMotionTracker } from '../tracking/DetectionMotionTracker';
 
 interface UseCameraViewModelInput {
   cameraAccess: CameraAccess;
@@ -38,7 +36,7 @@ export function useCameraViewModel({
     setDetectionInterpolationDurationMs,
   ] = useState(DEFAULT_DETECTION_INTERPOLATION_MS);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
-  const detectionFrameRef = useRef<DetectionFrame | null>(null);
+  const detectionTracker = useRef(new DetectionMotionTracker());
   const lastDetectionUpdate = useRef(0);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
@@ -84,7 +82,7 @@ export function useCameraViewModel({
 
   const handlePreviewStopped = useCallback(() => {
     setIsPreviewReady(false);
-    detectionFrameRef.current = null;
+    detectionTracker.current.reset();
     lastDetectionUpdate.current = 0;
     setDetectionInterpolationDurationMs(DEFAULT_DETECTION_INTERPOLATION_MS);
     setDetectionFrame(null);
@@ -97,32 +95,18 @@ export function useCameraViewModel({
 
   const handleDetections = useCallback((frame: DetectionFrame) => {
     const now = Date.now();
-    if (
-      frame.objects.length === 0 &&
-      detectionFrameRef.current?.objects.length === 0 &&
-      now - lastDetectionUpdate.current < 1000
-    ) {
-      return;
-    }
-
-    if (
-      now - lastDetectionUpdate.current <
-      DETECTION_PRESENTATION_INTERVAL_MS
-    ) {
-      return;
-    }
+    const trackedFrame = detectionTracker.current.update(frame, now);
 
     setDetectionInterpolationDurationMs(
       getDetectionInterpolationDuration(lastDetectionUpdate.current, now),
     );
     lastDetectionUpdate.current = now;
-    detectionFrameRef.current = frame;
     setRecognitionError(null);
-    setDetectionFrame(frame);
+    setDetectionFrame(trackedFrame);
   }, []);
 
   const handleDetectionError = useCallback((message: string) => {
-    detectionFrameRef.current = null;
+    detectionTracker.current.reset();
     lastDetectionUpdate.current = 0;
     setDetectionInterpolationDurationMs(DEFAULT_DETECTION_INTERPOLATION_MS);
     setRecognitionError(message);

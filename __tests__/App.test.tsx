@@ -132,7 +132,7 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
     expect(
-      renderer!.root.findAllByProps({ testID: 'detected-object-bottle-0' }),
+      renderer!.root.findAllByProps({ testID: 'detected-object-bottle-1' }),
     ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
     expect(settingsTree).toContain('Perfil do dispositivo');
@@ -249,7 +249,7 @@ describe('App', () => {
     });
 
     renderer!.root.findByProps({
-      testID: 'detected-object-bottle-0',
+      testID: 'detected-object-bottle-1',
     });
 
     const renderedTree = JSON.stringify(renderer!.toJSON());

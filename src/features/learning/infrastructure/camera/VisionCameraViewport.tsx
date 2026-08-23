@@ -21,7 +21,8 @@ import {
 } from '../../domain/PerformanceProfile';
 import { mapNativeDetectionBatch } from '../detection/mapNativeDetectionBatch';
 
-const DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
+const LOW_END_DETECTION_RESOLUTION = { width: 320, height: 180 } as const;
+const STANDARD_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
 const MAX_REAL_TIME_CAMERA_FPS = 60;
 
 interface VisionCameraViewportProps {
@@ -93,11 +94,16 @@ export const VisionCameraViewport = memo(function CameraViewport({
     onDetectionError(detectionErrorMessage);
   }, [detectionErrorMessage, onDetectionError]);
 
+  const detectionResolution =
+    performanceProfile === 'low-device'
+      ? LOW_END_DETECTION_RESOLUTION
+      : STANDARD_DETECTION_RESOLUTION;
+
   const frameOutput = useFrameOutput({
     dropFramesWhileBusy: true,
     enablePreviewSizedOutputBuffers: true,
     pixelFormat: 'rgb',
-    targetResolution: DETECTION_RESOLUTION,
+    targetResolution: detectionResolution,
     onFrame(frame) {
       'worklet';
 

@@ -5,6 +5,8 @@
   "packageManager": "npm@11.6.2",
   "scripts": {
     "android": "react-native run-android",
+    "android:release": "cd android && ./gradlew app:installRelease",
+    "benchmark:android": "./scripts/benchmark-android.sh 30",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "generate:detector": "cd modules/vision-object-detector && ../../node_modules/.bin/nitrogen",

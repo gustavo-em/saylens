@@ -21,7 +21,7 @@ adb shell am force-stop "$APP_PACKAGE"
 adb shell monkey \
   -p "$APP_PACKAGE" \
   -c android.intent.category.LAUNCHER \
-  1 >/dev/null
+  1 >/dev/null 2>&1
 
 echo "Warming up and measuring for ${MEASUREMENT_SECONDS}s..."
 sleep "$MEASUREMENT_SECONDS"

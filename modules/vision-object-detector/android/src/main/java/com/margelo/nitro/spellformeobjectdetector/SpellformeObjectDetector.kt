@@ -432,7 +432,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     return ObjectDetector.createFromOptions(context, options).also {
       Log.i(
         TAG,
-        "Object detector worker $workerId initialized with $delegate delegate.",
+        "Object detector worker $workerId initialized with $delegate delegate " +
+          "using $MODEL_NAME.",
       )
     }
   }

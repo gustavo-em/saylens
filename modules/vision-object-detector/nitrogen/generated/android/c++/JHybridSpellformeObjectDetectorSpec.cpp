@@ -19,6 +19,7 @@ namespace margelo::nitro::camera { class HybridFrameSpec; }
 #include <string>
 #include <vector>
 #include "NativeDetectionBatch.hpp"
+#include <optional>
 #include "JNativeDetectionBatch.hpp"
 #include "NativeDetection.hpp"
 #include "JNativeDetection.hpp"
@@ -94,10 +95,10 @@ namespace margelo::nitro::spellformeobjectdetector {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* cpuWorkerCount */, double /* gpuWorkerCount */, jboolean /* calibrateCpuWorkers */)>("configureWorkers");
     method(_javaPart, cpuWorkerCount, gpuWorkerCount, calibrateCpuWorkers);
   }
-  NativeDetectionBatch JHybridSpellformeObjectDetectorSpec::detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
+  std::optional<NativeDetectionBatch> JHybridSpellformeObjectDetectorSpec::detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNativeDetectionBatch>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */)>("detect");
     auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart());
-    return __result->toCpp();
+    return __result != nullptr ? std::make_optional(__result->toCpp()) : std::nullopt;
   }
   void JHybridSpellformeObjectDetectorSpec::close() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("close");

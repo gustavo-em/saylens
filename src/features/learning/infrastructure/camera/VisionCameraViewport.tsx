@@ -103,7 +103,9 @@ export const VisionCameraViewport = memo(function CameraViewport({
 
       try {
         const batch = objectDetector.detect(frame);
-        scheduleOnRN(handleDetectionBatch, batch);
+        if (batch != null) {
+          scheduleOnRN(handleDetectionBatch, batch);
+        }
       } catch {
         scheduleOnRN(handleDetectionFailure);
       } finally {

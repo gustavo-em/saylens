@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong
 class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   @Volatile private var latestBatch: NativeDetectionBatch? = null
   @Volatile private var latestSequence = -1L
+  private var lastDeliveredSequence = -1L
 
   private var compactRgbaBuffer: ByteBuffer? = null
   private var nextWorkerIndex = 0
@@ -108,13 +109,12 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   }
 
   @Synchronized
-  override fun detect(frame: HybridFrameSpec): NativeDetectionBatch {
+  override fun detect(frame: HybridFrameSpec): NativeDetectionBatch? {
     val nativeFrame = frame as? NativeFrame
       ?: error("SpellForMe detector requires a native VisionCamera frame.")
     val imageProxy = nativeFrame.image
     val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-    val fallbackBatch = latestBatch
-      ?: emptyBatch(imageProxy.width, imageProxy.height, rotationDegrees)
+    val latestUndeliveredBatch = takeLatestBatch()
     val pendingFrame = PendingFrame(
       activeCpuWorkerCount = activeCpuWorkerCount,
       sequence = nextSequence.getAndIncrement(),
@@ -134,11 +134,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       }
       if (workers[workerIndex].trySubmit(imageProxy, pendingFrame)) {
         nextWorkerIndex = (activeWorkerIndex + 1) % activeWorkerCount
-        return fallbackBatch
+        return latestUndeliveredBatch
       }
     }
 
-    return fallbackBatch
+    return latestUndeliveredBatch
   }
 
   @Synchronized
@@ -147,7 +147,15 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     workers = emptyArray()
     latestBatch = null
     latestSequence = -1L
+    lastDeliveredSequence = -1L
     compactRgbaBuffer = null
+  }
+
+  private fun takeLatestBatch(): NativeDetectionBatch? {
+    if (latestSequence <= lastDeliveredSequence) return null
+
+    lastDeliveredSequence = latestSequence
+    return latestBatch
   }
 
   @Synchronized
@@ -429,18 +437,6 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     }
   }
 
-  private fun emptyBatch(
-    frameWidth: Int,
-    frameHeight: Int,
-    rotationDegrees: Int,
-  ) = NativeDetectionBatch(
-    detections = emptyArray(),
-    frameWidth = frameWidth.toDouble(),
-    frameHeight = frameHeight.toDouble(),
-    rotationDegrees = rotationDegrees.toDouble(),
-    inferenceTimeMs = 0.0,
-  )
-
   private inner class DetectorWorker(
     private val id: Int,
     preferredDelegate: Delegate,
@@ -514,7 +510,6 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         }
       } finally {
         image.close()
-        inputBitmap = null
         busy.set(false)
       }
     }

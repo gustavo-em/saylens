@@ -21,6 +21,7 @@ namespace margelo::nitro::camera { class HybridFrameSpec; }
 #include <string>
 #include <vector>
 #include "NativeDetectionBatch.hpp"
+#include <optional>
 #include <memory>
 #include <VisionCamera/HybridFrameSpec.hpp>
 
@@ -60,7 +61,7 @@ namespace margelo::nitro::spellformeobjectdetector {
       virtual std::vector<std::string> getSupportedPerformanceProfiles() = 0;
       virtual double getRecommendedCpuWorkerCount() = 0;
       virtual void configureWorkers(double cpuWorkerCount, double gpuWorkerCount, bool calibrateCpuWorkers) = 0;
-      virtual NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
+      virtual std::optional<NativeDetectionBatch> detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
       virtual void close() = 0;
 
     protected:

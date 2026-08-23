@@ -35,6 +35,6 @@ export interface SpellformeObjectDetector
     gpuWorkerCount: number,
     calibrateCpuWorkers: boolean,
   ): void;
-  detect(frame: Frame): NativeDetectionBatch;
+  detect(frame: Frame): NativeDetectionBatch | undefined;
   close(): void;
 }

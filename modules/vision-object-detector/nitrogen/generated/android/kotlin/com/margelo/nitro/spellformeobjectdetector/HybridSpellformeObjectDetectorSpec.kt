@@ -52,7 +52,7 @@ abstract class HybridSpellformeObjectDetectorSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun detect(frame: com.margelo.nitro.camera.HybridFrameSpec): NativeDetectionBatch
+  abstract fun detect(frame: com.margelo.nitro.camera.HybridFrameSpec): NativeDetectionBatch?
   
   @DoNotStrip
   @Keep

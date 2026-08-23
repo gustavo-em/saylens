@@ -1,5 +1,12 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { type LayoutChangeEvent } from 'react-native';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
@@ -21,6 +28,7 @@ interface ViewportSize {
 const OBJECT_CARD_WIDTH = 190;
 const OBJECT_CARD_EDGE_INSET = 8;
 const OBJECT_CARD_TOP_OFFSET = -57;
+const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
 
 function getObjectStyle(
   object: DetectedObject,
@@ -64,6 +72,68 @@ function getObjectCardStyle(
         ? OBJECT_CARD_TOP_OFFSET
         : OBJECT_CARD_EDGE_INSET,
   };
+}
+
+interface InterpolatedObjectTargetProps {
+  accessibilityLabel: string;
+  children: ReactNode;
+  durationMs: number;
+  targetStyle: ReturnType<typeof getObjectStyle>;
+  testID: string;
+}
+
+function InterpolatedObjectTarget({
+  accessibilityLabel,
+  children,
+  durationMs,
+  targetStyle,
+  testID,
+}: InterpolatedObjectTargetProps) {
+  const left = useSharedValue(targetStyle.left);
+  const top = useSharedValue(targetStyle.top);
+  const width = useSharedValue(targetStyle.width);
+  const height = useSharedValue(targetStyle.height);
+
+  useEffect(() => {
+    const animation = {
+      duration: durationMs,
+      easing: OBJECT_INTERPOLATION_EASING,
+      reduceMotion: ReduceMotion.System,
+    };
+
+    left.value = withTiming(targetStyle.left, animation);
+    top.value = withTiming(targetStyle.top, animation);
+    width.value = withTiming(targetStyle.width, animation);
+    height.value = withTiming(targetStyle.height, animation);
+  }, [
+    durationMs,
+    height,
+    left,
+    targetStyle.height,
+    targetStyle.left,
+    targetStyle.top,
+    targetStyle.width,
+    top,
+    width,
+  ]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: height.value,
+    left: left.value,
+    top: top.value,
+    width: width.value,
+  }));
+
+  return (
+    <ObjectTarget
+      accessibilityLabel={accessibilityLabel}
+      accessible
+      style={animatedStyle}
+      testID={testID}
+    >
+      {children}
+    </ObjectTarget>
+  );
 }
 
 export function CameraView({
@@ -150,15 +220,15 @@ export function CameraView({
             );
 
             return (
-              <ObjectTarget
+              <InterpolatedObjectTarget
                 accessibilityLabel={`${vocabulary.word}, ${
                   vocabulary.meaning
                 }. Pronúncia: ${
                   vocabulary.pronunciationHint
                 }. Confiança ${Math.round(object.confidence * 100)}%`}
-                accessible
+                durationMs={viewModel.detectionInterpolationDurationMs}
                 key={object.id}
-                style={targetStyle}
+                targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
               >
                 <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
@@ -172,7 +242,7 @@ export function CameraView({
                     {vocabulary.meaning} · {vocabulary.pronunciationHint}
                   </ObjectLearningHint>
                 </ObjectCard>
-              </ObjectTarget>
+              </InterpolatedObjectTarget>
             );
           })}
         </DetectionLayer>
@@ -233,7 +303,7 @@ const DetectionLayer = styled.View`
   inset: 0px;
 `;
 
-const ObjectTarget = styled.View`
+const ObjectTarget = styled(Animated.View)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;

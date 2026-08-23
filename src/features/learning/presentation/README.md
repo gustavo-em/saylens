@@ -13,5 +13,7 @@ implements application ports.
 
 Static UI uses theme-driven styled-components defined at module scope.
 Detector metadata is bounded before entering React state, and repeated empty
-results do not render again. Future high-frequency smoothing belongs on the UI
-thread instead of causing a React render for every camera frame.
+results do not render again. Live detection bounds interpolate between accepted
+results with Reanimated shared values on the UI thread. The animation duration
+follows the measured detection interval, bounded to avoid excessive visual lag,
+so interpolation frames do not cause additional React renders.

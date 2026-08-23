@@ -3,6 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { DetectionFrame } from '../../domain/DetectedObject';
+import {
+  DEFAULT_DETECTION_INTERPOLATION_MS,
+  getDetectionInterpolationDuration,
+} from '../animation/detectionInterpolation';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 
 const DETECTION_PRESENTATION_FPS = 30;
@@ -23,6 +27,10 @@ export function useCameraViewModel({
   const [detectionFrame, setDetectionFrame] = useState<DetectionFrame | null>(
     null,
   );
+  const [
+    detectionInterpolationDurationMs,
+    setDetectionInterpolationDurationMs,
+  ] = useState(DEFAULT_DETECTION_INTERPOLATION_MS);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
   const detectionFrameRef = useRef<DetectionFrame | null>(null);
   const lastDetectionUpdate = useRef(0);
@@ -71,6 +79,8 @@ export function useCameraViewModel({
   const handlePreviewStopped = useCallback(() => {
     setIsPreviewReady(false);
     detectionFrameRef.current = null;
+    lastDetectionUpdate.current = 0;
+    setDetectionInterpolationDurationMs(DEFAULT_DETECTION_INTERPOLATION_MS);
     setDetectionFrame(null);
   }, []);
 
@@ -96,6 +106,9 @@ export function useCameraViewModel({
       return;
     }
 
+    setDetectionInterpolationDurationMs(
+      getDetectionInterpolationDuration(lastDetectionUpdate.current, now),
+    );
     lastDetectionUpdate.current = now;
     detectionFrameRef.current = frame;
     setRecognitionError(null);
@@ -104,6 +117,8 @@ export function useCameraViewModel({
 
   const handleDetectionError = useCallback((message: string) => {
     detectionFrameRef.current = null;
+    lastDetectionUpdate.current = 0;
+    setDetectionInterpolationDurationMs(DEFAULT_DETECTION_INTERPOLATION_MS);
     setRecognitionError(message);
     setDetectionFrame(null);
   }, []);
@@ -139,6 +154,7 @@ export function useCameraViewModel({
   return {
     cameraError,
     detectionFrame,
+    detectionInterpolationDurationMs,
     detectionItems,
     hasPermission: cameraAccess.status === 'authorized',
     isCameraLive: isActive && isPreviewReady,

@@ -9,6 +9,7 @@ import {
 } from '../../domain/LearningLanguage';
 import {
   performanceProfiles,
+  type PerformanceCapabilities,
   type PerformanceProfile,
 } from '../../domain/PerformanceProfile';
 import type { LearningCopy } from '../localization/learningCopy';
@@ -19,6 +20,7 @@ interface SettingsScreenProps {
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
   onPerformanceProfileChange: (profile: PerformanceProfile) => void;
+  performanceCapabilities: PerformanceCapabilities;
   performanceProfile: PerformanceProfile;
 }
 
@@ -28,6 +30,7 @@ export function SettingsScreen({
   onLearningLanguageChange,
   onNativeLanguageChange,
   onPerformanceProfileChange,
+  performanceCapabilities,
   performanceProfile,
 }: SettingsScreenProps) {
   const { height, width } = useWindowDimensions();
@@ -149,36 +152,44 @@ export function SettingsScreen({
               </PerformanceHeader>
 
               <PerformanceOptions>
-                {performanceProfiles.map(profile => {
-                  const selected = profile === performanceProfile;
-                  const option = getPerformanceOption(copy, profile);
+                {performanceProfiles
+                  .filter(profile =>
+                    performanceCapabilities.supportedProfiles.includes(profile),
+                  )
+                  .map(profile => {
+                    const selected = profile === performanceProfile;
+                    const option = getPerformanceOption(
+                      copy,
+                      profile,
+                      performanceCapabilities.highPerformanceCpuWorkerCount,
+                    );
 
-                  return (
-                    <PerformanceOption
-                      accessibilityRole="radio"
-                      accessibilityState={{ checked: selected }}
-                      key={profile}
-                      onPress={() => onPerformanceProfileChange(profile)}
-                      testID={`performance-profile-${profile}`}
-                      $selected={selected}
-                    >
-                      <PerformanceIcon $selected={selected}>
-                        {option.icon}
-                      </PerformanceIcon>
-                      <PerformanceCopy>
-                        <PerformanceOptionTitle $selected={selected}>
-                          {option.title}
-                        </PerformanceOptionTitle>
-                        <PerformanceOptionBody>
-                          {option.description}
-                        </PerformanceOptionBody>
-                      </PerformanceCopy>
-                      <SelectionIndicator $selected={selected}>
-                        {selected ? '✓' : ''}
-                      </SelectionIndicator>
-                    </PerformanceOption>
-                  );
-                })}
+                    return (
+                      <PerformanceOption
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: selected }}
+                        key={profile}
+                        onPress={() => onPerformanceProfileChange(profile)}
+                        testID={`performance-profile-${profile}`}
+                        $selected={selected}
+                      >
+                        <PerformanceIcon $selected={selected}>
+                          {option.icon}
+                        </PerformanceIcon>
+                        <PerformanceCopy>
+                          <PerformanceOptionTitle $selected={selected}>
+                            {option.title}
+                          </PerformanceOptionTitle>
+                          <PerformanceOptionBody>
+                            {option.description}
+                          </PerformanceOptionBody>
+                        </PerformanceCopy>
+                        <SelectionIndicator $selected={selected}>
+                          {selected ? '✓' : ''}
+                        </SelectionIndicator>
+                      </PerformanceOption>
+                    );
+                  })}
               </PerformanceOptions>
             </PerformancePanel>
           </Section>
@@ -192,17 +203,25 @@ function getLanguageCode(language: LearningLanguage) {
   return language === 'pt-BR' ? 'PT' : language.toUpperCase();
 }
 
-function getPerformanceOption(copy: LearningCopy, profile: PerformanceProfile) {
+function getPerformanceOption(
+  copy: LearningCopy,
+  profile: PerformanceProfile,
+  highPerformanceCpuWorkerCount: number,
+) {
   switch (profile) {
     case 'ultra-performance':
       return {
-        description: copy.settings.ultraPerformanceDescription,
+        description: copy.settings.ultraPerformanceDescription(
+          highPerformanceCpuWorkerCount,
+        ),
         icon: 'GPU',
         title: copy.settings.ultraPerformanceTitle,
       };
     case 'high-performance':
       return {
-        description: copy.settings.highPerformanceDescription,
+        description: copy.settings.highPerformanceDescription(
+          highPerformanceCpuWorkerCount,
+        ),
         icon: 'MAX',
         title: copy.settings.highPerformanceTitle,
       };

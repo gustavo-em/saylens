@@ -3,6 +3,8 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import App from '../src/app/App';
 
+let mockSupportsHighPerformance = true;
+
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,
@@ -10,7 +12,13 @@ jest.mock(
 
 jest.mock('react-native-spellforme-object-detector', () => ({
   objectDetector: {
-    getRecommendedPerformanceProfile: () => 'high-performance',
+    getRecommendedCpuWorkerCount: () => (mockSupportsHighPerformance ? 4 : 2),
+    getRecommendedPerformanceProfile: () =>
+      mockSupportsHighPerformance ? 'high-performance' : 'low-device',
+    getSupportedPerformanceProfiles: () =>
+      mockSupportsHighPerformance
+        ? ['ultra-performance', 'high-performance', 'low-device']
+        : ['low-device'],
   },
 }));
 
@@ -79,6 +87,10 @@ jest.mock(
 );
 
 describe('App', () => {
+  beforeEach(() => {
+    mockSupportsHighPerformance = true;
+  });
+
   it('opens on the camera screen with both navigation tabs', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
@@ -191,6 +203,34 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props
         .performanceProfile,
     ).toBe('low-device');
+  });
+
+  it('hides demanding profiles on devices that cannot sustain them', async () => {
+    mockSupportsHighPerformance = false;
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    expect(
+      renderer!.root.findAllByProps({
+        testID: 'performance-profile-ultra-performance',
+      }),
+    ).toHaveLength(0);
+    expect(
+      renderer!.root.findAllByProps({
+        testID: 'performance-profile-high-performance',
+      }),
+    ).toHaveLength(0);
+    expect(
+      renderer!.root.findByProps({ testID: 'performance-profile-low-device' })
+        .props.accessibilityState.checked,
+    ).toBe(true);
   });
 
   it('shows compact vocabulary details on a detected object', async () => {

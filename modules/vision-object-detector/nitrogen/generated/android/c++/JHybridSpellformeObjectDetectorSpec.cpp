@@ -17,10 +17,10 @@ namespace margelo::nitro::spellformeobjectdetector { struct NativeDetectionBox; 
 namespace margelo::nitro::camera { class HybridFrameSpec; }
 
 #include <string>
+#include <vector>
 #include "NativeDetectionBatch.hpp"
 #include "JNativeDetectionBatch.hpp"
 #include "NativeDetection.hpp"
-#include <vector>
 #include "JNativeDetection.hpp"
 #include "NativeDetectionBox.hpp"
 #include "JNativeDetectionBox.hpp"
@@ -70,6 +70,25 @@ namespace margelo::nitro::spellformeobjectdetector {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getRecommendedPerformanceProfile");
     auto __result = method(_javaPart);
     return __result->toStdString();
+  }
+  std::vector<std::string> JHybridSpellformeObjectDetectorSpec::getSupportedPerformanceProfiles() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayClass<jni::JString>>()>("getSupportedPerformanceProfiles");
+    auto __result = method(_javaPart);
+    return [&](auto&& __input) {
+      size_t __size = __input->size();
+      std::vector<std::string> __vector;
+      __vector.reserve(__size);
+      for (size_t __i = 0; __i < __size; __i++) {
+        auto __element = __input->getElement(__i);
+        __vector.push_back(__element->toStdString());
+      }
+      return __vector;
+    }(__result);
+  }
+  double JHybridSpellformeObjectDetectorSpec::getRecommendedCpuWorkerCount() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<double()>("getRecommendedCpuWorkerCount");
+    auto __result = method(_javaPart);
+    return __result;
   }
   void JHybridSpellformeObjectDetectorSpec::configureWorkers(double cpuWorkerCount, double gpuWorkerCount) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* cpuWorkerCount */, double /* gpuWorkerCount */)>("configureWorkers");

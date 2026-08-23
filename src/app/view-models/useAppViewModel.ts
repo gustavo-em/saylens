@@ -6,11 +6,12 @@ import {
 } from '../../features/learning/domain/LearningLanguage';
 import type { PerformanceProfile } from '../../features/learning/domain/PerformanceProfile';
 import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
-import { getRecommendedPerformanceProfile } from '../../features/learning/infrastructure/performance/getRecommendedPerformanceProfile';
+import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
 import type { AppTab } from '../navigation/AppTab';
 
 export function useAppViewModel() {
+  const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
   const [nativeLanguage, setNativeLanguage] = useState(
     DEFAULT_LEARNING_LANGUAGE_SETTINGS.nativeLanguage,
@@ -19,7 +20,7 @@ export function useAppViewModel() {
     DEFAULT_LEARNING_LANGUAGE_SETTINGS.learningLanguage,
   );
   const [performanceProfile, setPerformanceProfile] = useState(
-    getRecommendedPerformanceProfile,
+    performanceCapabilities.recommendedProfile,
   );
   const cameraAccess = useVisionCameraAccess();
 
@@ -51,6 +52,7 @@ export function useAppViewModel() {
     changePerformanceProfile,
     selectTab,
     languageSettings: { nativeLanguage, learningLanguage },
+    performanceCapabilities,
     performanceProfile,
     copy: getLearningCopy(nativeLanguage),
   };

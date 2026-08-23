@@ -28,6 +28,8 @@ export interface SpellformeObjectDetector
   }> {
   getModelName(): string;
   getRecommendedPerformanceProfile(): string;
+  getSupportedPerformanceProfiles(): string[];
+  getRecommendedCpuWorkerCount(): number;
   configureWorkers(cpuWorkerCount: number, gpuWorkerCount: number): void;
   detect(frame: Frame): NativeDetectionBatch;
   close(): void;

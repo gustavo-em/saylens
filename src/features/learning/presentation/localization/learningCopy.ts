@@ -35,9 +35,9 @@ export interface LearningCopy {
     performanceTitle: string;
     performanceDescription: string;
     ultraPerformanceTitle: string;
-    ultraPerformanceDescription: string;
+    ultraPerformanceDescription: (workerCount: number) => string;
     highPerformanceTitle: string;
-    highPerformanceDescription: string;
+    highPerformanceDescription: (workerCount: number) => string;
     lowDeviceTitle: string;
     lowDeviceDescription: string;
   };
@@ -107,9 +107,11 @@ const copies: Record<
       performanceDescription:
         'Escolha o equilíbrio ideal entre velocidade e uso de recursos.',
       ultraPerformanceTitle: 'Ultra performance',
-      ultraPerformanceDescription: '4 CPU + 1 GPU · consumo máximo',
+      ultraPerformanceDescription: workerCount =>
+        `${workerCount} CPU + 1 GPU · consumo máximo`,
       highPerformanceTitle: 'Alto desempenho',
-      highPerformanceDescription: '4 workers · mais detecções por segundo',
+      highPerformanceDescription: workerCount =>
+        `${workerCount} workers · capacidade estimada`,
       lowDeviceTitle: 'Dispositivo básico',
       lowDeviceDescription: '2 workers · menor uso de CPU e memória',
     },
@@ -155,9 +157,11 @@ const copies: Record<
       performanceDescription:
         'Choose the best balance between speed and resource usage.',
       ultraPerformanceTitle: 'Ultra performance',
-      ultraPerformanceDescription: '4 CPU + 1 GPU · maximum power usage',
+      ultraPerformanceDescription: workerCount =>
+        `${workerCount} CPU + 1 GPU · maximum power usage`,
       highPerformanceTitle: 'High performance',
-      highPerformanceDescription: '4 workers · more detections per second',
+      highPerformanceDescription: workerCount =>
+        `${workerCount} workers · estimated capacity`,
       lowDeviceTitle: 'Basic device',
       lowDeviceDescription: '2 workers · lower CPU and memory usage',
     },
@@ -204,9 +208,11 @@ const copies: Record<
       performanceDescription:
         'Elige el mejor equilibrio entre velocidad y uso de recursos.',
       ultraPerformanceTitle: 'Rendimiento ultra',
-      ultraPerformanceDescription: '4 CPU + 1 GPU · consumo máximo',
+      ultraPerformanceDescription: workerCount =>
+        `${workerCount} CPU + 1 GPU · consumo máximo`,
       highPerformanceTitle: 'Alto rendimiento',
-      highPerformanceDescription: '4 workers · más detecciones por segundo',
+      highPerformanceDescription: workerCount =>
+        `${workerCount} workers · capacidad estimada`,
       lowDeviceTitle: 'Dispositivo básico',
       lowDeviceDescription: '2 workers · menor uso de CPU y memoria',
     },

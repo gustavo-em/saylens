@@ -56,6 +56,8 @@ namespace margelo::nitro::spellformeobjectdetector {
     // Methods
     std::string getModelName() override;
     std::string getRecommendedPerformanceProfile() override;
+    std::vector<std::string> getSupportedPerformanceProfiles() override;
+    double getRecommendedCpuWorkerCount() override;
     void configureWorkers(double cpuWorkerCount, double gpuWorkerCount) override;
     NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override;
     void close() override;

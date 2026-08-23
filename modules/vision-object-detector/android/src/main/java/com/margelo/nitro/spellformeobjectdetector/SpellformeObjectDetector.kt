@@ -36,17 +36,21 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private var performanceWindowStartedAtNanos = 0L
   private val cpuDetectorCreationLock = Any()
   private val nextSequence = AtomicLong()
-  private val recommendedPerformanceProfile = resolveRecommendedPerformanceProfile()
-  private var cpuWorkerCount = if (
-    recommendedPerformanceProfile == LOW_DEVICE_PROFILE
-  ) LOW_DEVICE_CPU_WORKERS else HIGH_PERFORMANCE_CPU_WORKERS
+  private val performanceCapabilities = resolvePerformanceCapabilities()
+  private var cpuWorkerCount = performanceCapabilities.recommendedCpuWorkerCount
   private var gpuWorkerCount = DEFAULT_GPU_WORKERS
   @Volatile private var workers = createWorkers(cpuWorkerCount, gpuWorkerCount)
 
   override fun getModelName(): String = MODEL_NAME
 
   override fun getRecommendedPerformanceProfile(): String =
-    recommendedPerformanceProfile
+    performanceCapabilities.recommendedProfile
+
+  override fun getSupportedPerformanceProfiles(): Array<String> =
+    performanceCapabilities.supportedProfiles
+
+  override fun getRecommendedCpuWorkerCount(): Double =
+    performanceCapabilities.recommendedCpuWorkerCount.toDouble()
 
   @Synchronized
   override fun configureWorkers(
@@ -55,12 +59,13 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   ) {
     val normalizedCpuCount = cpuWorkerCount.toInt().coerceIn(
       MIN_CPU_WORKERS,
-      MAX_CPU_WORKERS,
+      performanceCapabilities.maxCpuWorkerCount,
     )
-    val normalizedGpuCount = gpuWorkerCount.toInt().coerceIn(
-      MIN_GPU_WORKERS,
-      MAX_GPU_WORKERS,
-    )
+    val normalizedGpuCount = if (performanceCapabilities.supportsHighPerformance) {
+      gpuWorkerCount.toInt().coerceIn(MIN_GPU_WORKERS, MAX_GPU_WORKERS)
+    } else {
+      0
+    }
     if (
       normalizedCpuCount == this.cpuWorkerCount &&
       normalizedGpuCount == this.gpuWorkerCount
@@ -241,19 +246,47 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     return workers.toTypedArray()
   }
 
-  private fun resolveRecommendedPerformanceProfile(): String {
+  private fun resolvePerformanceCapabilities(): DevicePerformanceCapabilities {
     val context = NitroModules.applicationContext
-      ?: return HIGH_PERFORMANCE_PROFILE
+      ?: return DevicePerformanceCapabilities.lowDevice()
     val activityManager = context.getSystemService(
       Context.ACTIVITY_SERVICE,
     ) as ActivityManager
+    val availableProcessors = Runtime.getRuntime().availableProcessors()
+    val memoryClassMb = activityManager.memoryClass
     val onlySupports32Bit = Build.SUPPORTED_64_BIT_ABIS.isEmpty()
+    val supportsHighPerformance =
+      !activityManager.isLowRamDevice &&
+        !onlySupports32Bit &&
+        availableProcessors >= MIN_HIGH_PERFORMANCE_PROCESSORS &&
+        memoryClassMb >= MIN_HIGH_PERFORMANCE_MEMORY_CLASS_MB
 
-    return if (activityManager.isLowRamDevice || onlySupports32Bit) {
-      LOW_DEVICE_PROFILE
-    } else {
-      HIGH_PERFORMANCE_PROFILE
+    if (!supportsHighPerformance) {
+      return DevicePerformanceCapabilities.lowDevice()
     }
+
+    val memoryWorkerLimit = when {
+      memoryClassMb >= 512 -> 6
+      memoryClassMb >= 384 -> 5
+      else -> 4
+    }
+    val recommendedCpuWorkerCount = minOf(
+      availableProcessors - RESERVED_SYSTEM_PROCESSORS,
+      memoryWorkerLimit,
+      MAX_CPU_WORKERS,
+    ).coerceAtLeast(MIN_HIGH_PERFORMANCE_CPU_WORKERS)
+
+    return DevicePerformanceCapabilities(
+      maxCpuWorkerCount = recommendedCpuWorkerCount,
+      recommendedCpuWorkerCount = recommendedCpuWorkerCount,
+      recommendedProfile = HIGH_PERFORMANCE_PROFILE,
+      supportedProfiles = arrayOf(
+        ULTRA_PERFORMANCE_PROFILE,
+        HIGH_PERFORMANCE_PROFILE,
+        LOW_DEVICE_PROFILE,
+      ),
+      supportsHighPerformance = true,
+    )
   }
 
   private fun createDetector(workerId: Int, delegate: Delegate): ObjectDetector {
@@ -434,13 +467,17 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val MODEL_ASSET_PATH = "efficientdet_lite0_int8.tflite"
     const val HIGH_PERFORMANCE_PROFILE = "high-performance"
     const val LOW_DEVICE_PROFILE = "low-device"
-    const val HIGH_PERFORMANCE_CPU_WORKERS = 4
+    const val ULTRA_PERFORMANCE_PROFILE = "ultra-performance"
     const val LOW_DEVICE_CPU_WORKERS = 2
     const val DEFAULT_GPU_WORKERS = 0
     const val MIN_CPU_WORKERS = 1
-    const val MAX_CPU_WORKERS = 4
+    const val MAX_CPU_WORKERS = 6
     const val MIN_GPU_WORKERS = 0
     const val MAX_GPU_WORKERS = 1
+    const val MIN_HIGH_PERFORMANCE_CPU_WORKERS = 4
+    const val MIN_HIGH_PERFORMANCE_MEMORY_CLASS_MB = 256
+    const val MIN_HIGH_PERFORMANCE_PROCESSORS = 6
+    const val RESERVED_SYSTEM_PROCESSORS = 2
     const val MAX_RESULTS = 5
     const val SCORE_THRESHOLD = 0.55f
     const val RGBA_BYTES_PER_PIXEL = 4
@@ -456,4 +493,22 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     val rotationDegrees: Int,
     val startedAtNanos: Long,
   )
+
+  private data class DevicePerformanceCapabilities(
+    val maxCpuWorkerCount: Int,
+    val recommendedCpuWorkerCount: Int,
+    val recommendedProfile: String,
+    val supportedProfiles: Array<String>,
+    val supportsHighPerformance: Boolean,
+  ) {
+    companion object {
+      fun lowDevice() = DevicePerformanceCapabilities(
+        maxCpuWorkerCount = LOW_DEVICE_CPU_WORKERS,
+        recommendedCpuWorkerCount = LOW_DEVICE_CPU_WORKERS,
+        recommendedProfile = LOW_DEVICE_PROFILE,
+        supportedProfiles = arrayOf(LOW_DEVICE_PROFILE),
+        supportsHighPerformance = false,
+      )
+    }
+  }
 }

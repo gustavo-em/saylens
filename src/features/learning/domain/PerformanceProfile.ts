@@ -6,14 +6,25 @@ export const performanceProfiles = [
 
 export type PerformanceProfile = (typeof performanceProfiles)[number];
 
+export interface PerformanceCapabilities {
+  highPerformanceCpuWorkerCount: number;
+  recommendedProfile: PerformanceProfile;
+  supportedProfiles: readonly PerformanceProfile[];
+}
+
 export const DEFAULT_PERFORMANCE_PROFILE: PerformanceProfile =
   'high-performance';
 
-export const performanceProfileSettings: Record<
-  PerformanceProfile,
-  { cpuWorkerCount: number; gpuWorkerCount: number }
-> = {
-  'ultra-performance': { cpuWorkerCount: 4, gpuWorkerCount: 1 },
-  'high-performance': { cpuWorkerCount: 4, gpuWorkerCount: 0 },
-  'low-device': { cpuWorkerCount: 2, gpuWorkerCount: 0 },
-};
+export function getPerformanceProfileSettings(
+  profile: PerformanceProfile,
+  capabilities: PerformanceCapabilities,
+) {
+  if (profile === 'low-device') {
+    return { cpuWorkerCount: 2, gpuWorkerCount: 0 };
+  }
+
+  return {
+    cpuWorkerCount: capabilities.highPerformanceCpuWorkerCount,
+    gpuWorkerCount: profile === 'ultra-performance' ? 1 : 0,
+  };
+}

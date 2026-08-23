@@ -40,6 +40,14 @@ abstract class HybridSpellformeObjectDetectorSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun getSupportedPerformanceProfiles(): Array<String>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun getRecommendedCpuWorkerCount(): Double
+  
+  @DoNotStrip
+  @Keep
   abstract fun configureWorkers(cpuWorkerCount: Double, gpuWorkerCount: Double): Unit
   
   @DoNotStrip

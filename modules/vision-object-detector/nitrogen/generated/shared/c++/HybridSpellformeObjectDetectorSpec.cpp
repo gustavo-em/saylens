@@ -16,6 +16,8 @@ namespace margelo::nitro::spellformeobjectdetector {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("getModelName", &HybridSpellformeObjectDetectorSpec::getModelName);
       prototype.registerHybridMethod("getRecommendedPerformanceProfile", &HybridSpellformeObjectDetectorSpec::getRecommendedPerformanceProfile);
+      prototype.registerHybridMethod("getSupportedPerformanceProfiles", &HybridSpellformeObjectDetectorSpec::getSupportedPerformanceProfiles);
+      prototype.registerHybridMethod("getRecommendedCpuWorkerCount", &HybridSpellformeObjectDetectorSpec::getRecommendedCpuWorkerCount);
       prototype.registerHybridMethod("configureWorkers", &HybridSpellformeObjectDetectorSpec::configureWorkers);
       prototype.registerHybridMethod("detect", &HybridSpellformeObjectDetectorSpec::detect);
       prototype.registerHybridMethod("close", &HybridSpellformeObjectDetectorSpec::close);

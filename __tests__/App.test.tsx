@@ -166,6 +166,11 @@ describe('App', () => {
     });
 
     expect(JSON.stringify(renderer!.toJSON())).toContain('Settings');
+    expect(
+      renderer!.root.findByProps({ testID: 'learning-language-en' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({ testID: 'learning-language-es' })

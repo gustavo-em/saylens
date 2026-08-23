@@ -11,9 +11,3 @@ export const DEFAULT_LEARNING_LANGUAGE_SETTINGS: LearningLanguageSettings = {
   nativeLanguage: 'pt-BR',
   learningLanguage: 'en',
 };
-
-export function getAvailableLearningLanguages(
-  nativeLanguage: LearningLanguage,
-) {
-  return learningLanguages.filter(language => language !== nativeLanguage);
-}

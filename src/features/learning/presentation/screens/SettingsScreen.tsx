@@ -2,7 +2,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
 import {
-  getAvailableLearningLanguages,
   learningLanguages,
   type LearningLanguage,
   type LearningLanguageSettings,
@@ -67,9 +66,7 @@ export function SettingsScreen({
                 {copy.settings.learningLanguageDescription}
               </SettingDescription>
               <LanguageOptions>
-                {getAvailableLearningLanguages(
-                  languageSettings.nativeLanguage,
-                ).map(language => (
+                {learningLanguages.map(language => (
                   <LanguageOption
                     accessibilityRole="radio"
                     accessibilityState={{

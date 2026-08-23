@@ -3,7 +3,6 @@ import { useCallback, useState } from 'react';
 import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
 import {
   DEFAULT_LEARNING_LANGUAGE_SETTINGS,
-  getAvailableLearningLanguages,
   type LearningLanguage,
 } from '../../features/learning/domain/LearningLanguage';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
@@ -25,21 +24,11 @@ export function useAppViewModel() {
 
   const changeNativeLanguage = useCallback((language: LearningLanguage) => {
     setNativeLanguage(language);
-    setLearningLanguage(current =>
-      current === language
-        ? getAvailableLearningLanguages(language)[0]
-        : current,
-    );
   }, []);
 
-  const changeLearningLanguage = useCallback(
-    (language: LearningLanguage) => {
-      if (language !== nativeLanguage) {
-        setLearningLanguage(language);
-      }
-    },
-    [nativeLanguage],
-  );
+  const changeLearningLanguage = useCallback((language: LearningLanguage) => {
+    setLearningLanguage(language);
+  }, []);
 
   return {
     activeTab,

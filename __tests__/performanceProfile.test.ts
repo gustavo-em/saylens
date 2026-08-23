@@ -30,10 +30,10 @@ describe('getPerformanceProfileSettings', () => {
     });
   });
 
-  it('skips calibration and prioritizes the camera with one worker', () => {
+  it('skips calibration and uses two workers for responsive detection', () => {
     expect(getPerformanceProfileSettings('low-device', capabilities)).toEqual({
       calibrateCpuWorkers: false,
-      cpuWorkerCount: 1,
+      cpuWorkerCount: 2,
       gpuWorkerCount: 0,
     });
   });

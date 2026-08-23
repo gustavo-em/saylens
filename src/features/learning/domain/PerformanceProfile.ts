@@ -22,7 +22,7 @@ export function getPerformanceProfileSettings(
   if (profile === 'low-device') {
     return {
       calibrateCpuWorkers: false,
-      cpuWorkerCount: 1,
+      cpuWorkerCount: 2,
       gpuWorkerCount: 0,
     };
   }

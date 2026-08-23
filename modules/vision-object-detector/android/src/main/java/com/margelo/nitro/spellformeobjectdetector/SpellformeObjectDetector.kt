@@ -350,11 +350,20 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     gpuWorkerCount: Int,
   ): Array<DetectorWorker> {
     val workers = mutableListOf<DetectorWorker>()
-    repeat(cpuWorkerCount) {
-      workers += DetectorWorker(workers.size + 1, Delegate.CPU)
+    repeat(cpuWorkerCount) { cpuWorkerIndex ->
+      workers += DetectorWorker(
+        id = workers.size + 1,
+        preferredDelegate = Delegate.CPU,
+        prewarm =
+          !performanceCapabilities.supportsHighPerformance || cpuWorkerIndex == 0,
+      )
     }
     repeat(gpuWorkerCount) {
-      workers += DetectorWorker(workers.size + 1, Delegate.GPU)
+      workers += DetectorWorker(
+        id = workers.size + 1,
+        preferredDelegate = Delegate.GPU,
+        prewarm = false,
+      )
     }
     return workers.toTypedArray()
   }
@@ -426,7 +435,13 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       .setBaseOptions(baseOptions)
       .setRunningMode(RunningMode.IMAGE)
       .setMaxResults(MAX_RESULTS)
-      .setScoreThreshold(SCORE_THRESHOLD)
+      .setScoreThreshold(
+        if (performanceCapabilities.supportsHighPerformance) {
+          DEFAULT_SCORE_THRESHOLD
+        } else {
+          LOW_END_SCORE_THRESHOLD
+        },
+      )
       .build()
 
     return ObjectDetector.createFromOptions(context, options).also {
@@ -441,6 +456,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private inner class DetectorWorker(
     private val id: Int,
     preferredDelegate: Delegate,
+    prewarm: Boolean,
   ) {
     private val busy = AtomicBoolean(false)
     private val closed = AtomicBoolean(false)
@@ -456,6 +472,23 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         },
         "$TAG-$id",
       )
+    }
+
+    init {
+      if (prewarm) {
+        executor.execute {
+          val startedAtNanos = SystemClock.elapsedRealtimeNanos()
+          try {
+            getOrCreateDetector()
+            val elapsedMs =
+              (SystemClock.elapsedRealtimeNanos() - startedAtNanos) /
+                NANOSECONDS_PER_MILLISECOND
+            Log.i(TAG, "Detector worker $id prewarmed in %.0f ms.".format(elapsedMs))
+          } catch (error: RuntimeException) {
+            Log.w(TAG, "Could not prewarm detector worker $id.", error)
+          }
+        }
+      }
     }
 
     fun trySubmit(imageProxy: ImageProxy, frame: PendingFrame): Boolean {
@@ -573,7 +606,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val HIGH_PERFORMANCE_PROFILE = "high-performance"
     const val LOW_DEVICE_PROFILE = "low-device"
     const val ULTRA_PERFORMANCE_PROFILE = "ultra-performance"
-    const val LOW_DEVICE_CPU_WORKERS = 1
+    const val LOW_DEVICE_CPU_WORKERS = 2
     const val CALIBRATION_BASELINE_CPU_WORKERS = 2
     const val DEFAULT_GPU_WORKERS = 0
     const val MIN_CPU_WORKERS = 1
@@ -585,7 +618,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val MIN_HIGH_PERFORMANCE_PROCESSORS = 6
     const val RESERVED_SYSTEM_PROCESSORS = 2
     const val MAX_RESULTS = 5
-    const val SCORE_THRESHOLD = 0.55f
+    const val DEFAULT_SCORE_THRESHOLD = 0.55f
+    const val LOW_END_SCORE_THRESHOLD = 0.45f
     const val RGBA_BYTES_PER_PIXEL = 4
     const val NANOSECONDS_PER_MILLISECOND = 1_000_000.0
     const val NANOSECONDS_PER_SECOND = 1_000_000_000.0

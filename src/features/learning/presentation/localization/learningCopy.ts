@@ -113,7 +113,8 @@ const copies: Record<
       highPerformanceDescription: workerCount =>
         `Até ${workerCount} workers · calibração automática`,
       lowDeviceTitle: 'Dispositivo básico',
-      lowDeviceDescription: '1 worker · câmera e memória priorizadas',
+      lowDeviceDescription:
+        '2 workers · resposta rápida com memória controlada',
     },
   },
   en: {
@@ -163,7 +164,8 @@ const copies: Record<
       highPerformanceDescription: workerCount =>
         `Up to ${workerCount} workers · automatic calibration`,
       lowDeviceTitle: 'Basic device',
-      lowDeviceDescription: '1 worker · camera and memory prioritized',
+      lowDeviceDescription:
+        '2 workers · faster response with controlled memory',
     },
   },
   es: {
@@ -214,7 +216,8 @@ const copies: Record<
       highPerformanceDescription: workerCount =>
         `Hasta ${workerCount} workers · calibración automática`,
       lowDeviceTitle: 'Dispositivo básico',
-      lowDeviceDescription: '1 worker · cámara y memoria priorizadas',
+      lowDeviceDescription:
+        '2 workers · respuesta rápida con memoria controlada',
     },
   },
 };

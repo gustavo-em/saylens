@@ -37,7 +37,6 @@ function AppContent() {
         languageSettings={viewModel.languageSettings}
         copy={viewModel.copy}
         renderCamera={renderCamera}
-        showGuidance={viewModel.showGuidance}
         vocabularyRepository={localVocabularyRepository}
       />
 
@@ -47,8 +46,6 @@ function AppContent() {
           languageSettings={viewModel.languageSettings}
           onLearningLanguageChange={viewModel.changeLearningLanguage}
           onNativeLanguageChange={viewModel.changeNativeLanguage}
-          onShowGuidanceChange={viewModel.changeGuidanceVisibility}
-          showGuidance={viewModel.showGuidance}
         />
       ) : null}
 

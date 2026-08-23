@@ -5,7 +5,6 @@ export interface LearningCopy {
   languageName: (language: LearningLanguage) => string;
   camera: {
     caption: (language: LearningLanguage) => string;
-    guidance: string;
     permissionTitle: string;
     permissionBody: string;
     requestPending: string;
@@ -31,10 +30,6 @@ export interface LearningCopy {
     nativeLanguageDescription: string;
     learningLanguageTitle: string;
     learningLanguageDescription: string;
-    cameraSection: string;
-    guidanceTitle: string;
-    guidanceDescription: string;
-    guidanceAccessibility: string;
     technicalSection: string;
     cameraLabel: string;
     cameraValue: string;
@@ -64,7 +59,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
         `Explore ${languageNames['pt-BR'][
           language
         ].toLowerCase()} ao seu redor`,
-      guidance: 'APONTE PARA UM OBJETO',
       permissionTitle: 'A câmera é o começo',
       permissionBody:
         'Permita o acesso para reconhecer objetos e praticar idiomas em tempo real.',
@@ -95,10 +89,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       learningLanguageTitle: 'Quero aprender',
       learningLanguageDescription:
         'Idioma das palavras, pronúncias e exemplos.',
-      cameraSection: 'EXPERIÊNCIA DA CÂMERA',
-      guidanceTitle: 'Guia de enquadramento',
-      guidanceDescription: 'Mostra a área visual para apontar aos objetos.',
-      guidanceAccessibility: 'Mostrar guia de enquadramento',
       technicalSection: 'BASE TÉCNICA',
       cameraLabel: 'Câmera',
       cameraValue: 'Traseira · pronta',
@@ -116,7 +106,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
     camera: {
       caption: language =>
         `Explore ${languageNames.en[language].toLowerCase()} around you`,
-      guidance: 'POINT AT AN OBJECT',
       permissionTitle: 'The camera is the starting point',
       permissionBody:
         'Allow access to recognize objects and practice languages in real time.',
@@ -148,10 +137,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       learningLanguageTitle: 'I want to learn',
       learningLanguageDescription:
         'Language used for words, pronunciations, and examples.',
-      cameraSection: 'CAMERA EXPERIENCE',
-      guidanceTitle: 'Framing guide',
-      guidanceDescription: 'Shows the visual area for pointing at objects.',
-      guidanceAccessibility: 'Show framing guide',
       technicalSection: 'TECHNICAL FOUNDATION',
       cameraLabel: 'Camera',
       cameraValue: 'Rear · ready',
@@ -169,7 +154,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
     camera: {
       caption: language =>
         `Explora ${languageNames.es[language].toLowerCase()} a tu alrededor`,
-      guidance: 'APUNTA A UN OBJETO',
       permissionTitle: 'La cámara es el comienzo',
       permissionBody:
         'Permite el acceso para reconocer objetos y practicar idiomas en tiempo real.',
@@ -202,10 +186,6 @@ const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
       learningLanguageTitle: 'Quiero aprender',
       learningLanguageDescription:
         'Idioma de las palabras, pronunciaciones y ejemplos.',
-      cameraSection: 'EXPERIENCIA DE CÁMARA',
-      guidanceTitle: 'Guía de encuadre',
-      guidanceDescription: 'Muestra el área visual para apuntar a los objetos.',
-      guidanceAccessibility: 'Mostrar guía de encuadre',
       technicalSection: 'BASE TÉCNICA',
       cameraLabel: 'Cámara',
       cameraValue: 'Trasera · lista',

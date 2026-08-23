@@ -11,7 +11,6 @@ import type { AppTab } from '../navigation/AppTab';
 
 export function useAppViewModel() {
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
-  const [showGuidance, setShowGuidance] = useState(true);
   const [nativeLanguage, setNativeLanguage] = useState(
     DEFAULT_LEARNING_LANGUAGE_SETTINGS.nativeLanguage,
   );
@@ -22,10 +21,6 @@ export function useAppViewModel() {
 
   const selectTab = useCallback((tab: AppTab) => {
     setActiveTab(tab);
-  }, []);
-
-  const changeGuidanceVisibility = useCallback((value: boolean) => {
-    setShowGuidance(value);
   }, []);
 
   const changeNativeLanguage = useCallback((language: LearningLanguage) => {
@@ -52,9 +47,7 @@ export function useAppViewModel() {
     cameraIsActive: activeTab === 'camera',
     changeLearningLanguage,
     changeNativeLanguage,
-    changeGuidanceVisibility,
     selectTab,
-    showGuidance,
     languageSettings: { nativeLanguage, learningLanguage },
     copy: getLearningCopy(nativeLanguage),
   };

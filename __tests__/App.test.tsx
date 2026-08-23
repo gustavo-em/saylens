@@ -110,9 +110,10 @@ describe('App', () => {
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
-    expect(JSON.stringify(renderer!.toJSON())).toContain(
-      'Ciclo de aprendizado no dispositivo',
-    );
+    const settingsTree = JSON.stringify(renderer!.toJSON());
+    expect(settingsTree).toContain('Ciclo de aprendizado no dispositivo');
+    expect(settingsTree).not.toContain('Guia de enquadramento');
+    expect(settingsTree).not.toContain('APONTE PARA UM OBJETO');
   });
 
   it('shows compact vocabulary details on a detected object', async () => {

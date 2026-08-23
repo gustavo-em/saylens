@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled, { useTheme } from 'styled-components/native';
+import styled from 'styled-components/native';
 
 import {
   getAvailableLearningLanguages,
@@ -14,8 +14,6 @@ interface SettingsScreenProps {
   languageSettings: LearningLanguageSettings;
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
-  onShowGuidanceChange: (value: boolean) => void;
-  showGuidance: boolean;
 }
 
 export function SettingsScreen({
@@ -23,11 +21,7 @@ export function SettingsScreen({
   languageSettings,
   onLearningLanguageChange,
   onNativeLanguageChange,
-  onShowGuidanceChange,
-  showGuidance,
 }: SettingsScreenProps) {
-  const theme = useTheme();
-
   return (
     <Container>
       <SettingsSafeArea edges={['top']}>
@@ -95,28 +89,6 @@ export function SettingsScreen({
                 ))}
               </LanguageOptions>
             </LanguageCard>
-          </Section>
-
-          <Section>
-            <SectionTitle>{copy.settings.cameraSection}</SectionTitle>
-            <SettingCard>
-              <SettingCopy>
-                <SettingTitle>{copy.settings.guidanceTitle}</SettingTitle>
-                <SettingDescription>
-                  {copy.settings.guidanceDescription}
-                </SettingDescription>
-              </SettingCopy>
-              <GuidanceSwitch
-                accessibilityLabel={copy.settings.guidanceAccessibility}
-                onValueChange={onShowGuidanceChange}
-                thumbColor={showGuidance ? theme.colors.background : '#D8E5DF'}
-                trackColor={{
-                  false: '#345046',
-                  true: theme.colors.accent,
-                }}
-                value={showGuidance}
-              />
-            </SettingCard>
           </Section>
 
           <Section>
@@ -208,7 +180,7 @@ const Section = styled.View`
 
 const SectionTitle = styled.Text`
   padding-left: 4px;
-  color: #6f8f81;
+  color: #6e9bd8;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.4px;
@@ -226,6 +198,10 @@ const SettingCard = styled.View`
 `;
 
 const LanguageCard = styled(SettingCard)`
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 12px;
 `;
 
@@ -236,13 +212,15 @@ const LanguageOptions = styled.View`
 `;
 
 const LanguageOption = styled.Pressable<{ $selected: boolean }>`
-  padding: 9px 11px;
+  min-height: 42px;
+  justify-content: center;
+  padding: 9px 13px;
   border: 1px solid
     ${({ $selected, theme }) =>
       $selected ? theme.colors.accent : theme.colors.borderSubtle};
   border-radius: ${({ theme }) => theme.radii.pill}px;
   background-color: ${({ $selected }) =>
-    $selected ? 'rgba(112, 241, 181, 0.12)' : 'transparent'};
+    $selected ? 'rgba(26, 111, 236, 0.18)' : 'transparent'};
 `;
 
 const LanguageOptionText = styled.Text<{ $selected: boolean }>`
@@ -250,10 +228,6 @@ const LanguageOptionText = styled.Text<{ $selected: boolean }>`
     $selected ? theme.colors.accent : theme.colors.muted};
   font-size: 12px;
   font-weight: 700;
-`;
-
-const SettingCopy = styled.View`
-  flex: 1;
 `;
 
 const SettingTitle = styled.Text`
@@ -268,8 +242,6 @@ const SettingDescription = styled.Text`
   font-size: 13px;
   line-height: 19px;
 `;
-
-const GuidanceSwitch = styled.Switch``;
 
 const InfoCard = styled.View`
   padding: 0px 18px;
@@ -324,7 +296,7 @@ const AboutTitle = styled.Text`
 
 const AboutBody = styled.Text`
   margin-top: 8px;
-  color: #a8c2b6;
+  color: ${({ theme }) => theme.colors.mutedStrong};
   font-size: 14px;
   line-height: 21px;
 `;

@@ -20,7 +20,6 @@ interface CameraViewProps {
   copy: LearningCopy;
   learningLanguage: LearningLanguage;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
-  showGuidance: boolean;
   viewModel: CameraViewModel;
 }
 
@@ -168,7 +167,6 @@ export function CameraView({
   copy,
   learningLanguage,
   renderCamera,
-  showGuidance,
   viewModel,
 }: CameraViewProps) {
   const [viewport, setViewport] = useState<ViewportSize>({
@@ -311,18 +309,6 @@ export function CameraView({
             <LiveText>{recognitionStatus}</LiveText>
           </LiveBadge>
         </Header>
-
-        {showGuidance && viewModel.detectionItems.length === 0 ? (
-          <FocusArea pointerEvents="none">
-            <TopLeftCorner />
-            <TopRightCorner />
-            <BottomLeftCorner />
-            <BottomRightCorner />
-            <GuidancePill>
-              <GuidanceText>{copy.camera.guidance}</GuidanceText>
-            </GuidancePill>
-          </FocusArea>
-        ) : null}
 
         {displayedError != null ? (
           <ErrorBanner>
@@ -477,7 +463,7 @@ const LiveBadge = styled.View`
   padding: 8px 11px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: rgba(7, 19, 15, 0.78);
+  background-color: rgba(7, 17, 31, 0.88);
 `;
 
 const LiveDot = styled.View<{ $ready: boolean }>`
@@ -493,64 +479,6 @@ const LiveText = styled.Text`
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1px;
-`;
-
-const FocusArea = styled.View`
-  width: 280px;
-  height: 250px;
-  align-self: center;
-  align-items: center;
-  justify-content: flex-end;
-  margin: auto 0px;
-`;
-
-const FocusCorner = styled.View`
-  position: absolute;
-  width: 34px;
-  height: 34px;
-  border-color: rgba(112, 241, 181, 0.78);
-`;
-
-const TopLeftCorner = styled(FocusCorner)`
-  top: 0px;
-  left: 0px;
-  border-top-width: 2px;
-  border-left-width: 2px;
-`;
-
-const TopRightCorner = styled(FocusCorner)`
-  top: 0px;
-  right: 0px;
-  border-top-width: 2px;
-  border-right-width: 2px;
-`;
-
-const BottomLeftCorner = styled(FocusCorner)`
-  bottom: 0px;
-  left: 0px;
-  border-bottom-width: 2px;
-  border-left-width: 2px;
-`;
-
-const BottomRightCorner = styled(FocusCorner)`
-  right: 0px;
-  bottom: 0px;
-  border-right-width: 2px;
-  border-bottom-width: 2px;
-`;
-
-const GuidancePill = styled.View`
-  padding: 9px 16px;
-  margin-bottom: 20px;
-  border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: rgba(7, 19, 15, 0.8);
-`;
-
-const GuidanceText = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
 `;
 
 const ErrorBanner = styled.View`

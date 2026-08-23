@@ -24,7 +24,7 @@ export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
             <TabButton
               accessibilityRole="tab"
               accessibilityState={{ selected: isSelected }}
-              android_ripple={{ color: 'rgba(112, 241, 181, 0.12)' }}
+              android_ripple={{ color: 'rgba(26, 111, 236, 0.18)' }}
               key={tab.value}
               onPress={() => onSelect(tab.value)}
               testID={`tab-${tab.value}`}
@@ -71,9 +71,9 @@ const TabsContainer = styled.View`
   flex-direction: row;
   gap: 8px;
   padding: 7px;
-  border: 1px solid #294b3e;
+  border: 1px solid #1e4e91;
   border-radius: 24px;
-  background-color: rgba(9, 24, 18, 0.96);
+  background-color: rgba(7, 17, 31, 0.96);
   elevation: 12;
 `;
 
@@ -86,13 +86,13 @@ const TabButton = styled.Pressable<{ $selected: boolean }>`
   gap: 9px;
   border-radius: 18px;
   background-color: ${({ $selected }) =>
-    $selected ? '#17382B' : 'transparent'};
+    $selected ? 'rgba(26, 111, 236, 0.22)' : 'transparent'};
   overflow: hidden;
 `;
 
 const TabLabel = styled.Text<{ $selected: boolean }>`
   color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#819D90'};
+    $selected ? theme.colors.accent : '#8299B8'};
   font-size: 12px;
   font-weight: 700;
 `;
@@ -103,7 +103,7 @@ const CameraIcon = styled.View<{ $selected: boolean }>`
   align-items: center;
   justify-content: center;
   border: 1.5px solid
-    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#819D90')};
+    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#8299B8')};
   border-radius: 5px;
 `;
 
@@ -111,7 +111,7 @@ const CameraLens = styled.View<{ $selected: boolean }>`
   width: 6px;
   height: 6px;
   border: 1.5px solid
-    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#819D90')};
+    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#8299B8')};
   border-radius: 3px;
 `;
 
@@ -128,7 +128,7 @@ const SliderLine = styled.View<{ $selected: boolean }>`
   height: 1.5px;
   border-radius: 1px;
   background-color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#819D90'};
+    $selected ? theme.colors.accent : '#8299B8'};
 `;
 
 const SliderKnob = styled.View<{ $selected: boolean }>`
@@ -137,7 +137,7 @@ const SliderKnob = styled.View<{ $selected: boolean }>`
   height: 6px;
   border-radius: 3px;
   background-color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#819D90'};
+    $selected ? theme.colors.accent : '#8299B8'};
 `;
 
 const TopSliderKnob = styled(SliderKnob)`

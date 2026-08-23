@@ -14,7 +14,6 @@ interface CameraScreenProps {
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
-  showGuidance: boolean;
   vocabularyRepository: VocabularyRepository;
 }
 
@@ -24,7 +23,6 @@ export function CameraScreen({
   languageSettings,
   copy,
   renderCamera,
-  showGuidance,
   vocabularyRepository,
 }: CameraScreenProps) {
   const viewModel = useCameraViewModel({
@@ -40,7 +38,6 @@ export function CameraScreen({
       renderCamera={renderCamera}
       copy={copy}
       learningLanguage={languageSettings.learningLanguage}
-      showGuidance={showGuidance}
       viewModel={viewModel}
     />
   );

@@ -1,14 +1,14 @@
 export const appTheme = {
   colors: {
-    accent: '#70F1B5',
-    background: '#07130F',
-    card: '#10241C',
-    cardElevated: '#153126',
-    border: '#275442',
-    borderSubtle: '#1E4033',
-    muted: '#9AB7AA',
-    mutedStrong: '#B1C9BE',
-    text: '#F2FFF8',
+    accent: '#1A6FEC',
+    background: '#07111F',
+    card: '#0E1C31',
+    cardElevated: '#122745',
+    border: '#1E4E91',
+    borderSubtle: '#18375F',
+    muted: '#91A9C9',
+    mutedStrong: '#B4C8E4',
+    text: '#F4F8FF',
   },
   radii: {
     medium: 14,

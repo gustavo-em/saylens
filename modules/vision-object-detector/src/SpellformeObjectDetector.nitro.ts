@@ -30,7 +30,11 @@ export interface SpellformeObjectDetector
   getRecommendedPerformanceProfile(): string;
   getSupportedPerformanceProfiles(): string[];
   getRecommendedCpuWorkerCount(): number;
-  configureWorkers(cpuWorkerCount: number, gpuWorkerCount: number): void;
+  configureWorkers(
+    cpuWorkerCount: number,
+    gpuWorkerCount: number,
+    calibrateCpuWorkers: boolean,
+  ): void;
   detect(frame: Frame): NativeDetectionBatch;
   close(): void;
 }

@@ -59,7 +59,7 @@ namespace margelo::nitro::spellformeobjectdetector {
       virtual std::string getRecommendedPerformanceProfile() = 0;
       virtual std::vector<std::string> getSupportedPerformanceProfiles() = 0;
       virtual double getRecommendedCpuWorkerCount() = 0;
-      virtual void configureWorkers(double cpuWorkerCount, double gpuWorkerCount) = 0;
+      virtual void configureWorkers(double cpuWorkerCount, double gpuWorkerCount, bool calibrateCpuWorkers) = 0;
       virtual NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
       virtual void close() = 0;
 

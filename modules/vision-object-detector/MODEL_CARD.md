@@ -18,6 +18,12 @@ The int8 variant supports three runtime performance profiles: an adaptive pool
 of four to six parallel CPU inference workers for high-performance devices, two
 CPU workers for lower-end devices, and an opt-in Ultra profile that adds one GPU
 worker to the adaptive CPU pool.
+Eligible devices calibrate the CPU pool when High or Ultra starts. The detector
+warms up and measures 2, 4, and the device-specific maximum worker count, then
+keeps the smallest pool that reaches at least 95% of the measured peak
+throughput. Each candidate gets a 1.5-second warm-up and a 2.5-second measurement
+window. Low-end and 32-bit devices skip calibration and remain capped at two CPU
+workers.
 All profiles keep camera preview work independent from recognition and avoid
 queuing stale frames; the lower-end profile reduces concurrent CPU and memory
 pressure. Ultra intentionally prioritizes throughput over CPU, GPU, memory,

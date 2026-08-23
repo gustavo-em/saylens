@@ -108,10 +108,10 @@ const copies: Record<
         'Escolha o equilíbrio ideal entre velocidade e uso de recursos.',
       ultraPerformanceTitle: 'Ultra performance',
       ultraPerformanceDescription: workerCount =>
-        `${workerCount} CPU + 1 GPU · consumo máximo`,
+        `Até ${workerCount} CPU + 1 GPU · calibração automática`,
       highPerformanceTitle: 'Alto desempenho',
       highPerformanceDescription: workerCount =>
-        `${workerCount} workers · capacidade estimada`,
+        `Até ${workerCount} workers · calibração automática`,
       lowDeviceTitle: 'Dispositivo básico',
       lowDeviceDescription: '2 workers · menor uso de CPU e memória',
     },
@@ -158,10 +158,10 @@ const copies: Record<
         'Choose the best balance between speed and resource usage.',
       ultraPerformanceTitle: 'Ultra performance',
       ultraPerformanceDescription: workerCount =>
-        `${workerCount} CPU + 1 GPU · maximum power usage`,
+        `Up to ${workerCount} CPU + 1 GPU · automatic calibration`,
       highPerformanceTitle: 'High performance',
       highPerformanceDescription: workerCount =>
-        `${workerCount} workers · estimated capacity`,
+        `Up to ${workerCount} workers · automatic calibration`,
       lowDeviceTitle: 'Basic device',
       lowDeviceDescription: '2 workers · lower CPU and memory usage',
     },
@@ -209,10 +209,10 @@ const copies: Record<
         'Elige el mejor equilibrio entre velocidad y uso de recursos.',
       ultraPerformanceTitle: 'Rendimiento ultra',
       ultraPerformanceDescription: workerCount =>
-        `${workerCount} CPU + 1 GPU · consumo máximo`,
+        `Hasta ${workerCount} CPU + 1 GPU · calibración automática`,
       highPerformanceTitle: 'Alto rendimiento',
       highPerformanceDescription: workerCount =>
-        `${workerCount} workers · capacidad estimada`,
+        `Hasta ${workerCount} workers · calibración automática`,
       lowDeviceTitle: 'Dispositivo básico',
       lowDeviceDescription: '2 workers · menor uso de CPU y memoria',
     },

@@ -38,7 +38,10 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private val nextSequence = AtomicLong()
   private val performanceCapabilities = resolvePerformanceCapabilities()
   private var cpuWorkerCount = performanceCapabilities.recommendedCpuWorkerCount
+  private var activeCpuWorkerCount = cpuWorkerCount
   private var gpuWorkerCount = DEFAULT_GPU_WORKERS
+  private var calibrationRequested = false
+  private var workerCalibration: WorkerCalibration? = null
   @Volatile private var workers = createWorkers(cpuWorkerCount, gpuWorkerCount)
 
   override fun getModelName(): String = MODEL_NAME
@@ -56,6 +59,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   override fun configureWorkers(
     cpuWorkerCount: Double,
     gpuWorkerCount: Double,
+    calibrateCpuWorkers: Boolean,
   ) {
     val normalizedCpuCount = cpuWorkerCount.toInt().coerceIn(
       MIN_CPU_WORKERS,
@@ -66,23 +70,40 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     } else {
       0
     }
-    if (
+    val shouldCalibrate =
+      calibrateCpuWorkers &&
+        performanceCapabilities.supportsHighPerformance &&
+        normalizedCpuCount >= MIN_HIGH_PERFORMANCE_CPU_WORKERS
+    val poolIsUnchanged =
       normalizedCpuCount == this.cpuWorkerCount &&
-      normalizedGpuCount == this.gpuWorkerCount
+        normalizedGpuCount == this.gpuWorkerCount
+    if (
+      poolIsUnchanged &&
+      shouldCalibrate == calibrationRequested
     ) return
 
-    val previousWorkers = workers
+    val previousWorkers = if (poolIsUnchanged) null else workers
     this.cpuWorkerCount = normalizedCpuCount
     this.gpuWorkerCount = normalizedGpuCount
-    workers = createWorkers(normalizedCpuCount, normalizedGpuCount)
+    calibrationRequested = shouldCalibrate
+    workerCalibration = if (shouldCalibrate) {
+      WorkerCalibration.create(normalizedCpuCount)
+    } else {
+      null
+    }
+    activeCpuWorkerCount = workerCalibration?.currentWorkerCount
+      ?: normalizedCpuCount
+    if (!poolIsUnchanged) {
+      workers = createWorkers(normalizedCpuCount, normalizedGpuCount)
+    }
     nextWorkerIndex = 0
     performanceWindowCompleted = 0
     performanceWindowStartedAtNanos = 0L
-    previousWorkers.forEach(DetectorWorker::close)
+    previousWorkers?.forEach(DetectorWorker::close)
     Log.i(
       TAG,
       "Detector reconfigured with $normalizedCpuCount CPU workers and " +
-        "$normalizedGpuCount GPU workers.",
+        "$normalizedGpuCount GPU workers; calibration=$shouldCalibrate.",
     )
   }
 
@@ -95,6 +116,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     val fallbackBatch = latestBatch
       ?: emptyBatch(imageProxy.width, imageProxy.height, rotationDegrees)
     val pendingFrame = PendingFrame(
+      activeCpuWorkerCount = activeCpuWorkerCount,
       sequence = nextSequence.getAndIncrement(),
       width = imageProxy.width,
       height = imageProxy.height,
@@ -102,10 +124,16 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       startedAtNanos = SystemClock.elapsedRealtimeNanos(),
     )
 
-    repeat(workers.size) { offset ->
-      val workerIndex = (nextWorkerIndex + offset) % workers.size
+    val activeWorkerCount = activeCpuWorkerCount + gpuWorkerCount
+    repeat(activeWorkerCount) { offset ->
+      val activeWorkerIndex = (nextWorkerIndex + offset) % activeWorkerCount
+      val workerIndex = if (activeWorkerIndex < activeCpuWorkerCount) {
+        activeWorkerIndex
+      } else {
+        cpuWorkerCount + activeWorkerIndex - activeCpuWorkerCount
+      }
       if (workers[workerIndex].trySubmit(imageProxy, pendingFrame)) {
-        nextWorkerIndex = (workerIndex + 1) % workers.size
+        nextWorkerIndex = (activeWorkerIndex + 1) % activeWorkerCount
         return fallbackBatch
       }
     }
@@ -170,12 +198,89 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   }
 
   @Synchronized
-  private fun publishResult(sequence: Long, batch: NativeDetectionBatch) {
+  private fun publishResult(frame: PendingFrame, batch: NativeDetectionBatch) {
     recordThroughput(batch.inferenceTimeMs)
-    if (sequence <= latestSequence) return
+    recordCalibration(frame.activeCpuWorkerCount, batch.inferenceTimeMs)
+    if (frame.sequence <= latestSequence) return
 
-    latestSequence = sequence
+    latestSequence = frame.sequence
     latestBatch = batch
+  }
+
+  private fun recordCalibration(
+    completedWithCpuWorkerCount: Int,
+    inferenceTimeMs: Double,
+  ) {
+    val calibration = workerCalibration ?: return
+    if (completedWithCpuWorkerCount != calibration.currentWorkerCount) return
+
+    val now = SystemClock.elapsedRealtimeNanos()
+    if (calibration.stageStartedAtNanos == 0L) {
+      calibration.stageStartedAtNanos = now
+      Log.i(
+        TAG,
+        "Calibrating ${calibration.currentWorkerCount} CPU workers: warm-up.",
+      )
+      return
+    }
+    if (
+      now - calibration.stageStartedAtNanos <
+      CALIBRATION_WARM_UP_INTERVAL_NANOS
+    ) return
+
+    if (calibration.measurementStartedAtNanos == 0L) {
+      calibration.measurementStartedAtNanos = now
+    }
+    calibration.completedInferences += 1
+    calibration.totalInferenceTimeMs += inferenceTimeMs
+    val elapsedNanos = now - calibration.measurementStartedAtNanos
+    if (elapsedNanos < CALIBRATION_MEASUREMENT_INTERVAL_NANOS) return
+
+    val sample = WorkerCalibrationSample(
+      averageInferenceTimeMs =
+        calibration.totalInferenceTimeMs / calibration.completedInferences,
+      cpuWorkerCount = calibration.currentWorkerCount,
+      inferencesPerSecond =
+        calibration.completedInferences * NANOSECONDS_PER_SECOND / elapsedNanos,
+    )
+    calibration.samples += sample
+    Log.i(
+      TAG,
+      "Calibration sample: ${sample.cpuWorkerCount} CPU workers, " +
+        "%.1f fps, %.0f ms average latency."
+          .format(sample.inferencesPerSecond, sample.averageInferenceTimeMs),
+    )
+
+    if (calibration.moveToNextCandidate()) {
+      activeCpuWorkerCount = calibration.currentWorkerCount
+      nextWorkerIndex = 0
+      return
+    }
+
+    finishCalibration(calibration)
+  }
+
+  private fun finishCalibration(calibration: WorkerCalibration) {
+    val peakThroughput = calibration.samples.maxOf { it.inferencesPerSecond }
+    val selectedSample = calibration.samples
+      .filter {
+        it.inferencesPerSecond >= peakThroughput * CALIBRATION_NEAR_PEAK_RATIO
+      }
+      .minBy { it.cpuWorkerCount }
+
+    activeCpuWorkerCount = selectedSample.cpuWorkerCount
+    nextWorkerIndex = 0
+    workerCalibration = null
+
+    for (workerIndex in activeCpuWorkerCount until cpuWorkerCount) {
+      workers[workerIndex].close()
+    }
+    Log.i(
+      TAG,
+      "Calibration complete: selected ${selectedSample.cpuWorkerCount} CPU " +
+        "workers at %.1f fps (peak %.1f fps)."
+          .format(selectedSample.inferencesPerSecond, peakThroughput),
+    )
   }
 
   private fun recordThroughput(inferenceTimeMs: Double) {
@@ -341,6 +446,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     preferredDelegate: Delegate,
   ) {
     private val busy = AtomicBoolean(false)
+    private val closed = AtomicBoolean(false)
     private var detector: ObjectDetector? = null
     private var hasLoggedFirstResult = false
     private var inputBitmap: Bitmap? = null
@@ -371,6 +477,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     }
 
     fun close() {
+      if (!closed.compareAndSet(false, true)) return
+
       executor.execute {
         closeDetectorSafely()
         detector = null
@@ -389,7 +497,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
           .build()
         val result = getOrCreateDetector().detect(image, processingOptions)
         val batch = mapResult(result, frame)
-        publishResult(frame.sequence, batch)
+        publishResult(frame, batch)
         if (!hasLoggedFirstResult) {
           hasLoggedFirstResult = true
           Log.i(
@@ -484,15 +592,59 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val NANOSECONDS_PER_MILLISECOND = 1_000_000.0
     const val NANOSECONDS_PER_SECOND = 1_000_000_000.0
     const val PERFORMANCE_LOG_INTERVAL_NANOS = 5_000_000_000L
+    const val CALIBRATION_WARM_UP_INTERVAL_NANOS = 1_500_000_000L
+    const val CALIBRATION_MEASUREMENT_INTERVAL_NANOS = 2_500_000_000L
+    const val CALIBRATION_NEAR_PEAK_RATIO = 0.95
   }
 
   private data class PendingFrame(
+    val activeCpuWorkerCount: Int,
     val sequence: Long,
     val width: Int,
     val height: Int,
     val rotationDegrees: Int,
     val startedAtNanos: Long,
   )
+
+  private data class WorkerCalibrationSample(
+    val averageInferenceTimeMs: Double,
+    val cpuWorkerCount: Int,
+    val inferencesPerSecond: Double,
+  )
+
+  private data class WorkerCalibration(
+    private val candidates: IntArray,
+    private var candidateIndex: Int = 0,
+    var stageStartedAtNanos: Long = 0L,
+    var measurementStartedAtNanos: Long = 0L,
+    var completedInferences: Int = 0,
+    var totalInferenceTimeMs: Double = 0.0,
+    val samples: MutableList<WorkerCalibrationSample> = mutableListOf(),
+  ) {
+    val currentWorkerCount: Int
+      get() = candidates[candidateIndex]
+
+    fun moveToNextCandidate(): Boolean {
+      if (candidateIndex >= candidates.lastIndex) return false
+
+      candidateIndex += 1
+      stageStartedAtNanos = 0L
+      measurementStartedAtNanos = 0L
+      completedInferences = 0
+      totalInferenceTimeMs = 0.0
+      return true
+    }
+
+    companion object {
+      fun create(maxCpuWorkerCount: Int) = WorkerCalibration(
+        candidates = intArrayOf(
+          LOW_DEVICE_CPU_WORKERS,
+          MIN_HIGH_PERFORMANCE_CPU_WORKERS,
+          maxCpuWorkerCount,
+        ).distinct().sorted().toIntArray(),
+      )
+    }
+  }
 
   private data class DevicePerformanceCapabilities(
     val maxCpuWorkerCount: Int,

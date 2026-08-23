@@ -78,6 +78,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
     objectDetector.configureWorkers(
       settings.cpuWorkerCount,
       settings.gpuWorkerCount,
+      settings.calibrateCpuWorkers,
     );
   }, [performanceCapabilities, performanceProfile]);
 

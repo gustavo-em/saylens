@@ -20,10 +20,15 @@ export function getPerformanceProfileSettings(
   capabilities: PerformanceCapabilities,
 ) {
   if (profile === 'low-device') {
-    return { cpuWorkerCount: 2, gpuWorkerCount: 0 };
+    return {
+      calibrateCpuWorkers: false,
+      cpuWorkerCount: 2,
+      gpuWorkerCount: 0,
+    };
   }
 
   return {
+    calibrateCpuWorkers: true,
     cpuWorkerCount: capabilities.highPerformanceCpuWorkerCount,
     gpuWorkerCount: profile === 'ultra-performance' ? 1 : 0,
   };

@@ -48,7 +48,7 @@ abstract class HybridSpellformeObjectDetectorSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun configureWorkers(cpuWorkerCount: Double, gpuWorkerCount: Double): Unit
+  abstract fun configureWorkers(cpuWorkerCount: Double, gpuWorkerCount: Double, calibrateCpuWorkers: Boolean): Unit
   
   @DoNotStrip
   @Keep

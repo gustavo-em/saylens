@@ -1,4 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useWindowDimensions } from 'react-native';
 import styled from 'styled-components/native';
 
 import type { AppTab } from './AppTab';
@@ -10,13 +11,19 @@ interface AppTabBarProps {
 }
 
 export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
+  const { height, width } = useWindowDimensions();
+  const isLandscape = width > height;
   const tabs: ReadonlyArray<{ label: string; value: AppTab }> = [
     { label: labels.camera, value: 'camera' },
     { label: labels.settings, value: 'settings' },
   ];
   return (
-    <BottomSafeArea edges={['bottom']} pointerEvents="box-none">
-      <TabsContainer>
+    <NavigationSafeArea
+      edges={isLandscape ? ['right'] : ['bottom']}
+      pointerEvents="box-none"
+      $landscape={isLandscape}
+    >
+      <TabsContainer $landscape={isLandscape}>
         {tabs.map(tab => {
           const isSelected = activeTab === tab.value;
 
@@ -28,6 +35,7 @@ export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
               key={tab.value}
               onPress={() => onSelect(tab.value)}
               testID={`tab-${tab.value}`}
+              $landscape={isLandscape}
               $selected={isSelected}
             >
               <TabIcon selected={isSelected} tab={tab.value} />
@@ -36,7 +44,7 @@ export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
           );
         })}
       </TabsContainer>
-    </BottomSafeArea>
+    </NavigationSafeArea>
   );
 }
 
@@ -59,42 +67,57 @@ function TabIcon({ selected, tab }: { selected: boolean; tab: AppTab }) {
   );
 }
 
-const BottomSafeArea = styled(SafeAreaView)`
+const NavigationSafeArea = styled(SafeAreaView)<{ $landscape: boolean }>`
   position: absolute;
-  right: 0px;
-  bottom: 0px;
-  left: 0px;
-  padding: 0px 18px;
+  ${({ $landscape }) =>
+    $landscape
+      ? `
+        top: 0px;
+        right: 0px;
+        bottom: 0px;
+        width: 154px;
+        justify-content: center;
+        padding: 12px;
+      `
+      : `
+        right: 0px;
+        bottom: 0px;
+        left: 0px;
+        padding: 0px 20px;
+      `}
 `;
 
-const TabsContainer = styled.View`
-  flex-direction: row;
+const TabsContainer = styled.View<{ $landscape: boolean }>`
+  flex-direction: ${({ $landscape }) => ($landscape ? 'column' : 'row')};
   gap: 8px;
-  padding: 7px;
-  border: 1px solid #1e4e91;
-  border-radius: 24px;
-  background-color: rgba(7, 17, 31, 0.96);
-  elevation: 12;
+  padding: 6px;
+  border: 1px solid rgba(145, 169, 201, 0.24);
+  border-radius: 26px;
+  background-color: rgba(7, 17, 31, 0.98);
+  elevation: 16;
 `;
 
-const TabButton = styled.Pressable<{ $selected: boolean }>`
-  min-height: 52px;
-  flex: 1;
+const TabButton = styled.Pressable<{
+  $landscape: boolean;
+  $selected: boolean;
+}>`
+  min-height: 54px;
+  ${({ $landscape }) => ($landscape ? 'width: 100%;' : 'flex: 1;')}
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border-radius: 18px;
+  border-radius: 20px;
   background-color: ${({ $selected }) =>
-    $selected ? 'rgba(26, 111, 236, 0.22)' : 'transparent'};
+    $selected ? '#1A6FEC' : 'transparent'};
   overflow: hidden;
 `;
 
 const TabLabel = styled.Text<{ $selected: boolean }>`
   color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#8299B8'};
+    $selected ? '#FFFFFF' : theme.colors.muted};
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 `;
 
 const CameraIcon = styled.View<{ $selected: boolean }>`
@@ -103,7 +126,7 @@ const CameraIcon = styled.View<{ $selected: boolean }>`
   align-items: center;
   justify-content: center;
   border: 1.5px solid
-    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#8299B8')};
+    ${({ $selected, theme }) => ($selected ? '#FFFFFF' : theme.colors.muted)};
   border-radius: 5px;
 `;
 
@@ -111,7 +134,7 @@ const CameraLens = styled.View<{ $selected: boolean }>`
   width: 6px;
   height: 6px;
   border: 1.5px solid
-    ${({ $selected, theme }) => ($selected ? theme.colors.accent : '#8299B8')};
+    ${({ $selected, theme }) => ($selected ? '#FFFFFF' : theme.colors.muted)};
   border-radius: 3px;
 `;
 
@@ -128,7 +151,7 @@ const SliderLine = styled.View<{ $selected: boolean }>`
   height: 1.5px;
   border-radius: 1px;
   background-color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#8299B8'};
+    $selected ? '#FFFFFF' : theme.colors.muted};
 `;
 
 const SliderKnob = styled.View<{ $selected: boolean }>`
@@ -137,7 +160,7 @@ const SliderKnob = styled.View<{ $selected: boolean }>`
   height: 6px;
   border-radius: 3px;
   background-color: ${({ $selected, theme }) =>
-    $selected ? theme.colors.accent : '#8299B8'};
+    $selected ? '#FFFFFF' : theme.colors.muted};
 `;
 
 const TopSliderKnob = styled(SliderKnob)`

@@ -18,6 +18,7 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
 interface CameraViewProps {
   copy: LearningCopy;
+  isActive: boolean;
   learningLanguage: LearningLanguage;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   viewModel: CameraViewModel;
@@ -30,32 +31,10 @@ interface ViewportSize {
 
 const OBJECT_CARD_WIDTH = 190;
 const OBJECT_CARD_EDGE_INSET = 8;
-const OBJECT_CARD_TOP_OFFSET = -57;
+const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
+const OBJECT_CARD_TOP_SAFE_INSET = 92;
+const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
-
-const OBJECT_ICONS: Record<string, string> = {
-  backpack: '🎒',
-  book: '📖',
-  bottle: '🧴',
-  car: '🚗',
-  cat: '🐱',
-  chair: '🪑',
-  'cell phone': '📱',
-  clock: '🕒',
-  couch: '🛋️',
-  cup: '☕',
-  dog: '🐶',
-  keyboard: '⌨️',
-  laptop: '💻',
-  mouse: '🖱️',
-  person: '👤',
-  table: '▦',
-  tv: '📺',
-};
-
-function getObjectIcon(label: string) {
-  return OBJECT_ICONS[label.toLowerCase()] ?? '◈';
-}
 
 function getObjectStyle(
   object: DetectedObject,
@@ -85,19 +64,24 @@ function getObjectCardStyle(
   viewport: ViewportSize,
 ) {
   const minimumLeft = OBJECT_CARD_EDGE_INSET - targetStyle.left;
+  const rightSafeInset =
+    viewport.width > viewport.height ? 166 : OBJECT_CARD_EDGE_INSET;
   const maximumLeft =
-    viewport.width -
-    targetStyle.left -
-    OBJECT_CARD_WIDTH -
-    OBJECT_CARD_EDGE_INSET;
+    viewport.width - targetStyle.left - OBJECT_CARD_WIDTH - rightSafeInset;
+  const preferredAbsoluteTop =
+    targetStyle.top - OBJECT_CARD_ESTIMATED_HEIGHT - OBJECT_CARD_EDGE_INSET;
+  const maximumAbsoluteTop =
+    viewport.height -
+    OBJECT_CARD_BOTTOM_SAFE_INSET -
+    OBJECT_CARD_ESTIMATED_HEIGHT;
+  const absoluteTop = Math.max(
+    OBJECT_CARD_TOP_SAFE_INSET,
+    Math.min(preferredAbsoluteTop, maximumAbsoluteTop),
+  );
 
   return {
     left: Math.max(minimumLeft, Math.min(-2, maximumLeft)),
-    top:
-      targetStyle.top >=
-      Math.abs(OBJECT_CARD_TOP_OFFSET) + OBJECT_CARD_EDGE_INSET
-        ? OBJECT_CARD_TOP_OFFSET
-        : OBJECT_CARD_EDGE_INSET,
+    top: absoluteTop - targetStyle.top,
   };
 }
 
@@ -165,6 +149,7 @@ function InterpolatedObjectTarget({
 
 export function CameraView({
   copy,
+  isActive,
   learningLanguage,
   renderCamera,
   viewModel,
@@ -211,6 +196,7 @@ export function CameraView({
   }
 
   const detectionFrame = viewModel.detectionFrame;
+  const isLandscape = viewport.width > viewport.height;
   const recognitionStatus =
     viewModel.recognitionError != null
       ? copy.camera.unavailable
@@ -231,9 +217,9 @@ export function CameraView({
   return (
     <Container onLayout={handleLayout} testID="camera-container">
       {renderCamera(viewModel.viewportCallbacks)}
-      <Scrim pointerEvents="none" />
+      {isActive ? <Scrim pointerEvents="none" /> : null}
 
-      {detectionFrame != null && viewport.width > 0 ? (
+      {isActive && detectionFrame != null && viewport.width > 0 ? (
         <DetectionLayer pointerEvents="none">
           {viewModel.detectionItems.map(({ object, vocabulary }) => {
             const targetStyle = getObjectStyle(
@@ -258,7 +244,7 @@ export function CameraView({
                 <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
                   <ObjectCardHeader>
                     <ObjectIdentity>
-                      <ObjectIcon>{getObjectIcon(object.label)}</ObjectIcon>
+                      <LearningBadge>Aa</LearningBadge>
                       <ObjectWord numberOfLines={1}>
                         {vocabulary.word}
                       </ObjectWord>
@@ -293,29 +279,41 @@ export function CameraView({
         </DetectionLayer>
       ) : null}
 
-      <Overlay edges={['top']} pointerEvents="box-none">
-        <Header>
-          <BrandGroup>
-            <Brand>SpellForMe</Brand>
-            <Caption>{copy.camera.caption(learningLanguage)}</Caption>
-          </BrandGroup>
+      {isActive ? (
+        <Overlay
+          edges={['top']}
+          pointerEvents="box-none"
+          $landscape={isLandscape}
+        >
+          <Header>
+            <BrandGroup>
+              <BrandRow>
+                <HeaderMark>S</HeaderMark>
+                <Brand>SpellForMe</Brand>
+              </BrandRow>
+              <Caption>{copy.camera.caption(learningLanguage)}</Caption>
+            </BrandGroup>
 
-          <LiveBadge accessibilityLabel={detectorAccessibilityLabel} accessible>
-            <LiveDot
-              $ready={
-                viewModel.isCameraLive && viewModel.recognitionError == null
-              }
-            />
-            <LiveText>{recognitionStatus}</LiveText>
-          </LiveBadge>
-        </Header>
+            <LiveBadge
+              accessibilityLabel={detectorAccessibilityLabel}
+              accessible
+            >
+              <LiveDot
+                $ready={
+                  viewModel.isCameraLive && viewModel.recognitionError == null
+                }
+              />
+              <LiveText>{recognitionStatus}</LiveText>
+            </LiveBadge>
+          </Header>
 
-        {displayedError != null ? (
-          <ErrorBanner>
-            <ErrorText>{displayedError}</ErrorText>
-          </ErrorBanner>
-        ) : null}
-      </Overlay>
+          {displayedError != null ? (
+            <ErrorBanner>
+              <ErrorText>{displayedError}</ErrorText>
+            </ErrorBanner>
+          ) : null}
+        </Overlay>
+      ) : null}
     </Container>
   );
 }
@@ -328,30 +326,31 @@ const Container = styled.View`
 const Scrim = styled.View`
   position: absolute;
   inset: 0px;
-  background-color: rgba(1, 12, 8, 0.12);
+  background-color: rgba(3, 10, 22, 0.14);
 `;
 
 const DetectionLayer = styled.View`
   position: absolute;
   inset: 0px;
+  z-index: 1;
 `;
 
 const ObjectTarget = styled(Animated.View)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
-  border: 2px solid #1a6fec;
-  border-radius: 10px;
-  background-color: rgba(26, 111, 236, 0.09);
+  border: 1.5px solid #1a6fec;
+  border-radius: 12px;
+  background-color: rgba(26, 111, 236, 0.07);
 `;
 
 const ObjectCard = styled.View`
   position: absolute;
   width: ${OBJECT_CARD_WIDTH}px;
-  padding: 10px;
-  border: 1px solid rgba(26, 111, 236, 0.72);
-  border-radius: 12px;
-  background-color: rgba(7, 20, 39, 0.96);
+  padding: 11px;
+  border: 1px solid rgba(111, 169, 255, 0.56);
+  border-radius: 14px;
+  background-color: rgba(7, 17, 31, 0.97);
 `;
 
 const ObjectCardHeader = styled.View`
@@ -368,22 +367,23 @@ const ObjectIdentity = styled.View`
   gap: 7px;
 `;
 
-const ObjectIcon = styled.Text`
-  width: 24px;
-  height: 24px;
+const LearningBadge = styled.Text`
+  width: 28px;
+  height: 28px;
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: 9px;
   background-color: #1a6fec;
   color: #ffffff;
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 28px;
   text-align: center;
 `;
 
 const ObjectWord = styled.Text`
   flex: 1;
-  color: #6fa9ff;
-  font-size: 12px;
+  color: #ffffff;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.4px;
 `;
@@ -393,8 +393,8 @@ const ObjectDetails = styled.View`
   align-items: center;
   margin-top: 9px;
   padding: 7px 8px;
-  border-radius: 8px;
-  background-color: rgba(26, 111, 236, 0.16);
+  border-radius: 9px;
+  background-color: rgba(26, 111, 236, 0.14);
 `;
 
 const ObjectDetail = styled.View`
@@ -424,46 +424,71 @@ const ObjectDetailDivider = styled.View`
 `;
 
 const ObjectConfidence = styled.Text`
+  padding: 4px 6px;
+  border-radius: 7px;
+  background-color: rgba(26, 111, 236, 0.18);
   color: #9bc4ff;
   font-size: 10px;
   font-weight: 800;
 `;
 
-const Overlay = styled(SafeAreaView)`
+const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
   flex: 1;
-  padding-bottom: 112px;
+  padding-right: ${({ $landscape }) => ($landscape ? 154 : 0)}px;
+  padding-bottom: ${({ $landscape }) => ($landscape ? 16 : 112)}px;
+  z-index: 2;
 `;
 
 const Header = styled.View`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px 0px;
+  padding: 14px 20px 0px;
 `;
 
 const BrandGroup = styled.View``;
 
+const BrandRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+const HeaderMark = styled.Text`
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 9px;
+  background-color: ${({ theme }) => theme.colors.accent};
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 28px;
+  text-align: center;
+`;
+
 const Brand = styled.Text`
   color: ${({ theme }) => theme.colors.text};
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.6px;
 `;
 
 const Caption = styled.Text`
   color: ${({ theme }) => theme.colors.mutedStrong};
-  font-size: 12px;
-  margin-top: 2px;
+  margin-top: 5px;
+  margin-left: 36px;
+  font-size: 11px;
 `;
 
 const LiveBadge = styled.View`
   flex-direction: row;
   align-items: center;
   gap: 7px;
-  padding: 8px 11px;
+  padding: 7px 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: rgba(7, 17, 31, 0.88);
+  background-color: rgba(7, 17, 31, 0.92);
 `;
 
 const LiveDot = styled.View<{ $ready: boolean }>`

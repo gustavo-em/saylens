@@ -3,6 +3,7 @@ import type { LearningLanguage } from '../../domain/LearningLanguage';
 export interface LearningCopy {
   tabs: { camera: string; settings: string };
   languageName: (language: LearningLanguage) => string;
+  languageShortName: (language: LearningLanguage) => string;
   camera: {
     caption: (language: LearningLanguage) => string;
     permissionTitle: string;
@@ -51,7 +52,19 @@ const languageNames: Record<
   es: { 'pt-BR': 'Portugués (Brasil)', en: 'Inglés', es: 'Español' },
 };
 
-const copies: Record<LearningLanguage, Omit<LearningCopy, 'languageName'>> = {
+const shortLanguageNames: Record<
+  LearningLanguage,
+  Record<LearningLanguage, string>
+> = {
+  'pt-BR': { 'pt-BR': 'Português', en: 'Inglês', es: 'Espanhol' },
+  en: { 'pt-BR': 'Portuguese', en: 'English', es: 'Spanish' },
+  es: { 'pt-BR': 'Portugués', en: 'Inglés', es: 'Español' },
+};
+
+const copies: Record<
+  LearningLanguage,
+  Omit<LearningCopy, 'languageName' | 'languageShortName'>
+> = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
     camera: {
@@ -204,5 +217,6 @@ export function getLearningCopy(language: LearningLanguage): LearningCopy {
   return {
     ...copies[language],
     languageName: target => languageNames[language][target],
+    languageShortName: target => shortLanguageNames[language][target],
   };
 }

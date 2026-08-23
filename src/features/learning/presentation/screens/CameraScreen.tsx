@@ -37,6 +37,7 @@ export function CameraScreen({
     <CameraView
       renderCamera={renderCamera}
       copy={copy}
+      isActive={isActive}
       learningLanguage={languageSettings.learningLanguage}
       viewModel={viewModel}
     />

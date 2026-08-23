@@ -110,6 +110,9 @@ describe('App', () => {
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
+    expect(
+      renderer!.root.findAllByProps({ testID: 'detected-object-bottle-0' }),
+    ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
     expect(settingsTree).toContain('Ciclo de aprendizado no dispositivo');
     expect(settingsTree).not.toContain('Guia de enquadramento');
@@ -141,7 +144,7 @@ describe('App', () => {
     expect(renderedTree).toContain('BÓ-tl');
     expect(renderedTree).toContain('SIGNIFICADO');
     expect(renderedTree).toContain('PRONÚNCIA');
-    expect(renderedTree).toContain('🧴');
+    expect(renderedTree).toContain('Aa');
     expect(renderedTree).toContain('91');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),

@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Modal, type LayoutChangeEvent } from 'react-native';
+import { type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
@@ -17,6 +17,10 @@ interface ViewportSize {
   width: number;
   height: number;
 }
+
+const OBJECT_CARD_WIDTH = 190;
+const OBJECT_CARD_EDGE_INSET = 8;
+const OBJECT_CARD_TOP_OFFSET = -57;
 
 function getObjectStyle(
   object: DetectedObject,
@@ -38,6 +42,27 @@ function getObjectStyle(
     top: offsetY + object.bounds.y * renderedHeight,
     width: object.bounds.width * renderedWidth,
     height: object.bounds.height * renderedHeight,
+  };
+}
+
+function getObjectCardStyle(
+  targetStyle: ReturnType<typeof getObjectStyle>,
+  viewport: ViewportSize,
+) {
+  const minimumLeft = OBJECT_CARD_EDGE_INSET - targetStyle.left;
+  const maximumLeft =
+    viewport.width -
+    targetStyle.left -
+    OBJECT_CARD_WIDTH -
+    OBJECT_CARD_EDGE_INSET;
+
+  return {
+    left: Math.max(minimumLeft, Math.min(-2, maximumLeft)),
+    top:
+      targetStyle.top >=
+      Math.abs(OBJECT_CARD_TOP_OFFSET) + OBJECT_CARD_EDGE_INSET
+        ? OBJECT_CARD_TOP_OFFSET
+        : OBJECT_CARD_EDGE_INSET,
   };
 }
 
@@ -115,33 +140,41 @@ export function CameraView({
       <Scrim pointerEvents="none" />
 
       {detectionFrame != null && viewport.width > 0 ? (
-        <DetectionLayer pointerEvents="box-none">
-          {detectionFrame.objects.map(object => (
-            <ObjectTarget
-              accessibilityHint="Abre o significado e a pronúncia"
-              accessibilityLabel={`Aprender a palavra ${object.label}`}
-              accessibilityRole="button"
-              hitSlop={8}
-              key={object.id}
-              onPress={() => viewModel.onObjectPress(object)}
-              style={getObjectStyle(
-                object,
-                detectionFrame.sourceWidth,
-                detectionFrame.sourceHeight,
-                viewport,
-              )}
-              testID={`detected-object-${object.id}`}
-            >
-              <ObjectLabel>
-                <ObjectLabelText numberOfLines={1}>
-                  {object.label.toUpperCase()}
-                </ObjectLabelText>
-                <ObjectConfidence>
-                  {Math.round(object.confidence * 100)}%
-                </ObjectConfidence>
-              </ObjectLabel>
-            </ObjectTarget>
-          ))}
+        <DetectionLayer pointerEvents="none">
+          {viewModel.detectionItems.map(({ object, vocabulary }) => {
+            const targetStyle = getObjectStyle(
+              object,
+              detectionFrame.sourceWidth,
+              detectionFrame.sourceHeight,
+              viewport,
+            );
+
+            return (
+              <ObjectTarget
+                accessibilityLabel={`${vocabulary.word}, ${
+                  vocabulary.meaning
+                }. Pronúncia: ${
+                  vocabulary.pronunciationHint
+                }. Confiança ${Math.round(object.confidence * 100)}%`}
+                accessible
+                key={object.id}
+                style={targetStyle}
+                testID={`detected-object-${object.id}`}
+              >
+                <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
+                  <ObjectCardHeader>
+                    <ObjectWord numberOfLines={1}>{vocabulary.word}</ObjectWord>
+                    <ObjectConfidence>
+                      {Math.round(object.confidence * 100)}%
+                    </ObjectConfidence>
+                  </ObjectCardHeader>
+                  <ObjectLearningHint numberOfLines={1}>
+                    {vocabulary.meaning} · {vocabulary.pronunciationHint}
+                  </ObjectLearningHint>
+                </ObjectCard>
+              </ObjectTarget>
+            );
+          })}
         </DetectionLayer>
       ) : null}
 
@@ -162,7 +195,7 @@ export function CameraView({
           </LiveBadge>
         </Header>
 
-        {showGuidance && viewModel.detections.length === 0 ? (
+        {showGuidance && viewModel.detectionItems.length === 0 ? (
           <FocusArea pointerEvents="none">
             <TopLeftCorner />
             <TopRightCorner />
@@ -180,55 +213,6 @@ export function CameraView({
           </ErrorBanner>
         ) : null}
       </Overlay>
-
-      <Modal
-        animationType="fade"
-        onRequestClose={viewModel.dismissObject}
-        statusBarTranslucent
-        transparent
-        visible={viewModel.selectedVocabulary != null}
-      >
-        <ModalSurface>
-          <ModalDismissArea
-            accessibilityLabel="Fechar detalhes da palavra"
-            accessibilityRole="button"
-            onPress={viewModel.dismissObject}
-          />
-
-          {viewModel.selectedVocabulary != null &&
-          viewModel.selectedObject != null ? (
-            <WordCard>
-              <WordEyebrow>VOCÊ ENCONTROU</WordEyebrow>
-              <WordTitle>{viewModel.selectedVocabulary.word}</WordTitle>
-              <Pronunciation>
-                {viewModel.selectedVocabulary.pronunciation}
-              </Pronunciation>
-              <PronunciationHint>
-                Fale assim: {viewModel.selectedVocabulary.pronunciationHint}
-              </PronunciationHint>
-
-              <Divider />
-
-              <DetailLabel>EM PORTUGUÊS</DetailLabel>
-              <Meaning>{viewModel.selectedVocabulary.meaning}</Meaning>
-              <DetailLabel>EXEMPLO</DetailLabel>
-              <Example>“{viewModel.selectedVocabulary.example}”</Example>
-              <ConfidenceText>
-                Confiança do modelo:{' '}
-                {Math.round(viewModel.selectedObject.confidence * 100)}%
-              </ConfidenceText>
-
-              <CloseButton
-                accessibilityRole="button"
-                onPress={viewModel.dismissObject}
-                testID="close-word-modal"
-              >
-                <CloseButtonText>CONTINUAR EXPLORANDO</CloseButtonText>
-              </CloseButton>
-            </WordCard>
-          ) : null}
-        </ModalSurface>
-      </Modal>
     </Container>
   );
 }
@@ -249,7 +233,7 @@ const DetectionLayer = styled.View`
   inset: 0px;
 `;
 
-const ObjectTarget = styled.Pressable`
+const ObjectTarget = styled.View`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
@@ -258,29 +242,40 @@ const ObjectTarget = styled.Pressable`
   background-color: rgba(7, 19, 15, 0.08);
 `;
 
-const ObjectLabel = styled.View`
+const ObjectCard = styled.View`
   position: absolute;
-  top: -31px;
-  left: -2px;
-  max-width: 190px;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.accent};
+  width: ${OBJECT_CARD_WIDTH}px;
+  padding: 8px 10px;
+  border: 1px solid rgba(112, 241, 181, 0.38);
+  border-radius: 9px;
+  background-color: rgba(7, 19, 15, 0.92);
 `;
 
-const ObjectLabelText = styled.Text`
-  flex-shrink: 1;
-  color: ${({ theme }) => theme.colors.background};
-  font-size: 11px;
+const ObjectCardHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const ObjectWord = styled.Text`
+  flex: 1;
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.4px;
+`;
+
+const ObjectLearningHint = styled.Text`
+  flex-shrink: 1;
+  margin-top: 3px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 11px;
+  font-weight: 600;
 `;
 
 const ObjectConfidence = styled.Text`
-  color: rgba(7, 19, 15, 0.68);
+  color: ${({ theme }) => theme.colors.mutedStrong};
   font-size: 10px;
   font-weight: 800;
 `;
@@ -485,108 +480,5 @@ const PermissionError = styled.Text`
   margin-top: 14px;
   color: #ffb4ab;
   font-size: 13px;
-  text-align: center;
-`;
-
-const ModalSurface = styled.View`
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 24px 20px 34px;
-  background-color: rgba(0, 0, 0, 0.62);
-`;
-
-const ModalDismissArea = styled.Pressable`
-  position: absolute;
-  inset: 0px;
-`;
-
-const WordCard = styled.View`
-  width: 100%;
-  padding: 28px 24px 22px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.extraLarge}px;
-  background-color: ${({ theme }) => theme.colors.card};
-`;
-
-const WordEyebrow = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1.6px;
-`;
-
-const WordTitle = styled.Text`
-  margin-top: 7px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: -1px;
-`;
-
-const Pronunciation = styled.Text`
-  margin-top: 3px;
-  color: ${({ theme }) => theme.colors.mutedStrong};
-  font-size: 17px;
-`;
-
-const PronunciationHint = styled.Text`
-  align-self: flex-start;
-  margin-top: 12px;
-  padding: 8px 11px;
-  border-radius: 9px;
-  color: ${({ theme }) => theme.colors.background};
-  font-size: 12px;
-  font-weight: 800;
-  background-color: ${({ theme }) => theme.colors.accent};
-`;
-
-const Divider = styled.View`
-  height: 1px;
-  margin: 23px 0px 20px;
-  background-color: ${({ theme }) => theme.colors.borderSubtle};
-`;
-
-const DetailLabel = styled.Text`
-  margin-top: 12px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1.2px;
-`;
-
-const Meaning = styled.Text`
-  margin-top: 5px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 20px;
-  font-weight: 700;
-`;
-
-const Example = styled.Text`
-  margin-top: 5px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 16px;
-  font-style: italic;
-  line-height: 23px;
-`;
-
-const ConfidenceText = styled.Text`
-  margin-top: 19px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 11px;
-`;
-
-const CloseButton = styled.Pressable`
-  margin-top: 22px;
-  padding: 15px 18px;
-  border-radius: ${({ theme }) => theme.radii.medium}px;
-  background-color: ${({ theme }) => theme.colors.accent};
-`;
-
-const CloseButtonText = styled.Text`
-  color: ${({ theme }) => theme.colors.background};
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1.1px;
   text-align: center;
 `;

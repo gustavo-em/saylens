@@ -115,7 +115,7 @@ describe('App', () => {
     );
   });
 
-  it('opens vocabulary details after pressing a detected object', async () => {
+  it('shows compact vocabulary details on a detected object', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -130,19 +130,17 @@ describe('App', () => {
         });
     });
 
-    const bottle = renderer!.root.findByProps({
+    renderer!.root.findByProps({
       testID: 'detected-object-bottle-0',
-    });
-
-    await ReactTestRenderer.act(() => {
-      bottle.props.onPress();
     });
 
     const renderedTree = JSON.stringify(renderer!.toJSON());
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).toContain('garrafa');
     expect(renderedTree).toContain('BÓ-tl');
-    expect(renderedTree).toContain('Confiança do modelo:');
     expect(renderedTree).toContain('91');
+    expect(
+      renderer!.root.findAllByProps({ testID: 'close-word-modal' }),
+    ).toHaveLength(0);
   });
 });

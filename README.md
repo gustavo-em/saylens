@@ -3,12 +3,12 @@
 SpellForMe is an Android-first React Native side project that turns the camera
 into an interactive English-learning experience.
 
-Point the device at everyday objects, see an English label anchored over each
-object, and tap a label to learn its meaning and pronunciation.
+Point the device at everyday objects and see a compact English-learning card
+anchored over each object with its meaning and pronunciation.
 
 > Status: the first on-device learning slice is operational. The Android app
-> streams camera frames to EfficientDet, maps detections into clickable labels,
-> and opens local vocabulary details without sending images to a server.
+> streams camera frames to EfficientDet and maps detections into live vocabulary
+> overlays without sending images to a server.
 
 <p align="center">
   <img src="docs/assets/android-camera-settings.png" alt="SpellForMe camera settings running on a physical Samsung device" width="320" />
@@ -17,9 +17,9 @@ object, and tap a label to learn its meaning and pronunciation.
 ## Product journey
 
 1. Detect common objects in the live camera preview.
-2. Render a stable, clickable label over each detected object.
-3. Select an object without losing its visual context.
-4. Show the English word, pronunciation, meaning, and an example sentence.
+2. Render a stable learning card over each detected object.
+3. Show the English word, pronunciation, meaning, and confidence in real time.
+4. Preserve the object and learning context in the same camera view.
 5. Pronounce the word using the device speech service.
 
 The first experience is designed to work on-device and without a backend.
@@ -33,7 +33,7 @@ The first experience is designed to work on-device and without a backend.
 - VisionCamera 5 for the camera session and frame output.
 - A local Android Nitro/Kotlin adapter for inference.
 - MediaPipe Tasks with EfficientDet-Lite0 int8 for the first detector.
-- React Native overlays with native press handling and bounded metadata updates.
+- React Native learning overlays with metadata presentation bounded at 30 Hz.
 - A local vocabulary catalog for the first common-object labels.
 - UI-thread smoothing and device text-to-speech are the next product polish
   steps.

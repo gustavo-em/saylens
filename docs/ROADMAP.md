@@ -80,21 +80,22 @@ Status: in progress
 - [x] convert frame coordinates into preview coordinates;
 - assign stable track identities using label and bounding-box overlap;
 - smooth visual position and size on the UI thread;
-- [x] render accessible, clickable labels;
-- handle stale detections and selection deterministically.
+- [x] render accessible live vocabulary cards;
+- handle stale detections deterministically.
 
 Acceptance criteria:
 
 - overlays align through orientation and preview crop scenarios;
 - labels remain visually stable during ordinary hand movement;
-- tapping the visible target selects the expected object.
+- each visible target shows the expected word, meaning, pronunciation, and
+  confidence without interaction.
 
 ## Milestone 5: Learning experience
 
 Status: in progress
 
 - [x] define the first curated vocabulary catalog for common detector labels;
-- [x] show word, pronunciation, meaning, and example sentence;
+- [x] show word, pronunciation, meaning, and confidence in the camera layer;
 - integrate device text-to-speech;
 - [x] add scanning, unknown-label, permission, and failure states;
 - polish motion, haptics, and visual hierarchy.

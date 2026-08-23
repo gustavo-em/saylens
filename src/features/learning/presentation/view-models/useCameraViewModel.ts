@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
-import type {
-  DetectedObject,
-  DetectionFrame,
-} from '../../domain/DetectedObject';
+import type { DetectionFrame } from '../../domain/DetectedObject';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 
 const DETECTION_PRESENTATION_FPS = 30;
@@ -27,9 +24,6 @@ export function useCameraViewModel({
     null,
   );
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
-  const [selectedObject, setSelectedObject] = useState<DetectedObject | null>(
-    null,
-  );
   const detectionFrameRef = useRef<DetectionFrame | null>(null);
   const lastDetectionUpdate = useRef(0);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
@@ -78,7 +72,6 @@ export function useCameraViewModel({
     setIsPreviewReady(false);
     detectionFrameRef.current = null;
     setDetectionFrame(null);
-    setSelectedObject(null);
   }, []);
 
   const handleCameraError = useCallback((message: string) => {
@@ -115,20 +108,13 @@ export function useCameraViewModel({
     setDetectionFrame(null);
   }, []);
 
-  const selectObject = useCallback((object: DetectedObject) => {
-    setSelectedObject(object);
-  }, []);
-
-  const dismissObject = useCallback(() => {
-    setSelectedObject(null);
-  }, []);
-
-  const selectedVocabulary = useMemo(
+  const detectionItems = useMemo(
     () =>
-      selectedObject == null
-        ? null
-        : vocabularyRepository.findByLabel(selectedObject.label),
-    [selectedObject, vocabularyRepository],
+      detectionFrame?.objects.map(object => ({
+        object,
+        vocabulary: vocabularyRepository.findByLabel(object.label),
+      })) ?? [],
+    [detectionFrame, vocabularyRepository],
   );
 
   const viewportCallbacks = useMemo<CameraViewportCallbacks>(
@@ -153,12 +139,10 @@ export function useCameraViewModel({
   return {
     cameraError,
     detectionFrame,
-    detections: detectionFrame?.objects ?? [],
-    dismissObject,
+    detectionItems,
     hasPermission: cameraAccess.status === 'authorized',
     isCameraLive: isActive && isPreviewReady,
     isRequestingPermission,
-    onObjectPress: selectObject,
     onPermissionAction: handlePermissionAction,
     permissionActionLabel: isRequestingPermission
       ? 'SOLICITANDO…'
@@ -166,8 +150,6 @@ export function useCameraViewModel({
       ? 'PERMITIR CÂMERA'
       : 'ABRIR CONFIGURAÇÕES',
     recognitionError,
-    selectedObject,
-    selectedVocabulary,
     viewportCallbacks,
   };
 }

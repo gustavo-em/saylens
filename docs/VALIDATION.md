@@ -112,8 +112,9 @@ resolution.
 
 The camera's current scene did not contain a confidently recognizable COCO
 object, so it correctly remained in `PROCURANDO`. A deterministic presentation
-test injects a 91% `bottle` detection, lays out the preview, presses its overlay,
-and verifies the word, Portuguese meaning, pronunciation hint, and confidence.
+test injects a 91% `bottle` detection, lays out the preview, and verifies that
+the live overlay shows the word, Portuguese meaning, pronunciation hint, and
+confidence without interaction.
 Pure mapping tests cover upright and 90-degree frame coordinates plus bounds
 clamping.
 

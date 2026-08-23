@@ -152,9 +152,8 @@ Camera frame
   -> coordinate mapping
   -> track stabilization
   -> presentation state
-  -> clickable overlay
-  -> selected object
-  -> vocabulary lookup and pronunciation
+  -> local vocabulary lookup
+  -> live compact learning overlay
 ```
 
 Only compact detection metadata crosses the native boundary. Pixel buffers stay
@@ -171,7 +170,7 @@ outside the React Native thread.
   the overlay backwards when it finishes later.
 - Native resources are released in success and failure paths.
 - The JavaScript thread never performs pixel conversion or model inference.
-- Detection metadata updates are capped at 15 per second; repeated-empty
+- Detection metadata updates are capped at 30 per second; repeated-empty
   diagnostics update at most once per second.
 
 ## Testing boundaries

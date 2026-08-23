@@ -38,9 +38,11 @@ jest.mock(
       VisionCameraViewport: ({
         isActive,
         onDetections,
+        performanceProfile,
       }: {
         isActive: boolean;
         onDetections: (frame: unknown) => void;
+        performanceProfile: string;
       }) => {
         ReactModule.useEffect(() => {
           if (isActive) {
@@ -62,6 +64,7 @@ jest.mock(
 
         return ReactModule.createElement(MockView, {
           isActive,
+          performanceProfile,
           testID: 'camera-preview',
         });
       },
@@ -114,9 +117,44 @@ describe('App', () => {
       renderer!.root.findAllByProps({ testID: 'detected-object-bottle-0' }),
     ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
-    expect(settingsTree).toContain('Ciclo de aprendizado no dispositivo');
+    expect(settingsTree).toContain('Perfil do dispositivo');
+    expect(settingsTree).toContain('Dispositivo básico');
+    expect(settingsTree).not.toContain('BASE TÉCNICA');
+    expect(settingsTree).not.toContain('MILESTONE');
     expect(settingsTree).not.toContain('Guia de enquadramento');
     expect(settingsTree).not.toContain('APONTE PARA UM OBJETO');
+  });
+
+  it('switches to the low-device performance profile', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props
+        .performanceProfile,
+    ).toBe('high-performance');
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'performance-profile-low-device' })
+        .props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'performance-profile-low-device' })
+        .props.accessibilityState.checked,
+    ).toBe(true);
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props
+        .performanceProfile,
+    ).toBe('low-device');
   });
 
   it('shows compact vocabulary details on a detected object', async () => {

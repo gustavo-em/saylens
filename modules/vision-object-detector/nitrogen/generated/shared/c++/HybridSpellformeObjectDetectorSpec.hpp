@@ -55,6 +55,7 @@ namespace margelo::nitro::spellformeobjectdetector {
     public:
       // Methods
       virtual std::string getModelName() = 0;
+      virtual void setWorkerCount(double workerCount) = 0;
       virtual NativeDetectionBatch detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
       virtual void close() = 0;
 

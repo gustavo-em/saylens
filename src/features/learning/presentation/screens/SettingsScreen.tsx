@@ -7,6 +7,10 @@ import {
   type LearningLanguage,
   type LearningLanguageSettings,
 } from '../../domain/LearningLanguage';
+import {
+  performanceProfiles,
+  type PerformanceProfile,
+} from '../../domain/PerformanceProfile';
 import type { LearningCopy } from '../localization/learningCopy';
 
 interface SettingsScreenProps {
@@ -14,6 +18,8 @@ interface SettingsScreenProps {
   languageSettings: LearningLanguageSettings;
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
+  onPerformanceProfileChange: (profile: PerformanceProfile) => void;
+  performanceProfile: PerformanceProfile;
 }
 
 export function SettingsScreen({
@@ -21,6 +27,8 @@ export function SettingsScreen({
   languageSettings,
   onLearningLanguageChange,
   onNativeLanguageChange,
+  onPerformanceProfileChange,
+  performanceProfile,
 }: SettingsScreenProps) {
   const { height, width } = useWindowDimensions();
   const isLandscape = width > height;
@@ -131,30 +139,53 @@ export function SettingsScreen({
           </Section>
 
           <Section>
-            <SectionTitle>{copy.settings.technicalSection}</SectionTitle>
-            <InfoCard>
-              <InfoRow
-                label={copy.settings.cameraLabel}
-                value={copy.settings.cameraValue}
-              />
-              <Separator />
-              <InfoRow
-                label={copy.settings.processingLabel}
-                value={copy.settings.processingValue}
-              />
-              <Separator />
-              <InfoRow
-                label={copy.settings.recognitionLabel}
-                value={copy.settings.recognitionValue}
-              />
-            </InfoCard>
-          </Section>
+            <SectionTitle>{copy.settings.performanceSection}</SectionTitle>
+            <PerformancePanel>
+              <PerformanceHeader>
+                <SettingTitle>{copy.settings.performanceTitle}</SettingTitle>
+                <PerformanceDescription>
+                  {copy.settings.performanceDescription}
+                </PerformanceDescription>
+              </PerformanceHeader>
 
-          <AboutCard>
-            <AboutEyebrow>MILESTONE 5</AboutEyebrow>
-            <AboutTitle>{copy.settings.aboutTitle}</AboutTitle>
-            <AboutBody>{copy.settings.aboutBody}</AboutBody>
-          </AboutCard>
+              <PerformanceOptions>
+                {performanceProfiles.map(profile => {
+                  const selected = profile === performanceProfile;
+                  const isHighPerformance = profile === 'high-performance';
+
+                  return (
+                    <PerformanceOption
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      key={profile}
+                      onPress={() => onPerformanceProfileChange(profile)}
+                      testID={`performance-profile-${profile}`}
+                      $selected={selected}
+                    >
+                      <PerformanceIcon $selected={selected}>
+                        {isHighPerformance ? 'MAX' : 'ECO'}
+                      </PerformanceIcon>
+                      <PerformanceCopy>
+                        <PerformanceOptionTitle $selected={selected}>
+                          {isHighPerformance
+                            ? copy.settings.highPerformanceTitle
+                            : copy.settings.lowDeviceTitle}
+                        </PerformanceOptionTitle>
+                        <PerformanceOptionBody>
+                          {isHighPerformance
+                            ? copy.settings.highPerformanceDescription
+                            : copy.settings.lowDeviceDescription}
+                        </PerformanceOptionBody>
+                      </PerformanceCopy>
+                      <SelectionIndicator $selected={selected}>
+                        {selected ? '✓' : ''}
+                      </SelectionIndicator>
+                    </PerformanceOption>
+                  );
+                })}
+              </PerformanceOptions>
+            </PerformancePanel>
+          </Section>
         </Content>
       </SettingsSafeArea>
     </Container>
@@ -163,15 +194,6 @@ export function SettingsScreen({
 
 function getLanguageCode(language: LearningLanguage) {
   return language === 'pt-BR' ? 'PT' : language.toUpperCase();
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <InfoRowContainer>
-      <InfoLabel>{label}</InfoLabel>
-      <InfoValue>{value}</InfoValue>
-    </InfoRowContainer>
-  );
 }
 
 const Container = styled.View`
@@ -367,60 +389,90 @@ const SettingTitle = styled.Text`
   font-weight: 700;
 `;
 
-const InfoCard = styled.View`
-  padding: 0px 18px;
+const PerformancePanel = styled.View`
+  padding: 18px;
   border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-  border-radius: 20px;
+  border-radius: 24px;
   background-color: ${({ theme }) => theme.colors.card};
 `;
 
-const InfoRowContainer = styled.View`
+const PerformanceHeader = styled.View`
+  gap: 5px;
+`;
+
+const PerformanceDescription = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 13px;
+  line-height: 19px;
+`;
+
+const PerformanceOptions = styled.View`
+  gap: 10px;
+  margin-top: 16px;
+`;
+
+const PerformanceOption = styled.Pressable<{ $selected: boolean }>`
+  min-height: 74px;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  padding: 17px 0px;
+  padding: 13px;
+  border: 1px solid
+    ${({ $selected, theme }) =>
+      $selected ? theme.colors.accent : theme.colors.borderSubtle};
+  border-radius: 18px;
+  background-color: ${({ $selected }) =>
+    $selected ? 'rgba(26, 111, 236, 0.12)' : 'rgba(255, 255, 255, 0.02)'};
 `;
 
-const InfoLabel = styled.Text`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 14px;
-`;
-
-const InfoValue = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 14px;
-  font-weight: 700;
-`;
-
-const Separator = styled.View`
-  height: 1px;
-  background-color: ${({ theme }) => theme.colors.borderSubtle};
-`;
-
-const AboutCard = styled.View`
-  padding: 20px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 24px;
-  background-color: ${({ theme }) => theme.colors.cardElevated};
-`;
-
-const AboutEyebrow = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
+const PerformanceIcon = styled.Text<{ $selected: boolean }>`
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 13px;
+  background-color: ${({ $selected, theme }) =>
+    $selected ? theme.colors.accent : theme.colors.cardElevated};
+  color: ${({ $selected, theme }) =>
+    $selected ? '#FFFFFF' : theme.colors.mutedStrong};
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 1.4px;
+  letter-spacing: 0.5px;
+  line-height: 42px;
+  text-align: center;
 `;
 
-const AboutTitle = styled.Text`
-  margin-top: 8px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 20px;
+const PerformanceCopy = styled.View`
+  min-width: 0px;
+  flex: 1;
+  margin-left: 12px;
+`;
+
+const PerformanceOptionTitle = styled.Text<{ $selected: boolean }>`
+  color: ${({ $selected, theme }) =>
+    $selected ? theme.colors.accent : theme.colors.text};
+  font-size: 15px;
   font-weight: 800;
 `;
 
-const AboutBody = styled.Text`
-  margin-top: 8px;
-  color: ${({ theme }) => theme.colors.mutedStrong};
-  font-size: 14px;
-  line-height: 21px;
+const PerformanceOptionBody = styled.Text`
+  margin-top: 4px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11px;
+  line-height: 16px;
+`;
+
+const SelectionIndicator = styled.Text<{ $selected: boolean }>`
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  border: 1px solid
+    ${({ $selected, theme }) =>
+      $selected ? theme.colors.accent : theme.colors.border};
+  border-radius: 12px;
+  background-color: ${({ $selected, theme }) =>
+    $selected ? theme.colors.accent : 'transparent'};
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 22px;
+  text-align: center;
 `;

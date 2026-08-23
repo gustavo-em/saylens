@@ -27,6 +27,7 @@ export interface SpellformeObjectDetector
     android: 'kotlin';
   }> {
   getModelName(): string;
+  setWorkerCount(workerCount: number): void;
   detect(frame: Frame): NativeDetectionBatch;
   close(): void;
 }

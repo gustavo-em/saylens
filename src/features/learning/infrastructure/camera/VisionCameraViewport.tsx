@@ -14,6 +14,10 @@ import {
   type Constraint,
 } from 'react-native-vision-camera';
 
+import {
+  performanceProfileSettings,
+  type PerformanceProfile,
+} from '../../domain/PerformanceProfile';
 import { mapNativeDetectionBatch } from '../detection/mapNativeDetectionBatch';
 
 const DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
@@ -28,6 +32,7 @@ interface VisionCameraViewportProps {
   onError: (message: string) => void;
   onPreviewStarted: () => void;
   onPreviewStopped: () => void;
+  performanceProfile: PerformanceProfile;
 }
 
 function useAppIsActive() {
@@ -55,11 +60,18 @@ export const VisionCameraViewport = memo(function CameraViewport({
   onError,
   onPreviewStarted,
   onPreviewStopped,
+  performanceProfile,
 }: VisionCameraViewportProps) {
   const appIsActive = useAppIsActive();
   const device = useCameraDevice('back', {
     physicalDevices: ['wide-angle'],
   });
+
+  useEffect(() => {
+    objectDetector.setWorkerCount(
+      performanceProfileSettings[performanceProfile].workerCount,
+    );
+  }, [performanceProfile]);
 
   const handleDetectionBatch = useCallback(
     (batch: NativeDetectionBatch) => {

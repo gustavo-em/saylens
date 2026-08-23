@@ -31,15 +31,13 @@ export interface LearningCopy {
     nativeLanguageDescription: string;
     learningLanguageTitle: string;
     learningLanguageDescription: string;
-    technicalSection: string;
-    cameraLabel: string;
-    cameraValue: string;
-    processingLabel: string;
-    processingValue: string;
-    recognitionLabel: string;
-    recognitionValue: string;
-    aboutTitle: string;
-    aboutBody: string;
+    performanceSection: string;
+    performanceTitle: string;
+    performanceDescription: string;
+    highPerformanceTitle: string;
+    highPerformanceDescription: string;
+    lowDeviceTitle: string;
+    lowDeviceDescription: string;
   };
 }
 
@@ -102,16 +100,14 @@ const copies: Record<
       learningLanguageTitle: 'Quero aprender',
       learningLanguageDescription:
         'Idioma das palavras, pronúncias e exemplos.',
-      technicalSection: 'BASE TÉCNICA',
-      cameraLabel: 'Câmera',
-      cameraValue: 'Traseira · pronta',
-      processingLabel: 'Processamento',
-      processingValue: 'No dispositivo',
-      recognitionLabel: 'Reconhecimento',
-      recognitionValue: 'EfficientDet · ativo',
-      aboutTitle: 'Ciclo de aprendizado no dispositivo',
-      aboutBody:
-        'VisionCamera 5 e MediaPipe reconhecem objetos no Android sem enviar imagens para servidores. O React recebe somente caixas e palavras.',
+      performanceSection: 'PERFORMANCE',
+      performanceTitle: 'Perfil do dispositivo',
+      performanceDescription:
+        'Escolha o equilíbrio ideal entre velocidade e uso de recursos.',
+      highPerformanceTitle: 'Alto desempenho',
+      highPerformanceDescription: '4 workers · mais detecções por segundo',
+      lowDeviceTitle: 'Dispositivo básico',
+      lowDeviceDescription: '2 workers · menor uso de CPU e memória',
     },
   },
   en: {
@@ -150,16 +146,14 @@ const copies: Record<
       learningLanguageTitle: 'I want to learn',
       learningLanguageDescription:
         'Language used for words, pronunciations, and examples.',
-      technicalSection: 'TECHNICAL FOUNDATION',
-      cameraLabel: 'Camera',
-      cameraValue: 'Rear · ready',
-      processingLabel: 'Processing',
-      processingValue: 'On device',
-      recognitionLabel: 'Recognition',
-      recognitionValue: 'EfficientDet · active',
-      aboutTitle: 'On-device learning loop',
-      aboutBody:
-        'VisionCamera 5 and MediaPipe recognize objects on Android without sending images to servers. React receives only boxes and words.',
+      performanceSection: 'PERFORMANCE',
+      performanceTitle: 'Device profile',
+      performanceDescription:
+        'Choose the best balance between speed and resource usage.',
+      highPerformanceTitle: 'High performance',
+      highPerformanceDescription: '4 workers · more detections per second',
+      lowDeviceTitle: 'Basic device',
+      lowDeviceDescription: '2 workers · lower CPU and memory usage',
     },
   },
   es: {
@@ -199,16 +193,14 @@ const copies: Record<
       learningLanguageTitle: 'Quiero aprender',
       learningLanguageDescription:
         'Idioma de las palabras, pronunciaciones y ejemplos.',
-      technicalSection: 'BASE TÉCNICA',
-      cameraLabel: 'Cámara',
-      cameraValue: 'Trasera · lista',
-      processingLabel: 'Procesamiento',
-      processingValue: 'En el dispositivo',
-      recognitionLabel: 'Reconocimiento',
-      recognitionValue: 'EfficientDet · activo',
-      aboutTitle: 'Ciclo de aprendizaje en el dispositivo',
-      aboutBody:
-        'VisionCamera 5 y MediaPipe reconocen objetos en Android sin enviar imágenes a servidores. React recibe solamente cuadros y palabras.',
+      performanceSection: 'RENDIMIENTO',
+      performanceTitle: 'Perfil del dispositivo',
+      performanceDescription:
+        'Elige el mejor equilibrio entre velocidad y uso de recursos.',
+      highPerformanceTitle: 'Alto rendimiento',
+      highPerformanceDescription: '4 workers · más detecciones por segundo',
+      lowDeviceTitle: 'Dispositivo básico',
+      lowDeviceDescription: '2 workers · menor uso de CPU y memoria',
     },
   },
 };

@@ -66,6 +66,10 @@ namespace margelo::nitro::spellformeobjectdetector {
     auto __result = method(_javaPart);
     return __result->toStdString();
   }
+  void JHybridSpellformeObjectDetectorSpec::setWorkerCount(double workerCount) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(double /* workerCount */)>("setWorkerCount");
+    method(_javaPart, workerCount);
+  }
   NativeDetectionBatch JHybridSpellformeObjectDetectorSpec::detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JNativeDetectionBatch>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */)>("detect");
     auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart());

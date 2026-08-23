@@ -21,10 +21,15 @@ function AppContent() {
         isActive={viewModel.cameraIsActive}
         cameraErrorMessage={viewModel.copy.camera.previewFailed}
         detectionErrorMessage={viewModel.copy.camera.recognitionUnavailable}
+        performanceProfile={viewModel.performanceProfile}
         {...callbacks}
       />
     ),
-    [viewModel.cameraIsActive, viewModel.copy.camera],
+    [
+      viewModel.cameraIsActive,
+      viewModel.copy.camera,
+      viewModel.performanceProfile,
+    ],
   );
 
   return (
@@ -46,6 +51,8 @@ function AppContent() {
           languageSettings={viewModel.languageSettings}
           onLearningLanguageChange={viewModel.changeLearningLanguage}
           onNativeLanguageChange={viewModel.changeNativeLanguage}
+          onPerformanceProfileChange={viewModel.changePerformanceProfile}
+          performanceProfile={viewModel.performanceProfile}
         />
       ) : null}
 

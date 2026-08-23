@@ -32,12 +32,30 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private var performanceWindowCompleted = 0
   private var performanceWindowStartedAtNanos = 0L
   private val nextSequence = AtomicLong()
-  private val workers = Array(DETECTOR_WORKERS) { index ->
+  @Volatile private var workers = Array(DEFAULT_DETECTOR_WORKERS) { index ->
     DetectorWorker(index + 1)
   }
 
   override fun getModelName(): String = MODEL_NAME
 
+  @Synchronized
+  override fun setWorkerCount(workerCount: Double) {
+    val normalizedCount = workerCount.toInt().coerceIn(
+      MIN_DETECTOR_WORKERS,
+      MAX_DETECTOR_WORKERS,
+    )
+    if (normalizedCount == workers.size) return
+
+    val previousWorkers = workers
+    workers = Array(normalizedCount) { index -> DetectorWorker(index + 1) }
+    nextWorkerIndex = 0
+    performanceWindowCompleted = 0
+    performanceWindowStartedAtNanos = 0L
+    previousWorkers.forEach(DetectorWorker::close)
+    Log.i(TAG, "Detector reconfigured with $normalizedCount workers.")
+  }
+
+  @Synchronized
   override fun detect(frame: HybridFrameSpec): NativeDetectionBatch {
     val nativeFrame = frame as? NativeFrame
       ?: error("SpellForMe detector requires a native VisionCamera frame.")
@@ -67,6 +85,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   @Synchronized
   override fun close() {
     workers.forEach(DetectorWorker::close)
+    workers = emptyArray()
     latestBatch = null
     latestSequence = -1L
     compactRgbaBuffer = null
@@ -306,7 +325,9 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val TAG = "SpellForMeDetector"
     const val MODEL_NAME = "EfficientDet-Lite0 int8"
     const val MODEL_ASSET_PATH = "efficientdet_lite0_int8.tflite"
-    const val DETECTOR_WORKERS = 4
+    const val DEFAULT_DETECTOR_WORKERS = 4
+    const val MIN_DETECTOR_WORKERS = 1
+    const val MAX_DETECTOR_WORKERS = 4
     const val MAX_RESULTS = 5
     const val SCORE_THRESHOLD = 0.55f
     const val RGBA_BYTES_PER_PIXEL = 4

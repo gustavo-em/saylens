@@ -1,4 +1,8 @@
-export const performanceProfiles = ['high-performance', 'low-device'] as const;
+export const performanceProfiles = [
+  'ultra-performance',
+  'high-performance',
+  'low-device',
+] as const;
 
 export type PerformanceProfile = (typeof performanceProfiles)[number];
 
@@ -7,8 +11,9 @@ export const DEFAULT_PERFORMANCE_PROFILE: PerformanceProfile =
 
 export const performanceProfileSettings: Record<
   PerformanceProfile,
-  { workerCount: number }
+  { cpuWorkerCount: number; gpuWorkerCount: number }
 > = {
-  'high-performance': { workerCount: 4 },
-  'low-device': { workerCount: 2 },
+  'ultra-performance': { cpuWorkerCount: 4, gpuWorkerCount: 1 },
+  'high-performance': { cpuWorkerCount: 4, gpuWorkerCount: 0 },
+  'low-device': { cpuWorkerCount: 2, gpuWorkerCount: 0 },
 };

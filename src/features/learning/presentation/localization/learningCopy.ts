@@ -34,6 +34,8 @@ export interface LearningCopy {
     performanceSection: string;
     performanceTitle: string;
     performanceDescription: string;
+    ultraPerformanceTitle: string;
+    ultraPerformanceDescription: string;
     highPerformanceTitle: string;
     highPerformanceDescription: string;
     lowDeviceTitle: string;
@@ -104,6 +106,8 @@ const copies: Record<
       performanceTitle: 'Perfil do dispositivo',
       performanceDescription:
         'Escolha o equilíbrio ideal entre velocidade e uso de recursos.',
+      ultraPerformanceTitle: 'Ultra performance',
+      ultraPerformanceDescription: '4 CPU + 1 GPU · consumo máximo',
       highPerformanceTitle: 'Alto desempenho',
       highPerformanceDescription: '4 workers · mais detecções por segundo',
       lowDeviceTitle: 'Dispositivo básico',
@@ -150,6 +154,8 @@ const copies: Record<
       performanceTitle: 'Device profile',
       performanceDescription:
         'Choose the best balance between speed and resource usage.',
+      ultraPerformanceTitle: 'Ultra performance',
+      ultraPerformanceDescription: '4 CPU + 1 GPU · maximum power usage',
       highPerformanceTitle: 'High performance',
       highPerformanceDescription: '4 workers · more detections per second',
       lowDeviceTitle: 'Basic device',
@@ -197,6 +203,8 @@ const copies: Record<
       performanceTitle: 'Perfil del dispositivo',
       performanceDescription:
         'Elige el mejor equilibrio entre velocidad y uso de recursos.',
+      ultraPerformanceTitle: 'Rendimiento ultra',
+      ultraPerformanceDescription: '4 CPU + 1 GPU · consumo máximo',
       highPerformanceTitle: 'Alto rendimiento',
       highPerformanceDescription: '4 workers · más detecciones por segundo',
       lowDeviceTitle: 'Dispositivo básico',

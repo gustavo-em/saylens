@@ -151,7 +151,7 @@ export function SettingsScreen({
               <PerformanceOptions>
                 {performanceProfiles.map(profile => {
                   const selected = profile === performanceProfile;
-                  const isHighPerformance = profile === 'high-performance';
+                  const option = getPerformanceOption(copy, profile);
 
                   return (
                     <PerformanceOption
@@ -163,18 +163,14 @@ export function SettingsScreen({
                       $selected={selected}
                     >
                       <PerformanceIcon $selected={selected}>
-                        {isHighPerformance ? 'MAX' : 'ECO'}
+                        {option.icon}
                       </PerformanceIcon>
                       <PerformanceCopy>
                         <PerformanceOptionTitle $selected={selected}>
-                          {isHighPerformance
-                            ? copy.settings.highPerformanceTitle
-                            : copy.settings.lowDeviceTitle}
+                          {option.title}
                         </PerformanceOptionTitle>
                         <PerformanceOptionBody>
-                          {isHighPerformance
-                            ? copy.settings.highPerformanceDescription
-                            : copy.settings.lowDeviceDescription}
+                          {option.description}
                         </PerformanceOptionBody>
                       </PerformanceCopy>
                       <SelectionIndicator $selected={selected}>
@@ -194,6 +190,29 @@ export function SettingsScreen({
 
 function getLanguageCode(language: LearningLanguage) {
   return language === 'pt-BR' ? 'PT' : language.toUpperCase();
+}
+
+function getPerformanceOption(copy: LearningCopy, profile: PerformanceProfile) {
+  switch (profile) {
+    case 'ultra-performance':
+      return {
+        description: copy.settings.ultraPerformanceDescription,
+        icon: 'GPU',
+        title: copy.settings.ultraPerformanceTitle,
+      };
+    case 'high-performance':
+      return {
+        description: copy.settings.highPerformanceDescription,
+        icon: 'MAX',
+        title: copy.settings.highPerformanceTitle,
+      };
+    case 'low-device':
+      return {
+        description: copy.settings.lowDeviceDescription,
+        icon: 'ECO',
+        title: copy.settings.lowDeviceTitle,
+      };
+  }
 }
 
 const Container = styled.View`

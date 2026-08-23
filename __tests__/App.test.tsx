@@ -8,6 +8,12 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
+jest.mock('react-native-spellforme-object-detector', () => ({
+  objectDetector: {
+    getRecommendedPerformanceProfile: () => 'high-performance',
+  },
+}));
+
 jest.mock('react-native-vision-camera', () => {
   const ReactModule = require('react');
   const { View: MockView } = jest.requireActual('react-native');
@@ -118,11 +124,41 @@ describe('App', () => {
     ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
     expect(settingsTree).toContain('Perfil do dispositivo');
+    expect(settingsTree).toContain('Ultra performance');
+    expect(settingsTree).toContain('4 CPU + 1 GPU');
     expect(settingsTree).toContain('Dispositivo básico');
     expect(settingsTree).not.toContain('BASE TÉCNICA');
     expect(settingsTree).not.toContain('MILESTONE');
     expect(settingsTree).not.toContain('Guia de enquadramento');
     expect(settingsTree).not.toContain('APONTE PARA UM OBJETO');
+  });
+
+  it('switches to the Ultra CPU and GPU performance profile', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'performance-profile-ultra-performance' })
+        .props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({
+        testID: 'performance-profile-ultra-performance',
+      }).props.accessibilityState.checked,
+    ).toBe(true);
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props
+        .performanceProfile,
+    ).toBe('ultra-performance');
   });
 
   it('switches to the low-device performance profile', async () => {

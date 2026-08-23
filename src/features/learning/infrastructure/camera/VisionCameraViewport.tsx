@@ -68,8 +68,10 @@ export const VisionCameraViewport = memo(function CameraViewport({
   });
 
   useEffect(() => {
-    objectDetector.setWorkerCount(
-      performanceProfileSettings[performanceProfile].workerCount,
+    const settings = performanceProfileSettings[performanceProfile];
+    objectDetector.configureWorkers(
+      settings.cpuWorkerCount,
+      settings.gpuWorkerCount,
     );
   }, [performanceProfile]);
 

@@ -1,7 +1,10 @@
 package com.margelo.nitro.spellformeobjectdetector
 
+import android.app.ActivityManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Process
 import android.os.SystemClock
 import android.util.Log
@@ -31,28 +34,51 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private var nextWorkerIndex = 0
   private var performanceWindowCompleted = 0
   private var performanceWindowStartedAtNanos = 0L
+  private val cpuDetectorCreationLock = Any()
   private val nextSequence = AtomicLong()
-  @Volatile private var workers = Array(DEFAULT_DETECTOR_WORKERS) { index ->
-    DetectorWorker(index + 1)
-  }
+  private val recommendedPerformanceProfile = resolveRecommendedPerformanceProfile()
+  private var cpuWorkerCount = if (
+    recommendedPerformanceProfile == LOW_DEVICE_PROFILE
+  ) LOW_DEVICE_CPU_WORKERS else HIGH_PERFORMANCE_CPU_WORKERS
+  private var gpuWorkerCount = DEFAULT_GPU_WORKERS
+  @Volatile private var workers = createWorkers(cpuWorkerCount, gpuWorkerCount)
 
   override fun getModelName(): String = MODEL_NAME
 
+  override fun getRecommendedPerformanceProfile(): String =
+    recommendedPerformanceProfile
+
   @Synchronized
-  override fun setWorkerCount(workerCount: Double) {
-    val normalizedCount = workerCount.toInt().coerceIn(
-      MIN_DETECTOR_WORKERS,
-      MAX_DETECTOR_WORKERS,
+  override fun configureWorkers(
+    cpuWorkerCount: Double,
+    gpuWorkerCount: Double,
+  ) {
+    val normalizedCpuCount = cpuWorkerCount.toInt().coerceIn(
+      MIN_CPU_WORKERS,
+      MAX_CPU_WORKERS,
     )
-    if (normalizedCount == workers.size) return
+    val normalizedGpuCount = gpuWorkerCount.toInt().coerceIn(
+      MIN_GPU_WORKERS,
+      MAX_GPU_WORKERS,
+    )
+    if (
+      normalizedCpuCount == this.cpuWorkerCount &&
+      normalizedGpuCount == this.gpuWorkerCount
+    ) return
 
     val previousWorkers = workers
-    workers = Array(normalizedCount) { index -> DetectorWorker(index + 1) }
+    this.cpuWorkerCount = normalizedCpuCount
+    this.gpuWorkerCount = normalizedGpuCount
+    workers = createWorkers(normalizedCpuCount, normalizedGpuCount)
     nextWorkerIndex = 0
     performanceWindowCompleted = 0
     performanceWindowStartedAtNanos = 0L
     previousWorkers.forEach(DetectorWorker::close)
-    Log.i(TAG, "Detector reconfigured with $normalizedCount workers.")
+    Log.i(
+      TAG,
+      "Detector reconfigured with $normalizedCpuCount CPU workers and " +
+        "$normalizedGpuCount GPU workers.",
+    )
   }
 
   @Synchronized
@@ -201,11 +227,53 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   }
 
   @Synchronized
-  private fun createCpuDetector(workerId: Int): ObjectDetector {
+  private fun createWorkers(
+    cpuWorkerCount: Int,
+    gpuWorkerCount: Int,
+  ): Array<DetectorWorker> {
+    val workers = mutableListOf<DetectorWorker>()
+    repeat(cpuWorkerCount) {
+      workers += DetectorWorker(workers.size + 1, Delegate.CPU)
+    }
+    repeat(gpuWorkerCount) {
+      workers += DetectorWorker(workers.size + 1, Delegate.GPU)
+    }
+    return workers.toTypedArray()
+  }
+
+  private fun resolveRecommendedPerformanceProfile(): String {
+    val context = NitroModules.applicationContext
+      ?: return HIGH_PERFORMANCE_PROFILE
+    val activityManager = context.getSystemService(
+      Context.ACTIVITY_SERVICE,
+    ) as ActivityManager
+    val onlySupports32Bit = Build.SUPPORTED_64_BIT_ABIS.isEmpty()
+
+    return if (activityManager.isLowRamDevice || onlySupports32Bit) {
+      LOW_DEVICE_PROFILE
+    } else {
+      HIGH_PERFORMANCE_PROFILE
+    }
+  }
+
+  private fun createDetector(workerId: Int, delegate: Delegate): ObjectDetector {
+    return if (delegate == Delegate.CPU) {
+      synchronized(cpuDetectorCreationLock) {
+        createDetectorWithoutLock(workerId, delegate)
+      }
+    } else {
+      createDetectorWithoutLock(workerId, delegate)
+    }
+  }
+
+  private fun createDetectorWithoutLock(
+    workerId: Int,
+    delegate: Delegate,
+  ): ObjectDetector {
     val context = NitroModules.applicationContext
       ?: error("React Native application context is not available.")
     val baseOptions = BaseOptions.builder()
-      .setDelegate(Delegate.CPU)
+      .setDelegate(delegate)
       .setModelAssetPath(MODEL_ASSET_PATH)
       .build()
     val options = ObjectDetector.ObjectDetectorOptions.builder()
@@ -216,7 +284,10 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       .build()
 
     return ObjectDetector.createFromOptions(context, options).also {
-      Log.i(TAG, "Object detector worker $workerId initialized with CPU delegate.")
+      Log.i(
+        TAG,
+        "Object detector worker $workerId initialized with $delegate delegate.",
+      )
     }
   }
 
@@ -232,11 +303,15 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     inferenceTimeMs = 0.0,
   )
 
-  private inner class DetectorWorker(private val id: Int) {
+  private inner class DetectorWorker(
+    private val id: Int,
+    preferredDelegate: Delegate,
+  ) {
     private val busy = AtomicBoolean(false)
     private var detector: ObjectDetector? = null
     private var hasLoggedFirstResult = false
     private var inputBitmap: Bitmap? = null
+    private var activeDelegate = preferredDelegate
     private val executor = Executors.newSingleThreadExecutor { runnable ->
       Thread(
         {
@@ -264,7 +339,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
 
     fun close() {
       executor.execute {
-        detector?.close()
+        closeDetectorSafely()
         detector = null
         inputBitmap?.recycle()
         inputBitmap = null
@@ -291,7 +366,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
           )
         }
       } catch (error: RuntimeException) {
-        Log.w(TAG, "CPU inference failed on worker $id.", error)
+        if (activeDelegate == Delegate.GPU) {
+          fallbackToCpu(error)
+        } else {
+          Log.w(TAG, "CPU inference failed on worker $id.", error)
+        }
       } finally {
         image.close()
         inputBitmap = null
@@ -315,8 +394,36 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     private fun getOrCreateDetector(): ObjectDetector {
       detector?.let { return it }
 
-      return createCpuDetector(id).also {
-        detector = it
+      return try {
+        createDetector(id, activeDelegate).also {
+          detector = it
+        }
+      } catch (error: RuntimeException) {
+        if (activeDelegate != Delegate.GPU) throw error
+
+        fallbackToCpu(error)
+        createDetector(id, activeDelegate).also {
+          detector = it
+        }
+      }
+    }
+
+    private fun fallbackToCpu(error: RuntimeException) {
+      Log.w(
+        TAG,
+        "GPU unavailable for detector worker $id; falling back to CPU.",
+        error,
+      )
+      activeDelegate = Delegate.CPU
+      closeDetectorSafely()
+      detector = null
+    }
+
+    private fun closeDetectorSafely() {
+      try {
+        detector?.close()
+      } catch (closeError: RuntimeException) {
+        Log.w(TAG, "Could not close detector worker $id cleanly.", closeError)
       }
     }
   }
@@ -325,9 +432,15 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val TAG = "SpellForMeDetector"
     const val MODEL_NAME = "EfficientDet-Lite0 int8"
     const val MODEL_ASSET_PATH = "efficientdet_lite0_int8.tflite"
-    const val DEFAULT_DETECTOR_WORKERS = 4
-    const val MIN_DETECTOR_WORKERS = 1
-    const val MAX_DETECTOR_WORKERS = 4
+    const val HIGH_PERFORMANCE_PROFILE = "high-performance"
+    const val LOW_DEVICE_PROFILE = "low-device"
+    const val HIGH_PERFORMANCE_CPU_WORKERS = 4
+    const val LOW_DEVICE_CPU_WORKERS = 2
+    const val DEFAULT_GPU_WORKERS = 0
+    const val MIN_CPU_WORKERS = 1
+    const val MAX_CPU_WORKERS = 4
+    const val MIN_GPU_WORKERS = 0
+    const val MAX_GPU_WORKERS = 1
     const val MAX_RESULTS = 5
     const val SCORE_THRESHOLD = 0.55f
     const val RGBA_BYTES_PER_PIXEL = 4

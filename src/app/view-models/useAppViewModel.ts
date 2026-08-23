@@ -1,14 +1,12 @@
 import { useCallback, useState } from 'react';
 
-import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
 import {
   DEFAULT_LEARNING_LANGUAGE_SETTINGS,
   type LearningLanguage,
 } from '../../features/learning/domain/LearningLanguage';
-import {
-  DEFAULT_PERFORMANCE_PROFILE,
-  type PerformanceProfile,
-} from '../../features/learning/domain/PerformanceProfile';
+import type { PerformanceProfile } from '../../features/learning/domain/PerformanceProfile';
+import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
+import { getRecommendedPerformanceProfile } from '../../features/learning/infrastructure/performance/getRecommendedPerformanceProfile';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
 import type { AppTab } from '../navigation/AppTab';
 
@@ -21,7 +19,7 @@ export function useAppViewModel() {
     DEFAULT_LEARNING_LANGUAGE_SETTINGS.learningLanguage,
   );
   const [performanceProfile, setPerformanceProfile] = useState(
-    DEFAULT_PERFORMANCE_PROFILE,
+    getRecommendedPerformanceProfile,
   );
   const cameraAccess = useVisionCameraAccess();
 

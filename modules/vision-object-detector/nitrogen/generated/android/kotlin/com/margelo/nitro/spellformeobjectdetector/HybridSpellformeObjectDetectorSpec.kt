@@ -36,7 +36,11 @@ abstract class HybridSpellformeObjectDetectorSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun setWorkerCount(workerCount: Double): Unit
+  abstract fun getRecommendedPerformanceProfile(): String
+  
+  @DoNotStrip
+  @Keep
+  abstract fun configureWorkers(cpuWorkerCount: Double, gpuWorkerCount: Double): Unit
   
   @DoNotStrip
   @Keep

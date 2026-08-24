@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 Architecture Decision Records (ADRs) preserve the context, decision, and
-consequences of choices that materially shape SpellForMe.
+consequences of choices that materially shape SayLens.
 
 ## Index
 

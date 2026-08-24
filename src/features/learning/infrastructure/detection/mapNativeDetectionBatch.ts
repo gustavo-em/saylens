@@ -1,7 +1,7 @@
 import type {
   NativeDetectionBatch,
   NativeDetectionBox,
-} from 'react-native-spellforme-object-detector';
+} from 'react-native-saylens-object-detector';
 
 import type {
   DetectedObject,

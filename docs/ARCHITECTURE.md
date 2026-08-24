@@ -2,7 +2,7 @@
 
 ## Purpose
 
-SpellForMe follows a feature-first Clean Architecture. The goal is to keep the
+SayLens follows a feature-first Clean Architecture. The goal is to keep the
 English-learning behavior independent from React Native, VisionCamera,
 MediaPipe, Kotlin, storage, and text-to-speech implementations.
 

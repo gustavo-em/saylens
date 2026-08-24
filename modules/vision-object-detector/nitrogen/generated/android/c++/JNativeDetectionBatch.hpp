@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace margelo::nitro::spellformeobjectdetector {
+namespace margelo::nitro::saylensobjectdetector {
 
   using namespace facebook;
 
@@ -26,7 +26,7 @@ namespace margelo::nitro::spellformeobjectdetector {
    */
   struct JNativeDetectionBatch final: public jni::JavaClass<JNativeDetectionBatch> {
   public:
-    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/spellformeobjectdetector/NativeDetectionBatch;";
+    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/saylensobjectdetector/NativeDetectionBatch;";
 
   public:
     /**
@@ -93,4 +93,4 @@ namespace margelo::nitro::spellformeobjectdetector {
     }
   };
 
-} // namespace margelo::nitro::spellformeobjectdetector
+} // namespace margelo::nitro::saylensobjectdetector

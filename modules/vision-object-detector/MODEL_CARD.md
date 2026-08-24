@@ -1,6 +1,6 @@
 # EfficientDet-Lite0 int8 model card
 
-SpellForMe bundles Google's recommended pre-trained MediaPipe Object Detector
+SayLens bundles Google's recommended pre-trained MediaPipe Object Detector
 model for its Android-first proof of concept.
 
 - Model: EfficientDet-Lite0 int8
@@ -14,31 +14,28 @@ model for its Android-first proof of concept.
 The model is used only for on-device inference. Camera pixels are not uploaded
 or copied to the React Native JavaScript thread.
 
-The int8 variant supports three runtime performance profiles: an adaptive pool
-of four to six parallel CPU inference workers for high-performance devices, one
-CPU worker for lower-end devices, and an opt-in Ultra profile that adds one GPU
-worker to the adaptive CPU pool.
-Eligible devices calibrate the CPU pool when High or Ultra starts. The detector
-warms up and measures 2, 4, and the device-specific maximum worker count, then
-keeps the smallest pool that reaches at least 95% of the measured peak
-throughput. Each candidate gets a 1.5-second warm-up and a 2.5-second measurement
-window. Low-end and 32-bit devices skip calibration and remain capped at one CPU
-worker. Their camera output targets 320 × 180 before the model's own input
-preprocessing to reduce RGB conversion and memory-bandwidth pressure.
-All profiles keep camera preview work independent from recognition and avoid
-queuing stale frames; the lower-end profile reduces concurrent CPU and memory
-pressure. Ultra intentionally prioritizes throughput over CPU, GPU, memory,
-thermal, and battery usage. When MediaPipe cannot initialize or execute the GPU
-delegate, that worker falls back to CPU without disabling the other workers.
-Android devices limited to 32-bit ABIs, classified as low-RAM, exposing fewer
-than six logical processors, or providing an app heap below 256 MB expose only
-the lower-end profile. Eligible devices reserve two processors for the camera,
-UI, and system; worker count is capped by processor count, heap class, and an
-absolute limit of six. Ultra remains an explicit user choice.
+The int8 variant supports two runtime performance profiles on every device.
+Maximum Performance combines one GPU worker with a CPU pool that can grow to
+the device's complete logical processor count. It warms up and measures 2, 4,
+and the device-specific maximum CPU worker count, then keeps the smallest pool
+that reaches at least 95% of measured peak throughput. Each candidate gets a
+1.5-second warm-up and a 2.5-second measurement window. The GPU worker is
+prewarmed independently and remains active throughout CPU calibration on
+compatible 64-bit Android runtimes. A 32-bit runtime does not start the GPU
+delegate because some legacy drivers terminate the process natively before an
+application-level fallback is possible. When a compatible runtime reports a
+recoverable MediaPipe GPU error, that worker falls back to CPU without disabling
+the other workers.
+
+Power Saving uses one background-priority CPU worker without GPU or calibration.
+It limits the camera to 15 FPS and requests 320 × 180 detector output before the
+model's own input preprocessing to reduce RGB conversion, memory bandwidth,
+heat, and battery usage. Both profiles keep camera preview work independent from
+recognition and avoid queuing stale frames.
 
 The upstream task guide describes EfficientDet-Lite0 as its recommended balance
 between latency and accuracy. It also documents that the model is trained on
-COCO and therefore recognizes only its supported categories. SpellForMe must
+COCO and therefore recognizes only its supported categories. SayLens must
 not imply recognition of arbitrary objects.
 
 References:

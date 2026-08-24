@@ -1,4 +1,4 @@
-package com.gustavoem.spellforme
+package com.gustavoem.saylens
 
 import android.os.Build
 import android.os.Bundle
@@ -18,7 +18,7 @@ class MainActivity : ReactActivity() {
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.
    */
-  override fun getMainComponentName(): String = "SpellForMe"
+  override fun getMainComponentName(): String = "SayLens"
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

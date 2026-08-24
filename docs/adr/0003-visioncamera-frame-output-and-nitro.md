@@ -6,7 +6,7 @@
 
 ## Context
 
-SpellForMe needs direct access to camera frames without transferring pixel
+SayLens needs direct access to camera frames without transferring pixel
 buffers to the JavaScript thread. VisionCamera 5 offers FrameOutput, worklet
 runtimes, asynchronous frame processing, coordinate conversion, and native
 Nitro extension points.

@@ -1,14 +1,14 @@
 import { NitroModules } from 'react-native-nitro-modules';
 
-import type { SpellformeObjectDetector } from './SpellformeObjectDetector.nitro';
+import type { SayLensObjectDetector } from './SayLensObjectDetector.nitro';
 
 export type {
   NativeDetection,
   NativeDetectionBatch,
   NativeDetectionBox,
-} from './SpellformeObjectDetector.nitro';
+} from './SayLensObjectDetector.nitro';
 
 export const objectDetector =
-  NitroModules.createHybridObject<SpellformeObjectDetector>(
-    'SpellformeObjectDetector',
+  NitroModules.createHybridObject<SayLensObjectDetector>(
+    'SayLensObjectDetector',
   );

@@ -1,17 +1,17 @@
 {
-  "cxxNamespace": ["spellformeobjectdetector"],
+  "cxxNamespace": ["saylensobjectdetector"],
   "ios": {
-    "iosModuleName": "SpellformeObjectDetector"
+    "iosModuleName": "SayLensObjectDetector"
   },
   "android": {
-    "androidNamespace": ["spellformeobjectdetector"],
-    "androidCxxLibName": "spellformeobjectdetector"
+    "androidNamespace": ["saylensobjectdetector"],
+    "androidCxxLibName": "saylensobjectdetector"
   },
   "autolinking": {
-    "SpellformeObjectDetector": {
+    "SayLensObjectDetector": {
       "android": {
         "language": "kotlin",
-        "implementationClassName": "SpellformeObjectDetector"
+        "implementationClassName": "SayLensObjectDetector"
       }
     }
   },

@@ -1,20 +1,20 @@
 {
-  "name": "react-native-spellforme-object-detector",
+  "name": "react-native-saylens-object-detector",
   "version": "0.0.0",
-  "description": "On-device object detection for SpellForMe",
+  "description": "On-device object detection for SayLens",
   "main": "src/index",
   "react-native": "src/index",
   "codegenConfig": {
-    "name": "SpellformeObjectDetectorSpec",
+    "name": "SayLensObjectDetectorSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.spellformeobjectdetector"
+      "javaPackageName": "com.saylensobjectdetector"
     }
   },
   "author": "Gustavo Rosa <59415818+gustavo-em@users.noreply.github.com> (https://github.com/gustavo-em)",
   "license": "UNLICENSED",
-  "homepage": "https://github.com/gustavo-em/SpellForMe#readme",
+  "homepage": "https://github.com/gustavo-em/SayLens#readme",
   "peerDependencies": {
     "react-native": "*",
     "react-native-nitro-modules": "0.37.0",

@@ -9,7 +9,7 @@ from planned camera and machine-learning work.
 - Device: Samsung SM-M536B
 - Android: 14 (API 34)
 - Connection: physical device over USB
-- Application ID: `com.gustavoem.spellforme`
+- Application ID: `com.gustavoem.saylens`
 - React Native: 0.87.0
 - React: 19.2.3
 - Node.js: 24.11.1
@@ -34,12 +34,12 @@ jest --runInBand         1 suite, 1 test passed
 ```
 
 The Android debug build completed successfully, installed through ADB, and
-started `com.gustavoem.spellforme/.MainActivity`. Android reported the process
+started `com.gustavoem.saylens/.MainActivity`. Android reported the process
 running, the activity resumed and visible, and its window fully drawn. The UI
 hierarchy contained the expected milestone copy and all four architecture
 labels.
 
-![SpellForMe Android baseline running on a physical Samsung device](assets/android-baseline.png)
+![SayLens Android baseline running on a physical Samsung device](assets/android-baseline.png)
 
 ## Dependency audit note
 
@@ -68,7 +68,7 @@ device on 2026-08-20 with VisionCamera 5.2.2, Nitro Modules 0.37.0, Nitro Image
 
 The Android build compiled all native camera dependencies, installed, and
 launched successfully. After granting the runtime permission, Android's camera
-service reported camera `0` open by `com.gustavoem.spellforme` and the UI showed
+service reported camera `0` open by `com.gustavoem.saylens` and the UI showed
 the live camera state.
 
 Lifecycle behavior was also verified through the Android camera service:
@@ -78,7 +78,7 @@ Lifecycle behavior was also verified through the Android camera service:
 - disabling the framing guide removed its overlay and enabling it restored the
   overlay without restarting the app.
 
-![SpellForMe camera settings running on a physical Samsung device](assets/android-camera-settings.png)
+![SayLens camera settings running on a physical Samsung device](assets/android-camera-settings.png)
 
 The updated local quality gate passed with two application interaction tests:
 
@@ -144,7 +144,7 @@ FPS, so the final detector throughput reached the camera's input ceiling. The
 native pool keeps one frame per worker and does not queue additional frames.
 The preview remained at 30 FPS while all four workers were active.
 
-The device panel advertises 60 and 120 Hz modes. SpellForMe requests the highest
+The device panel advertises 60 and 120 Hz modes. SayLens requests the highest
 mode after its window is attached, but this device remained at 60 Hz because of
 its active Samsung system refresh policy. The app does not silently change the
 owner's global display setting.

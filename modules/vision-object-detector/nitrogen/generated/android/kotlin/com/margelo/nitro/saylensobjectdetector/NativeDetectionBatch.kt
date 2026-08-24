@@ -5,7 +5,7 @@
 /// Copyright © Marc Rousavy @ Margelo
 ///
 
-package com.margelo.nitro.spellformeobjectdetector
+package com.margelo.nitro.saylensobjectdetector
 
 import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip

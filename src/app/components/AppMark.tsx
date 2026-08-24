@@ -1,7 +1,7 @@
 import type { SvgProps } from 'react-native-svg';
 
-import SpellForMeMark from '../../assets/spellforme-mark.svg';
+import SayLensMark from '../../assets/saylens-mark.svg';
 
 export function AppMark(props: SvgProps) {
-  return <SpellForMeMark {...props} />;
+  return <SayLensMark {...props} />;
 }

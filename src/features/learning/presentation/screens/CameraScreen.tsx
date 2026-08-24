@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { CameraAccess } from '../../application/ports/CameraAccess';
+import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
 import type { LearningCopy } from '../localization/learningCopy';
@@ -13,6 +14,7 @@ interface CameraScreenProps {
   isActive: boolean;
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
+  pronunciationPlayer: PronunciationPlayer;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   vocabularyRepository: VocabularyRepository;
 }
@@ -22,6 +24,7 @@ export function CameraScreen({
   isActive,
   languageSettings,
   copy,
+  pronunciationPlayer,
   renderCamera,
   vocabularyRepository,
 }: CameraScreenProps) {
@@ -30,6 +33,7 @@ export function CameraScreen({
     isActive,
     languageSettings,
     copy,
+    pronunciationPlayer,
     vocabularyRepository,
   });
 

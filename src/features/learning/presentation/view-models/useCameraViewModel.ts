@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CameraAccess } from '../../application/ports/CameraAccess';
+import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { DetectionFrame } from '../../domain/DetectedObject';
 import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
+import type { VocabularyEntry } from '../../domain/VocabularyEntry';
 import type { LearningCopy } from '../localization/learningCopy';
 import {
   DEFAULT_DETECTION_INTERPOLATION_MS,
@@ -17,6 +19,7 @@ interface UseCameraViewModelInput {
   isActive: boolean;
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
+  pronunciationPlayer: PronunciationPlayer;
   vocabularyRepository: VocabularyRepository;
 }
 
@@ -25,6 +28,7 @@ export function useCameraViewModel({
   isActive,
   languageSettings,
   copy,
+  pronunciationPlayer,
   vocabularyRepository,
 }: UseCameraViewModelInput) {
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -36,6 +40,9 @@ export function useCameraViewModel({
     setDetectionInterpolationDurationMs,
   ] = useState(DEFAULT_DETECTION_INTERPOLATION_MS);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
+  const [pronunciationError, setPronunciationError] = useState<string | null>(
+    null,
+  );
   const detectionTracker = useRef(new DetectionMotionTracker());
   const lastDetectionUpdate = useRef(0);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
@@ -113,6 +120,30 @@ export function useCameraViewModel({
     setDetectionFrame(null);
   }, []);
 
+  const handleObjectPress = useCallback(
+    (vocabulary: VocabularyEntry) => {
+      setPronunciationError(null);
+      pronunciationPlayer
+        .speak(vocabulary.word, languageSettings.learningLanguage)
+        .catch(() => {
+          setPronunciationError(copy.camera.pronunciationUnavailable);
+        });
+    },
+    [
+      copy.camera.pronunciationUnavailable,
+      languageSettings.learningLanguage,
+      pronunciationPlayer,
+    ],
+  );
+
+  useEffect(() => {
+    setPronunciationError(null);
+
+    if (!isActive) {
+      pronunciationPlayer.stop().catch(() => undefined);
+    }
+  }, [isActive, languageSettings.learningLanguage, pronunciationPlayer]);
+
   const detectionItems = useMemo(
     () =>
       detectionFrame?.objects.map(object => ({
@@ -152,6 +183,7 @@ export function useCameraViewModel({
     hasPermission: cameraAccess.status === 'authorized',
     isCameraLive: isActive && isPreviewReady,
     isRequestingPermission,
+    onObjectPress: handleObjectPress,
     onPermissionAction: handlePermissionAction,
     permissionActionLabel: isRequestingPermission
       ? copy.camera.requestPending
@@ -159,6 +191,7 @@ export function useCameraViewModel({
       ? copy.camera.requestPermission
       : copy.camera.openSettings,
     recognitionError,
+    pronunciationError,
     viewportCallbacks,
   };
 }

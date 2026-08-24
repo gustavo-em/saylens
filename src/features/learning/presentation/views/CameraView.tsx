@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { type LayoutChangeEvent } from 'react-native';
+import { Pressable, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   ReduceMotion,
@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import styled from 'styled-components/native';
 
 import { AppMark } from '../../../../app/components/AppMark';
@@ -34,6 +35,7 @@ const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
 const OBJECT_CARD_TOP_SAFE_INSET = 92;
 const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function getObjectStyle(
   object: DetectedObject,
@@ -85,17 +87,21 @@ function getObjectCardStyle(
 }
 
 interface InterpolatedObjectTargetProps {
+  accessibilityHint: string;
   accessibilityLabel: string;
   children: ReactNode;
   durationMs: number;
+  onPress: () => void;
   targetStyle: ReturnType<typeof getObjectStyle>;
   testID: string;
 }
 
 function InterpolatedObjectTarget({
+  accessibilityHint,
   accessibilityLabel,
   children,
   durationMs,
+  onPress,
   targetStyle,
   testID,
 }: InterpolatedObjectTargetProps) {
@@ -136,8 +142,13 @@ function InterpolatedObjectTarget({
 
   return (
     <ObjectTarget
+      accessibilityHint={accessibilityHint}
       accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
       accessible
+      android_ripple={{ color: 'rgba(139, 190, 255, 0.28)' }}
+      hitSlop={8}
+      onPress={onPress}
       style={animatedStyle}
       testID={testID}
     >
@@ -203,7 +214,10 @@ export function CameraView({
       : detectionFrame.objects.length === 0
       ? copy.camera.searching
       : copy.camera.objectsDetected(detectionFrame.objects.length);
-  const displayedError = viewModel.cameraError ?? viewModel.recognitionError;
+  const displayedError =
+    viewModel.cameraError ??
+    viewModel.pronunciationError ??
+    viewModel.recognitionError;
   const detectorAccessibilityLabel =
     detectionFrame == null
       ? copy.camera.detectorAccessibility(recognitionStatus)
@@ -218,7 +232,7 @@ export function CameraView({
       {isActive ? <Scrim pointerEvents="none" /> : null}
 
       {isActive && detectionFrame != null && viewport.width > 0 ? (
-        <DetectionLayer pointerEvents="none">
+        <DetectionLayer pointerEvents="box-none">
           {viewModel.detectionItems.map(({ object, vocabulary }) => {
             const targetStyle = getObjectStyle(
               object,
@@ -229,9 +243,11 @@ export function CameraView({
 
             return (
               <InterpolatedObjectTarget
+                accessibilityHint={copy.camera.tapToHearPronunciation}
                 accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${vocabulary.pronunciationHint}`}
                 durationMs={viewModel.detectionInterpolationDurationMs}
                 key={object.id}
+                onPress={() => viewModel.onObjectPress(vocabulary)}
                 targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
               >
@@ -244,6 +260,18 @@ export function CameraView({
                         {vocabulary.word}
                       </ObjectWord>
                     </ObjectIdentity>
+                    <ObjectAudioCue pointerEvents="none">
+                      <Svg height={16} viewBox="0 0 24 24" width={16}>
+                        <Path d="M4 9v6h4l5 4V5L8 9H4Z" fill="#FFFFFF" />
+                        <Path
+                          d="M16 8.2a5 5 0 0 1 0 7.6M18.7 5.5a9 9 0 0 1 0 13"
+                          fill="none"
+                          stroke="#FFFFFF"
+                          strokeLinecap="round"
+                          strokeWidth={1.8}
+                        />
+                      </Svg>
+                    </ObjectAudioCue>
                   </ObjectCardHeader>
                   <ObjectDetails>
                     <ObjectDetail>
@@ -278,7 +306,7 @@ export function CameraView({
           $landscape={isLandscape}
         >
           <Header>
-            <HeaderMark accessibilityLabel="SpellForMe" accessible>
+            <HeaderMark accessibilityLabel="SayLens" accessible>
               <AppMark height={42} testID="camera-brand-logo" width={42} />
             </HeaderMark>
             <ObjectCountBadge
@@ -322,7 +350,7 @@ const DetectionLayer = styled.View`
   z-index: 1;
 `;
 
-const ObjectTarget = styled(Animated.View)`
+const ObjectTarget = styled(AnimatedPressable)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
@@ -385,6 +413,16 @@ const ObjectWord = styled.Text`
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.4px;
+`;
+
+const ObjectAudioCue = styled.View`
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(184, 217, 255, 0.28);
+  border-radius: 14px;
+  background-color: ${({ theme }) => theme.colors.glassBlue};
 `;
 
 const ObjectDetails = styled.View`

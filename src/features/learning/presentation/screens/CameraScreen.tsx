@@ -38,7 +38,6 @@ export function CameraScreen({
       renderCamera={renderCamera}
       copy={copy}
       isActive={isActive}
-      learningLanguage={languageSettings.learningLanguage}
       viewModel={viewModel}
     />
   );

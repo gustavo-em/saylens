@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
 import type { DetectedObject } from '../../domain/DetectedObject';
-import type { LearningLanguage } from '../../domain/LearningLanguage';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 import type { CameraViewModel } from '../view-models/useCameraViewModel';
@@ -19,7 +18,6 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 interface CameraViewProps {
   copy: LearningCopy;
   isActive: boolean;
-  learningLanguage: LearningLanguage;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   viewModel: CameraViewModel;
 }
@@ -150,7 +148,6 @@ function InterpolatedObjectTarget({
 export function CameraView({
   copy,
   isActive,
-  learningLanguage,
   renderCamera,
   viewModel,
 }: CameraViewProps) {
@@ -280,26 +277,20 @@ export function CameraView({
           $landscape={isLandscape}
         >
           <Header>
-            <HeaderSheen pointerEvents="none" />
-            <BrandGroup>
-              <BrandRow>
-                <HeaderMark>S</HeaderMark>
-                <Brand>SpellForMe</Brand>
-              </BrandRow>
-              <Caption>{copy.camera.caption(learningLanguage)}</Caption>
-            </BrandGroup>
-
-            <LiveBadge
+            <HeaderMark accessibilityLabel="SpellForMe" accessible>
+              S
+            </HeaderMark>
+            <ObjectCountBadge
               accessibilityLabel={detectorAccessibilityLabel}
               accessible
             >
-              <LiveDot
-                $ready={
-                  viewModel.isCameraLive && viewModel.recognitionError == null
-                }
-              />
-              <LiveText>{recognitionStatus}</LiveText>
-            </LiveBadge>
+              <ObjectCountDot />
+              <ObjectCountText>
+                {copy.camera.objectsDetected(
+                  detectionFrame?.objects.length ?? 0,
+                )}
+              </ObjectCountText>
+            </ObjectCountBadge>
           </Header>
 
           {displayedError != null ? (
@@ -439,87 +430,50 @@ const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
 `;
 
 const Header = styled.View`
-  position: relative;
-  overflow: hidden;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   margin: 10px 12px 0px;
-  padding: 12px 14px;
-  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
-  border-radius: 22px;
-  background-color: ${({ theme }) => theme.colors.glass};
-  elevation: 10;
-`;
-
-const HeaderSheen = styled.View`
-  position: absolute;
-  top: 0px;
-  right: 18px;
-  left: 18px;
-  height: 1px;
-  background-color: ${({ theme }) => theme.colors.glassHighlight};
-`;
-
-const BrandGroup = styled.View``;
-
-const BrandRow = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
 `;
 
 const HeaderMark = styled.Text`
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: 14px;
   border: 1px solid rgba(198, 224, 255, 0.32);
-  background-color: ${({ theme }) => theme.colors.glassBlue};
+  background-color: ${({ theme }) => theme.colors.glassStrong};
   color: #ffffff;
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 900;
-  line-height: 28px;
+  line-height: 42px;
   text-align: center;
+  elevation: 8;
 `;
 
-const Brand = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-`;
-
-const Caption = styled.Text`
-  color: ${({ theme }) => theme.colors.mutedStrong};
-  margin-top: 5px;
-  margin-left: 36px;
-  font-size: 11px;
-`;
-
-const LiveBadge = styled.View`
+const ObjectCountBadge = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   padding: 7px 10px;
   border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: rgba(255, 255, 255, 0.07);
+  background-color: ${({ theme }) => theme.colors.glass};
+  elevation: 6;
 `;
 
-const LiveDot = styled.View<{ $ready: boolean }>`
-  width: 7px;
-  height: 7px;
-  border-radius: 4px;
-  background-color: ${({ $ready, theme }) =>
-    $ready ? theme.colors.accent : '#8A9A93'};
+const ObjectCountDot = styled.View`
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background-color: ${({ theme }) => theme.colors.accent};
 `;
 
-const LiveText = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 10px;
+const ObjectCountText = styled.Text`
+  color: ${({ theme }) => theme.colors.mutedStrong};
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 `;
 
 const ErrorBanner = styled.View`

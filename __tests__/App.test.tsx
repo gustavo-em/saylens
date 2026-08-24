@@ -321,6 +321,7 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
     expect(renderedTree).toContain('Botella');
     expect(renderedTree).toContain('Bottle');
-    expect(renderedTree).toContain('Explore spanish around you');
+    expect(renderedTree).toContain('1 OBJECT');
+    expect(renderedTree).not.toContain('Explore spanish around you');
   });
 });

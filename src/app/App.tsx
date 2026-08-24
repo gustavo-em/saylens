@@ -9,12 +9,12 @@ import type { CameraViewportCallbacks } from '../features/learning/presentation/
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
 import { AppTabBar } from './navigation/AppTabBar';
-import { appTheme } from './theme/theme';
+import { getAppTheme } from './theme/theme';
 import { useAppViewModel } from './view-models/useAppViewModel';
 
-function AppContent() {
-  const viewModel = useAppViewModel();
+type AppViewModel = ReturnType<typeof useAppViewModel>;
 
+function AppContent({ viewModel }: { viewModel: AppViewModel }) {
   const renderCamera = useCallback(
     (callbacks: CameraViewportCallbacks) => (
       <VisionCameraViewport
@@ -36,7 +36,11 @@ function AppContent() {
 
   return (
     <Root>
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle={
+          viewModel.appearanceMode === 'dark' ? 'light-content' : 'dark-content'
+        }
+      />
 
       <CameraScreen
         cameraAccess={viewModel.cameraAccess}
@@ -49,8 +53,10 @@ function AppContent() {
 
       {viewModel.activeTab === 'settings' ? (
         <SettingsScreen
+          appearanceMode={viewModel.appearanceMode}
           copy={viewModel.copy}
           languageSettings={viewModel.languageSettings}
+          onAppearanceModeChange={viewModel.changeAppearanceMode}
           onLearningLanguageChange={viewModel.changeLearningLanguage}
           onNativeLanguageChange={viewModel.changeNativeLanguage}
           onPerformanceProfileChange={viewModel.changePerformanceProfile}
@@ -69,10 +75,12 @@ function AppContent() {
 }
 
 export default function App() {
+  const viewModel = useAppViewModel();
+
   return (
-    <ThemeProvider theme={appTheme}>
+    <ThemeProvider theme={getAppTheme(viewModel.appearanceMode)}>
       <SafeAreaProvider>
-        <AppContent />
+        <AppContent viewModel={viewModel} />
       </SafeAreaProvider>
     </ThemeProvider>
   );

@@ -9,6 +9,7 @@ import { useVisionCameraAccess } from '../../features/learning/infrastructure/ca
 import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
 import type { AppTab } from '../navigation/AppTab';
+import type { AppearanceMode } from '../theme/theme';
 
 export function useAppViewModel() {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
@@ -22,6 +23,7 @@ export function useAppViewModel() {
   const [performanceProfile, setPerformanceProfile] = useState(
     performanceCapabilities.recommendedProfile,
   );
+  const [appearanceMode, setAppearanceMode] = useState<AppearanceMode>('dark');
   const cameraAccess = useVisionCameraAccess();
 
   const selectTab = useCallback((tab: AppTab) => {
@@ -43,10 +45,16 @@ export function useAppViewModel() {
     [],
   );
 
+  const changeAppearanceMode = useCallback((mode: AppearanceMode) => {
+    setAppearanceMode(mode);
+  }, []);
+
   return {
     activeTab,
+    appearanceMode,
     cameraAccess,
     cameraIsActive: activeTab === 'camera',
+    changeAppearanceMode,
     changeLearningLanguage,
     changeNativeLanguage,
     changePerformanceProfile,

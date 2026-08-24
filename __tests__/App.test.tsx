@@ -183,6 +183,35 @@ describe('App', () => {
     ).toBe('ultra-performance');
   });
 
+  it('switches between dark and light appearance modes', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'appearance-dark' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'appearance-light' })
+        .props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'appearance-light' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+    expect(JSON.stringify(renderer!.toJSON())).toContain('#EFF5FD');
+  });
+
   it('switches to the low-device performance profile', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 

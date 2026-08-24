@@ -26,6 +26,11 @@ export interface LearningCopy {
   settings: {
     title: string;
     subtitle: string;
+    appearanceSection: string;
+    appearanceTitle: string;
+    appearanceDescription: string;
+    lightMode: string;
+    darkMode: string;
     languagesSection: string;
     nativeLanguageTitle: string;
     nativeLanguageDescription: string;
@@ -96,6 +101,11 @@ const copies: Record<
     settings: {
       title: 'Configurações',
       subtitle: 'Ajuste a experiência sem sair do modo de aprendizagem.',
+      appearanceSection: 'APARÊNCIA',
+      appearanceTitle: 'Tema do aplicativo',
+      appearanceDescription: 'Escolha como o SpellForMe aparece para você.',
+      lightMode: 'Claro',
+      darkMode: 'Escuro',
       languagesSection: 'IDIOMAS',
       nativeLanguageTitle: 'Seu idioma',
       nativeLanguageDescription: 'Idioma usado na interface e nas explicações.',
@@ -146,6 +156,11 @@ const copies: Record<
     settings: {
       title: 'Settings',
       subtitle: 'Tune the experience without leaving learning mode.',
+      appearanceSection: 'APPEARANCE',
+      appearanceTitle: 'App theme',
+      appearanceDescription: 'Choose how SpellForMe looks for you.',
+      lightMode: 'Light',
+      darkMode: 'Dark',
       languagesSection: 'LANGUAGES',
       nativeLanguageTitle: 'Your language',
       nativeLanguageDescription:
@@ -198,6 +213,11 @@ const copies: Record<
     settings: {
       title: 'Configuración',
       subtitle: 'Ajusta la experiencia sin salir del modo de aprendizaje.',
+      appearanceSection: 'APARIENCIA',
+      appearanceTitle: 'Tema de la aplicación',
+      appearanceDescription: 'Elige cómo se muestra SpellForMe.',
+      lightMode: 'Claro',
+      darkMode: 'Oscuro',
       languagesSection: 'IDIOMAS',
       nativeLanguageTitle: 'Tu idioma',
       nativeLanguageDescription:

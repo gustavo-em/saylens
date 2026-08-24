@@ -6,23 +6,27 @@
   fill="none"
 >
   <defs>
-    <linearGradient id="light-surface" x1="10" y1="0" x2="98" y2="108">
-      <stop stop-color="#FAF8F3" />
-      <stop offset="1" stop-color="#F3F0EB" />
+    <linearGradient id="dark-surface" x1="7" y1="0" x2="101" y2="108">
+      <stop stop-color="#101522" />
+      <stop offset="1" stop-color="#090D15" />
     </linearGradient>
     <linearGradient id="blue-mark" x1="32" y1="22" x2="74" y2="43">
       <stop stop-color="#3C4EFB" />
       <stop offset="1" stop-color="#4553FB" />
     </linearGradient>
-    <linearGradient id="dark-mark" x1="32" y1="57" x2="74" y2="87">
-      <stop stop-color="#0D121D" />
-      <stop offset="1" stop-color="#0B111B" />
-    </linearGradient>
   </defs>
-  <rect width="108" height="108" rx="18" fill="url(#light-surface)" />
+  <rect x="0.5" y="0.5" width="107" height="107" rx="17.5" fill="url(#dark-surface)" />
+  <rect
+    x="0.5"
+    y="0.5"
+    width="107"
+    height="107"
+    rx="17.5"
+    stroke="#222A3A"
+  />
   <path
     d="M26.5 19.3H20C18.4 19.3 17.1 20.6 17.1 22.1V28.8M81.5 19.3H88C89.6 19.3 90.9 20.6 90.9 22.1V28.8M26.5 88.7H20C18.4 88.7 17.1 87.4 17.1 85.9V79.2M81.5 88.7H88C89.6 88.7 90.9 87.4 90.9 85.9V79.2"
-    stroke="#0C121D"
+    stroke="#F6F6F4"
     stroke-width="2.6"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -35,7 +39,7 @@
   />
   <path
     d="M34.8 77C43 84 54 86.5 63.2 81C69 76.8 71 68 68.2 60.5"
-    stroke="url(#dark-mark)"
+    stroke="#F6F6F4"
     stroke-width="7.1"
     stroke-linecap="round"
   />

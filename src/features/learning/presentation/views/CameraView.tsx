@@ -10,7 +10,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
-import SpellForMeMark from '../../../../assets/spellforme-mark.svg';
+import { AppMark } from '../../../../app/components/AppMark';
 import type { DetectedObject } from '../../domain/DetectedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
@@ -279,11 +279,7 @@ export function CameraView({
         >
           <Header>
             <HeaderMark accessibilityLabel="SpellForMe" accessible>
-              <SpellForMeMark
-                height={42}
-                testID="camera-brand-logo"
-                width={42}
-              />
+              <AppMark height={42} testID="camera-brand-logo" width={42} />
             </HeaderMark>
             <ObjectCountBadge
               accessibilityLabel={detectorAccessibilityLabel}

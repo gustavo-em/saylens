@@ -2,6 +2,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
 import styled from 'styled-components/native';
 
+import { AppMark } from '../../../../app/components/AppMark';
+import {
+  appearanceModes,
+  type AppearanceMode,
+} from '../../../../app/theme/theme';
 import {
   learningLanguages,
   type LearningLanguage,
@@ -15,8 +20,10 @@ import {
 import type { LearningCopy } from '../localization/learningCopy';
 
 interface SettingsScreenProps {
+  appearanceMode: AppearanceMode;
   copy: LearningCopy;
   languageSettings: LearningLanguageSettings;
+  onAppearanceModeChange: (mode: AppearanceMode) => void;
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
   onPerformanceProfileChange: (profile: PerformanceProfile) => void;
@@ -25,8 +32,10 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({
+  appearanceMode,
   copy,
   languageSettings,
+  onAppearanceModeChange,
   onLearningLanguageChange,
   onNativeLanguageChange,
   onPerformanceProfileChange,
@@ -46,12 +55,52 @@ export function SettingsScreen({
         <Content showsVerticalScrollIndicator={false} $landscape={isLandscape}>
           <Header>
             <BrandRow>
-              <BrandMark>S</BrandMark>
+              <BrandMark>
+                <AppMark height={26} width={26} />
+              </BrandMark>
               <Eyebrow>SPELLFORME</Eyebrow>
             </BrandRow>
             <Title accessibilityRole="header">{copy.settings.title}</Title>
             <Subtitle>{copy.settings.subtitle}</Subtitle>
           </Header>
+
+          <Section>
+            <SectionTitle>{copy.settings.appearanceSection}</SectionTitle>
+            <AppearancePanel>
+              <PanelSheen pointerEvents="none" />
+              <AppearanceHeader>
+                <SettingTitle>{copy.settings.appearanceTitle}</SettingTitle>
+                <AppearanceDescription>
+                  {copy.settings.appearanceDescription}
+                </AppearanceDescription>
+              </AppearanceHeader>
+              <AppearanceOptions>
+                {appearanceModes.map(mode => {
+                  const selected = appearanceMode === mode;
+
+                  return (
+                    <AppearanceOption
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      key={mode}
+                      onPress={() => onAppearanceModeChange(mode)}
+                      testID={`appearance-${mode}`}
+                      $selected={selected}
+                    >
+                      <AppearanceIcon $selected={selected}>
+                        {mode === 'dark' ? '☾︎' : '☀︎'}
+                      </AppearanceIcon>
+                      <AppearanceOptionLabel $selected={selected}>
+                        {mode === 'dark'
+                          ? copy.settings.darkMode
+                          : copy.settings.lightMode}
+                      </AppearanceOptionLabel>
+                    </AppearanceOption>
+                  );
+                })}
+              </AppearanceOptions>
+            </AppearancePanel>
+          </Section>
 
           <Section>
             <SectionTitle>{copy.settings.languagesSection}</SectionTitle>
@@ -292,18 +341,11 @@ const BrandRow = styled.View`
   gap: 9px;
 `;
 
-const BrandMark = styled.Text`
+const BrandMark = styled.View`
   width: 26px;
   height: 26px;
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid rgba(198, 224, 255, 0.32);
-  background-color: ${({ theme }) => theme.colors.glassBlue};
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 26px;
-  text-align: center;
 `;
 
 const Eyebrow = styled.Text`
@@ -361,6 +403,61 @@ const PanelSheen = styled.View`
   height: 1px;
   background-color: ${({ theme }) => theme.colors.glassHighlight};
   z-index: 2;
+`;
+
+const AppearancePanel = styled.View`
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 24px;
+  background-color: ${({ theme }) => theme.colors.glass};
+  elevation: 10;
+`;
+
+const AppearanceHeader = styled.View`
+  gap: 4px;
+`;
+
+const AppearanceDescription = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 13px;
+  line-height: 19px;
+`;
+
+const AppearanceOptions = styled.View`
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 16px;
+`;
+
+const AppearanceOption = styled.Pressable<{ $selected: boolean }>`
+  min-height: 58px;
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid
+    ${({ $selected, theme }) =>
+      $selected ? theme.colors.accent : theme.colors.glassBorder};
+  border-radius: 17px;
+  background-color: ${({ $selected, theme }) =>
+    $selected ? 'rgba(26, 111, 236, 0.68)' : theme.colors.glassBlue};
+`;
+
+const AppearanceIcon = styled.Text<{ $selected: boolean }>`
+  color: ${({ $selected, theme }) =>
+    $selected ? '#FFFFFF' : theme.colors.mutedStrong};
+  font-size: 20px;
+  line-height: 24px;
+`;
+
+const AppearanceOptionLabel = styled.Text<{ $selected: boolean }>`
+  color: ${({ $selected, theme }) =>
+    $selected ? '#FFFFFF' : theme.colors.mutedStrong};
+  font-size: 13px;
+  font-weight: 800;
 `;
 
 const LanguagePair = styled.View`

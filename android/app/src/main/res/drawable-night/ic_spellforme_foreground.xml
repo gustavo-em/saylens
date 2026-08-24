@@ -6,7 +6,7 @@
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M26.5,19.3L20,19.3C18.4,19.3 17.1,20.6 17.1,22.1L17.1,28.8M81.5,19.3L88,19.3C89.6,19.3 90.9,20.6 90.9,22.1L90.9,28.8M26.5,88.7L20,88.7C18.4,88.7 17.1,87.4 17.1,85.9L17.1,79.2M81.5,88.7L88,88.7C89.6,88.7 90.9,87.4 90.9,85.9L90.9,79.2"
-        android:strokeColor="#0C121D"
+        android:strokeColor="#F6F6F4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="2.6" />
@@ -20,7 +20,7 @@
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M34.8,77C43,84 54,86.5 63.2,81C69,76.8 71,68 68.2,60.5"
-        android:strokeColor="#0C121D"
+        android:strokeColor="#F6F6F4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="7.1" />

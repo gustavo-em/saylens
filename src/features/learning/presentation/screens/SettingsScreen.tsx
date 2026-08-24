@@ -227,7 +227,9 @@ function getPerformanceOption(
       };
     case 'low-device':
       return {
-        description: copy.settings.lowDeviceDescription,
+        description: copy.settings.lowDeviceDescription(
+          highPerformanceCpuWorkerCount,
+        ),
         icon: 'ECO',
         title: copy.settings.lowDeviceTitle,
       };

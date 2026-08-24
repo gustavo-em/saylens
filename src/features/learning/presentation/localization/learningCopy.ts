@@ -39,7 +39,7 @@ export interface LearningCopy {
     highPerformanceTitle: string;
     highPerformanceDescription: (workerCount: number) => string;
     lowDeviceTitle: string;
-    lowDeviceDescription: string;
+    lowDeviceDescription: (workerCount: number) => string;
   };
 }
 
@@ -112,9 +112,9 @@ const copies: Record<
       highPerformanceTitle: 'Alto desempenho',
       highPerformanceDescription: workerCount =>
         `Até ${workerCount} workers · calibração automática`,
-      lowDeviceTitle: 'Dispositivo básico',
-      lowDeviceDescription:
-        '2 workers · resposta rápida com memória controlada',
+      lowDeviceTitle: 'Máximo no dispositivo',
+      lowDeviceDescription: workerCount =>
+        `${workerCount} workers CPU · potência máxima`,
     },
   },
   en: {
@@ -163,9 +163,9 @@ const copies: Record<
       highPerformanceTitle: 'High performance',
       highPerformanceDescription: workerCount =>
         `Up to ${workerCount} workers · automatic calibration`,
-      lowDeviceTitle: 'Basic device',
-      lowDeviceDescription:
-        '2 workers · faster response with controlled memory',
+      lowDeviceTitle: 'Device maximum',
+      lowDeviceDescription: workerCount =>
+        `${workerCount} CPU workers · maximum power`,
     },
   },
   es: {
@@ -215,9 +215,9 @@ const copies: Record<
       highPerformanceTitle: 'Alto rendimiento',
       highPerformanceDescription: workerCount =>
         `Hasta ${workerCount} workers · calibración automática`,
-      lowDeviceTitle: 'Dispositivo básico',
-      lowDeviceDescription:
-        '2 workers · respuesta rápida con memoria controlada',
+      lowDeviceTitle: 'Máximo del dispositivo',
+      lowDeviceDescription: workerCount =>
+        `${workerCount} workers CPU · potencia máxima`,
     },
   },
 };

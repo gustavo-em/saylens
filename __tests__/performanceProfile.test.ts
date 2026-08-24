@@ -30,10 +30,10 @@ describe('getPerformanceProfileSettings', () => {
     });
   });
 
-  it('skips calibration and uses two workers for responsive detection', () => {
+  it('uses the maximum safe CPU count without GPU on basic devices', () => {
     expect(getPerformanceProfileSettings('low-device', capabilities)).toEqual({
       calibrateCpuWorkers: false,
-      cpuWorkerCount: 2,
+      cpuWorkerCount: 6,
       gpuWorkerCount: 0,
     });
   });

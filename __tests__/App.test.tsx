@@ -138,7 +138,7 @@ describe('App', () => {
     expect(settingsTree).toContain('Perfil do dispositivo');
     expect(settingsTree).toContain('Ultra performance');
     expect(settingsTree).toContain('4 CPU + 1 GPU');
-    expect(settingsTree).toContain('Dispositivo básico');
+    expect(settingsTree).toContain('Máximo no dispositivo');
     expect(settingsTree).not.toContain('BASE TÉCNICA');
     expect(settingsTree).not.toContain('MILESTONE');
     expect(settingsTree).not.toContain('Guia de enquadramento');

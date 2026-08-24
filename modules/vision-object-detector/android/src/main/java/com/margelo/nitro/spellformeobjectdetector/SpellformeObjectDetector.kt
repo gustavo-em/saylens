@@ -355,7 +355,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         id = workers.size + 1,
         preferredDelegate = Delegate.CPU,
         prewarm =
-          !performanceCapabilities.supportsHighPerformance || cpuWorkerIndex == 0,
+          !performanceCapabilities.supportsHighPerformance ||
+            cpuWorkerIndex < INITIAL_PREWARMED_CPU_WORKERS,
       )
     }
     repeat(gpuWorkerCount) {
@@ -369,12 +370,12 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   }
 
   private fun resolvePerformanceCapabilities(): DevicePerformanceCapabilities {
+    val availableProcessors = Runtime.getRuntime().availableProcessors()
     val context = NitroModules.applicationContext
-      ?: return DevicePerformanceCapabilities.lowDevice()
+      ?: return DevicePerformanceCapabilities.lowDevice(availableProcessors)
     val activityManager = context.getSystemService(
       Context.ACTIVITY_SERVICE,
     ) as ActivityManager
-    val availableProcessors = Runtime.getRuntime().availableProcessors()
     val memoryClassMb = activityManager.memoryClass
     val onlySupports32Bit = Build.SUPPORTED_64_BIT_ABIS.isEmpty()
     val supportsHighPerformance =
@@ -384,7 +385,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         memoryClassMb >= MIN_HIGH_PERFORMANCE_MEMORY_CLASS_MB
 
     if (!supportsHighPerformance) {
-      return DevicePerformanceCapabilities.lowDevice()
+      return DevicePerformanceCapabilities.lowDevice(availableProcessors)
     }
 
     val memoryWorkerLimit = when {
@@ -600,8 +601,8 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     const val HIGH_PERFORMANCE_PROFILE = "high-performance"
     const val LOW_DEVICE_PROFILE = "low-device"
     const val ULTRA_PERFORMANCE_PROFILE = "ultra-performance"
-    const val LOW_DEVICE_CPU_WORKERS = 2
     const val CALIBRATION_BASELINE_CPU_WORKERS = 2
+    const val INITIAL_PREWARMED_CPU_WORKERS = 2
     const val DEFAULT_GPU_WORKERS = 0
     const val MIN_CPU_WORKERS = 1
     const val MAX_CPU_WORKERS = 6
@@ -679,13 +680,20 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     val supportsHighPerformance: Boolean,
   ) {
     companion object {
-      fun lowDevice() = DevicePerformanceCapabilities(
-        maxCpuWorkerCount = LOW_DEVICE_CPU_WORKERS,
-        recommendedCpuWorkerCount = LOW_DEVICE_CPU_WORKERS,
-        recommendedProfile = LOW_DEVICE_PROFILE,
-        supportedProfiles = arrayOf(LOW_DEVICE_PROFILE),
-        supportsHighPerformance = false,
-      )
+      fun lowDevice(availableProcessors: Int): DevicePerformanceCapabilities {
+        val cpuWorkerCount = availableProcessors.coerceIn(
+          MIN_CPU_WORKERS,
+          MAX_CPU_WORKERS,
+        )
+
+        return DevicePerformanceCapabilities(
+          maxCpuWorkerCount = cpuWorkerCount,
+          recommendedCpuWorkerCount = cpuWorkerCount,
+          recommendedProfile = LOW_DEVICE_PROFILE,
+          supportedProfiles = arrayOf(LOW_DEVICE_PROFILE),
+          supportsHighPerformance = false,
+        )
+      }
     }
   }
 }

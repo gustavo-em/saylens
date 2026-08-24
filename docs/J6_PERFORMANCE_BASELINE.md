@@ -73,7 +73,7 @@ updates, and predictive UI-thread tracking.
 - Result: release mode reduced total PSS by roughly 60% compared with the same
   final pipeline in debug, without reducing detector throughput.
 
-## Accuracy-balanced low-end pipeline in release mode
+## Two-worker accuracy baseline in release mode
 
 To reduce the time before a layer first appears without accepting low-confidence
 labels, the low-end profile uses two prewarmed CPU workers and the original 0.55
@@ -97,6 +97,35 @@ The optimization increases throughput rather than making one inference twice
 as fast. It therefore reduces the visible acquisition delay when the first
 sample misses an object. Raising input detail and rejecting detections below
 55% trades a small amount of latency and memory for fewer false positives.
+
+## Maximum-throughput CPU comparison
+
+The final comparison kept the same 720 × 480 detector buffer, 0.55 confidence
+threshold, release build, and 30 FPS camera configuration. Only the number of
+concurrent detector workers changed.
+
+- Four CPU workers: 7.2–8.2 inferences/s, 468–530 ms per inference, 418% CPU,
+  and 238 MB PSS.
+- Six CPU workers: 10.3–13.3 inferences/s during the final 60-second run,
+  413–524 ms per inference, 583% CPU, and 309 MB PSS.
+- Eight CPU workers: 11.4–12.0 inferences/s after warm-up, 598–745 ms per
+  inference, 596% CPU, and 332 MB PSS.
+
+Eight workers did not produce a reliable sustained throughput gain and made
+each result roughly 150–250 ms older. That extra staleness makes a moving layer
+feel less attached to the camera image, so six workers are the measured optimum
+for the eight-core J6: a completed detection every 75–97 ms while leaving two
+cores available to the camera and UI pipelines.
+
+A seventh GPU worker was also tested. MediaPipe's GPU path crashed inside
+`libmediapipe_tasks_jni.so` with `SIGBUS` on the J6's 32-bit graphics stack, so
+the low-end capability gate continues to disable the GPU delegate.
+
+The low-end profile now derives its CPU worker count from the processors
+reported by Android, capped at six. All J6 workers are prewarmed sequentially:
+creating new MediaPipe detector instances while existing instances were already
+running inference also produced a native `SIGBUS` on its 32-bit runtime. This
+costs roughly two seconds at startup but keeps continuous detection stable.
 
 ## Reproduce
 

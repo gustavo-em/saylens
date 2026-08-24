@@ -5,8 +5,16 @@ import type {
 } from '../../domain/DetectedObject';
 
 const MAX_MATCH_DISTANCE = 0.32;
+const MIN_MATCH_IOU = 0.15;
 const MAX_PREDICTION_HORIZON_MS = 180;
-const MISSING_TRACK_RETENTION_MS = 320;
+/**
+ * The detector delivers roughly ten noisy results per second, so a label can
+ * drop out for a few of them while the object stays in frame. Retention has to
+ * outlast that gap, and a track has to be seen more than once before it earns a
+ * layer, otherwise single-frame noise flashes a card over the scene.
+ */
+const MISSING_TRACK_RETENTION_MS = 800;
+const MIN_HITS_TO_CONFIRM = 2;
 const VELOCITY_SMOOTHING = 0.55;
 
 interface MotionVector {
@@ -18,6 +26,7 @@ interface MotionVector {
 
 interface ObjectTrack {
   confidence: number;
+  hits: number;
   id: string;
   label: string;
   lastObservedBounds: NormalizedBounds;
@@ -27,6 +36,21 @@ interface ObjectTrack {
 
 function clamp(value: number, minimum = 0, maximum = 1) {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function intersectionOverUnion(a: NormalizedBounds, b: NormalizedBounds) {
+  const overlapWidth = Math.max(
+    0,
+    Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x),
+  );
+  const overlapHeight = Math.max(
+    0,
+    Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y),
+  );
+  const overlap = overlapWidth * overlapHeight;
+  const union = a.width * a.height + b.width * b.height - overlap;
+
+  return union > 0 ? overlap / union : 0;
 }
 
 function centerDistance(a: NormalizedBounds, b: NormalizedBounds) {
@@ -106,6 +130,13 @@ export class DetectionMotionTracker {
     );
 
     frame.objects.forEach(object => {
+      // A fast-moving object can leave no overlap between two results, so
+      // proximity still matches — but only within the object's own size, so a
+      // second object of the same label cannot steal the track.
+      const proximityLimit = Math.min(
+        MAX_MATCH_DISTANCE,
+        Math.max(object.bounds.width, object.bounds.height),
+      );
       const matchingTrack = availableTracks
         .filter(
           track =>
@@ -113,10 +144,20 @@ export class DetectionMotionTracker {
         )
         .map(track => ({
           distance: centerDistance(track.lastObservedBounds, object.bounds),
+          overlap: intersectionOverUnion(
+            track.lastObservedBounds,
+            object.bounds,
+          ),
           track,
         }))
-        .filter(candidate => candidate.distance <= MAX_MATCH_DISTANCE)
-        .sort((a, b) => a.distance - b.distance)[0]?.track;
+        .filter(
+          candidate =>
+            candidate.overlap >= MIN_MATCH_IOU ||
+            candidate.distance <= proximityLimit,
+        )
+        .sort(
+          (a, b) => b.overlap - a.overlap || a.distance - b.distance,
+        )[0]?.track;
 
       const id = matchingTrack?.id ?? `${object.label}-${this.nextTrackId++}`;
       const elapsedMs = Math.max(
@@ -128,6 +169,7 @@ export class DetectionMotionTracker {
         : ZERO_VELOCITY;
       const track: ObjectTrack = {
         confidence: object.confidence,
+        hits: (matchingTrack?.hits ?? 0) + 1,
         id,
         label: object.label,
         lastObservedBounds: object.bounds,
@@ -137,6 +179,8 @@ export class DetectionMotionTracker {
 
       matchedTrackIds.add(id);
       nextTracks.set(id, track);
+      if (track.hits < MIN_HITS_TO_CONFIRM) return;
+
       trackedObjects.push({
         ...object,
         id,
@@ -151,6 +195,8 @@ export class DetectionMotionTracker {
       if (missingForMs > MISSING_TRACK_RETENTION_MS) return;
 
       nextTracks.set(track.id, track);
+      if (track.hits < MIN_HITS_TO_CONFIRM) return;
+
       trackedObjects.push({
         bounds: projectBounds(
           track.lastObservedBounds,

@@ -27,29 +27,71 @@ const emptyFrame: DetectionFrame = {
 describe('DetectionMotionTracker', () => {
   it('keeps a stable id and predicts motion between detector results', () => {
     const tracker = new DetectionMotionTracker();
-    const first = tracker.update(frame(0.1), 1_000);
-    const second = tracker.update(frame(0.2), 1_100);
+    tracker.update(frame(0.1), 1_000);
+    const second = tracker.update(frame(0.15), 1_100);
+    const third = tracker.update(frame(0.2), 1_200);
 
-    expect(second.objects[0].id).toBe(first.objects[0].id);
-    expect(second.objects[0].bounds.x).toBeGreaterThan(0.2);
+    expect(third.objects[0].id).toBe(second.objects[0].id);
+    expect(third.objects[0].bounds.x).toBeGreaterThan(0.2);
   });
 
-  it('briefly retains a missing object to avoid layer flicker', () => {
+  it('waits for a second sighting before showing a layer', () => {
     const tracker = new DetectionMotionTracker();
-    const detected = tracker.update(frame(0.1), 1_000);
-    const brieflyMissing = tracker.update(emptyFrame, 1_200);
-    const expired = tracker.update(emptyFrame, 1_400);
 
-    expect(brieflyMissing.objects[0].id).toBe(detected.objects[0].id);
-    expect(expired.objects).toEqual([]);
+    expect(tracker.update(frame(0.1), 1_000).objects).toEqual([]);
+    expect(tracker.update(frame(0.12), 1_100).objects).toHaveLength(1);
+  });
+
+  it('ignores a label that only appears in a single result', () => {
+    const tracker = new DetectionMotionTracker();
+
+    tracker.update(frame(0.1), 1_000);
+
+    expect(tracker.update(emptyFrame, 1_100).objects).toEqual([]);
+    expect(tracker.update(emptyFrame, 1_200).objects).toEqual([]);
+  });
+
+  it('holds a confirmed object through a gap in the detector results', () => {
+    const tracker = new DetectionMotionTracker();
+    tracker.update(frame(0.1), 1_000);
+    const confirmed = tracker.update(frame(0.12), 1_100);
+    const missing = tracker.update(emptyFrame, 1_600);
+
+    expect(missing.objects[0].id).toBe(confirmed.objects[0].id);
+  });
+
+  it('drops a confirmed object once it stays missing', () => {
+    const tracker = new DetectionMotionTracker();
+    tracker.update(frame(0.1), 1_000);
+    tracker.update(frame(0.12), 1_100);
+
+    expect(tracker.update(emptyFrame, 2_100).objects).toEqual([]);
+  });
+
+  it('does not hand a track to a second object of the same label', () => {
+    const tracker = new DetectionMotionTracker();
+    tracker.update(frame(0.1), 1_000);
+    const confirmed = tracker.update(frame(0.1), 1_100);
+    // Far enough that neither the boxes overlap nor the centres sit within one
+    // object's own width, so this is a second object rather than the first one
+    // having moved.
+    tracker.update(frame(0.7), 1_200);
+    const elsewhere = tracker.update(frame(0.7), 1_300);
+    const moved = elsewhere.objects.find(object => object.bounds.x > 0.5);
+
+    expect(moved).toBeDefined();
+    expect(moved!.id).not.toBe(confirmed.objects[0].id);
   });
 
   it('resets its stable identifiers with the camera session', () => {
     const tracker = new DetectionMotionTracker();
 
     tracker.update(frame(0.1), 1_000);
+    tracker.update(frame(0.1), 1_100);
     tracker.reset();
 
-    expect(tracker.update(frame(0.1), 2_000).objects[0].id).toBe('chair-1');
+    tracker.update(frame(0.1), 2_000);
+
+    expect(tracker.update(frame(0.1), 2_100).objects[0].id).toBe('chair-1');
   });
 });

@@ -1,35 +1,33 @@
 export const performanceProfiles = [
-  'ultra-performance',
-  'high-performance',
-  'low-device',
+  'maximum-performance',
+  'power-saving',
 ] as const;
 
 export type PerformanceProfile = (typeof performanceProfiles)[number];
 
 export interface PerformanceCapabilities {
-  highPerformanceCpuWorkerCount: number;
+  maximumCpuWorkerCount: number;
   recommendedProfile: PerformanceProfile;
+  supportsGpuDelegate: boolean;
   supportedProfiles: readonly PerformanceProfile[];
 }
 
 export const DEFAULT_PERFORMANCE_PROFILE: PerformanceProfile =
-  'high-performance';
+  'maximum-performance';
 
 export function getPerformanceProfileSettings(
   profile: PerformanceProfile,
   capabilities: PerformanceCapabilities,
 ) {
-  if (profile === 'low-device') {
+  if (profile === 'power-saving') {
     return {
-      calibrateCpuWorkers: false,
-      cpuWorkerCount: capabilities.highPerformanceCpuWorkerCount,
+      cpuWorkerCount: 1,
       gpuWorkerCount: 0,
     };
   }
 
   return {
-    calibrateCpuWorkers: true,
-    cpuWorkerCount: capabilities.highPerformanceCpuWorkerCount,
-    gpuWorkerCount: profile === 'ultra-performance' ? 1 : 0,
+    cpuWorkerCount: capabilities.maximumCpuWorkerCount,
+    gpuWorkerCount: capabilities.supportsGpuDelegate ? 1 : 0,
   };
 }

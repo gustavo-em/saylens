@@ -1,6 +1,6 @@
-# SpellForMe
+# SayLens
 
-SpellForMe is an Android-first React Native side project that turns the camera
+SayLens is an Android-first React Native side project that turns the camera
 into an interactive English-learning experience.
 
 Point the device at everyday objects and see a compact English-learning card
@@ -11,7 +11,7 @@ anchored over each object with its meaning and pronunciation.
 > overlays without sending images to a server.
 
 <p align="center">
-  <img src="docs/assets/android-camera-settings.png" alt="SpellForMe camera settings running on a physical Samsung device" width="320" />
+  <img src="docs/assets/android-camera-settings.png" alt="SayLens camera settings running on a physical Samsung device" width="320" />
 </p>
 
 ## Product journey
@@ -35,8 +35,9 @@ The first experience is designed to work on-device and without a backend.
 - MediaPipe Tasks with EfficientDet-Lite0 int8 for the first detector.
 - React Native learning overlays with metadata presentation bounded at 30 Hz.
 - A local vocabulary catalog for the first common-object labels.
-- UI-thread smoothing and device text-to-speech are the next product polish
-  steps.
+- Reanimated UI-thread interpolation for live detection geometry.
+- Stable object tracking, adaptive detector scheduling, and device
+  text-to-speech as the next product and performance steps.
 
 These are recorded decisions rather than hidden assumptions. Read the
 [architecture](docs/ARCHITECTURE.md) and the
@@ -50,6 +51,15 @@ frames per second while the camera preview remained at approximately 30 FPS.
 This intentionally favors modern hardware: the measured process cost was about
 324% to 339% CPU and 529 to 533 MB resident memory. Reproducible context and
 limitations are in [physical-device validation](docs/VALIDATION.md).
+
+### Performance engineering lab
+
+The next phase treats this workload as a mobile performance case study rather
+than optimizing for a single FPS number. It will compare worker counts,
+allocation pressure, result freshness, React and UI-thread cost, sustained
+thermals, startup, and release size using repeatable physical-device runs.
+
+See the [performance engineering strategy](docs/PERFORMANCE.md).
 
 ## Repository layout
 
@@ -122,7 +132,7 @@ Gradle distribution. See the reproducible baseline record in
 
 The work is split into evidence-producing milestones: repository foundation,
 Android baseline, camera pipeline, native detection, interactive overlay,
-learning experience, and public release.
+learning experience, performance engineering, and public release.
 
 See the [roadmap and acceptance criteria](docs/ROADMAP.md).
 
@@ -132,6 +142,7 @@ See the [roadmap and acceptance criteria](docs/ROADMAP.md).
 - [Architecture Decision Records](docs/adr/README.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Physical-device validation](docs/VALIDATION.md)
+- [Performance engineering strategy](docs/PERFORMANCE.md)
 - [Contribution workflow](CONTRIBUTING.md)
 
 ## Contributing

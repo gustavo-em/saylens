@@ -51,7 +51,7 @@ The J6 negotiated an actual detector buffer of 256 × 144 for this target.
 
 The official MediaPipe model guide describes SSD MobileNetV2 as a generally
 faster but less accurate alternative with a 256 × 256 input. Its published
-download currently provides a float16 artifact, while the current SpellForMe
+download currently provides a float16 artifact, while the current SayLens
 model is int8; the J6's CPU favored the quantized EfficientDet model in the
 device benchmark.
 

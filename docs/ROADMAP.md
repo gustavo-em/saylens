@@ -78,10 +78,10 @@ Acceptance criteria:
 Status: in progress
 
 - [x] convert frame coordinates into preview coordinates;
-- assign stable track identities using label and bounding-box overlap;
-- smooth visual position and size on the UI thread;
+- [ ] assign stable track identities using label and bounding-box overlap;
+- [x] smooth visual position and size on the UI thread;
 - [x] render accessible live vocabulary cards;
-- handle stale detections deterministically.
+- [ ] handle stale detections deterministically.
 
 Acceptance criteria:
 
@@ -96,9 +96,9 @@ Status: in progress
 
 - [x] define the first curated vocabulary catalog for common detector labels;
 - [x] show word, pronunciation, meaning, and confidence in the camera layer;
-- integrate device text-to-speech;
+- [ ] integrate device text-to-speech;
 - [x] add scanning, unknown-label, permission, and failure states;
-- polish motion, haptics, and visual hierarchy.
+- [ ] polish motion, haptics, and visual hierarchy.
 
 Acceptance criteria:
 
@@ -106,7 +106,28 @@ Acceptance criteria:
 - every supported visible label has reviewed learning content;
 - pronunciation and details remain usable with the camera paused.
 
-## Milestone 6: Public technical release
+## Milestone 6: Performance engineering evidence
+
+Status: planned
+
+- add a repeatable release benchmark and structured metric capture;
+- record detector latency percentiles and end-to-end result freshness;
+- measure native allocation pressure and bitmap reuse;
+- compare worker counts and detector resolutions against CPU, memory, battery,
+  and thermal cost;
+- profile React commits and verify UI-thread interpolation behavior;
+- validate ten- and thirty-minute physical-device sessions;
+- measure cold startup, release size, R8 impact, and 16 KB alignment.
+
+Acceptance criteria:
+
+- before-and-after runs use the same device, scene, build type, and protocol;
+- published numbers include distributions and resource costs, not only FPS;
+- the chosen configuration is justified by an efficiency curve;
+- raw evidence, failed experiments, and limitations are reproducible;
+- claims satisfy the [performance publication gate](PERFORMANCE.md).
+
+## Milestone 7: Public technical release
 
 Status: planned
 

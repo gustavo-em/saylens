@@ -4,7 +4,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import {
   objectDetector,
   type NativeDetectionBatch,
-} from 'react-native-spellforme-object-detector';
+} from 'react-native-saylens-object-detector';
 import {
   Camera,
   useCameraDevice,
@@ -21,9 +21,10 @@ import {
 } from '../../domain/PerformanceProfile';
 import { mapNativeDetectionBatch } from '../detection/mapNativeDetectionBatch';
 
-const LOW_END_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
-const STANDARD_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
+const POWER_SAVING_DETECTION_RESOLUTION = { width: 320, height: 180 } as const;
+const MAXIMUM_DETECTION_RESOLUTION = { width: 640, height: 360 } as const;
 const MAX_REAL_TIME_CAMERA_FPS = 60;
+const POWER_SAVING_CAMERA_FPS = 15;
 
 interface VisionCameraViewportProps {
   cameraErrorMessage: string;
@@ -79,7 +80,6 @@ export const VisionCameraViewport = memo(function CameraViewport({
     objectDetector.configureWorkers(
       settings.cpuWorkerCount,
       settings.gpuWorkerCount,
-      settings.calibrateCpuWorkers,
     );
   }, [performanceCapabilities, performanceProfile]);
 
@@ -95,9 +95,9 @@ export const VisionCameraViewport = memo(function CameraViewport({
   }, [detectionErrorMessage, onDetectionError]);
 
   const detectionResolution =
-    performanceProfile === 'low-device'
-      ? LOW_END_DETECTION_RESOLUTION
-      : STANDARD_DETECTION_RESOLUTION;
+    performanceProfile === 'power-saving'
+      ? POWER_SAVING_DETECTION_RESOLUTION
+      : MAXIMUM_DETECTION_RESOLUTION;
 
   const frameOutput = useFrameOutput({
     dropFramesWhileBusy: true,
@@ -127,8 +127,15 @@ export const VisionCameraViewport = memo(function CameraViewport({
       30,
     );
 
-    return Math.min(highestSupportedFPS ?? 30, MAX_REAL_TIME_CAMERA_FPS);
-  }, [device]);
+    const maximumCameraFPS = Math.min(
+      highestSupportedFPS ?? 30,
+      MAX_REAL_TIME_CAMERA_FPS,
+    );
+
+    return performanceProfile === 'power-saving'
+      ? Math.min(maximumCameraFPS, POWER_SAVING_CAMERA_FPS)
+      : maximumCameraFPS;
+  }, [device, performanceProfile]);
   const constraints = useMemo<Constraint[]>(
     () => [{ fps: targetCameraFPS }, { binned: true }],
     [targetCameraFPS],
@@ -137,7 +144,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
   const handleSessionConfigSelected = useCallback(
     (config: CameraSessionConfig) => {
       console.info(
-        `[SpellForMe camera] requested=${targetCameraFPS}fps selected=${
+        `[SayLens camera] requested=${targetCameraFPS}fps selected=${
           config.selectedFPS ?? 'auto'
         }fps native=${config.nativePixelFormat} binned=${config.isBinned}`,
       );

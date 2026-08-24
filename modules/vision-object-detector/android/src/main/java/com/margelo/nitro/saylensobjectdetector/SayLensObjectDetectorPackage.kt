@@ -1,11 +1,11 @@
-package com.margelo.nitro.spellformeobjectdetector
+package com.margelo.nitro.saylensobjectdetector
 
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfoProvider
 
-class SpellformeObjectDetectorPackage : BaseReactPackage() {
+class SayLensObjectDetectorPackage : BaseReactPackage() {
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
         return null
     }
@@ -16,7 +16,7 @@ class SpellformeObjectDetectorPackage : BaseReactPackage() {
 
     companion object {
         init {
-            System.loadLibrary("spellformeobjectdetector")
+            System.loadLibrary("saylensobjectdetector")
         }
     }
 }

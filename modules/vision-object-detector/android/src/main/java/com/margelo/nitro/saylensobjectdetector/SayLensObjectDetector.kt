@@ -1,7 +1,8 @@
-package com.margelo.nitro.spellformeobjectdetector
+package com.margelo.nitro.saylensobjectdetector
 
 import android.app.ActivityManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.os.Build
@@ -26,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 @DoNotStrip
-class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
+class SayLensObjectDetector : HybridSayLensObjectDetectorSpec() {
   @Volatile private var latestBatch: NativeDetectionBatch? = null
   @Volatile private var latestSequence = -1L
   private var lastDeliveredSequence = -1L
@@ -39,10 +40,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   private val nextSequence = AtomicLong()
   private val performanceCapabilities = resolvePerformanceCapabilities()
   private var cpuWorkerCount = performanceCapabilities.recommendedCpuWorkerCount
-  private var activeCpuWorkerCount = cpuWorkerCount
-  private var gpuWorkerCount = DEFAULT_GPU_WORKERS
-  private var calibrationRequested = false
-  private var workerCalibration: WorkerCalibration? = null
+  private var gpuWorkerCount = if (performanceCapabilities.supportsGpuDelegate) {
+    MAX_GPU_WORKERS
+  } else {
+    MIN_GPU_WORKERS
+  }
   @Volatile private var workers = createWorkers(cpuWorkerCount, gpuWorkerCount)
 
   override fun getModelName(): String = MODEL_NAME
@@ -56,67 +58,51 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   override fun getRecommendedCpuWorkerCount(): Double =
     performanceCapabilities.recommendedCpuWorkerCount.toDouble()
 
+  override fun getSupportsGpuDelegate(): Boolean =
+    performanceCapabilities.supportsGpuDelegate
+
   @Synchronized
   override fun configureWorkers(
     cpuWorkerCount: Double,
     gpuWorkerCount: Double,
-    calibrateCpuWorkers: Boolean,
   ) {
     val normalizedCpuCount = cpuWorkerCount.toInt().coerceIn(
       MIN_CPU_WORKERS,
       performanceCapabilities.maxCpuWorkerCount,
     )
-    val normalizedGpuCount = if (performanceCapabilities.supportsHighPerformance) {
+    val normalizedGpuCount = if (performanceCapabilities.supportsGpuDelegate) {
       gpuWorkerCount.toInt().coerceIn(MIN_GPU_WORKERS, MAX_GPU_WORKERS)
     } else {
-      0
+      MIN_GPU_WORKERS
     }
-    val shouldCalibrate =
-      calibrateCpuWorkers &&
-        performanceCapabilities.supportsHighPerformance &&
-        normalizedCpuCount >= MIN_HIGH_PERFORMANCE_CPU_WORKERS
-    val poolIsUnchanged =
-      normalizedCpuCount == this.cpuWorkerCount &&
-        normalizedGpuCount == this.gpuWorkerCount
     if (
-      poolIsUnchanged &&
-      shouldCalibrate == calibrationRequested
+      normalizedCpuCount == this.cpuWorkerCount &&
+      normalizedGpuCount == this.gpuWorkerCount
     ) return
 
-    val previousWorkers = if (poolIsUnchanged) null else workers
+    val previousWorkers = workers
     this.cpuWorkerCount = normalizedCpuCount
     this.gpuWorkerCount = normalizedGpuCount
-    calibrationRequested = shouldCalibrate
-    workerCalibration = if (shouldCalibrate) {
-      WorkerCalibration.create(normalizedCpuCount)
-    } else {
-      null
-    }
-    activeCpuWorkerCount = workerCalibration?.currentWorkerCount
-      ?: normalizedCpuCount
-    if (!poolIsUnchanged) {
-      workers = createWorkers(normalizedCpuCount, normalizedGpuCount)
-    }
+    workers = createWorkers(normalizedCpuCount, normalizedGpuCount)
     nextWorkerIndex = 0
     performanceWindowCompleted = 0
     performanceWindowStartedAtNanos = 0L
-    previousWorkers?.forEach(DetectorWorker::close)
+    previousWorkers.forEach(DetectorWorker::close)
     Log.i(
       TAG,
       "Detector reconfigured with $normalizedCpuCount CPU workers and " +
-        "$normalizedGpuCount GPU workers; calibration=$shouldCalibrate.",
+        "$normalizedGpuCount GPU workers.",
     )
   }
 
   @Synchronized
   override fun detect(frame: HybridFrameSpec): NativeDetectionBatch? {
     val nativeFrame = frame as? NativeFrame
-      ?: error("SpellForMe detector requires a native VisionCamera frame.")
+      ?: error("SayLens detector requires a native VisionCamera frame.")
     val imageProxy = nativeFrame.image
     val rotationDegrees = imageProxy.imageInfo.rotationDegrees
     val latestUndeliveredBatch = takeLatestBatch()
     val pendingFrame = PendingFrame(
-      activeCpuWorkerCount = activeCpuWorkerCount,
       sequence = nextSequence.getAndIncrement(),
       width = imageProxy.width,
       height = imageProxy.height,
@@ -124,16 +110,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
       startedAtNanos = SystemClock.elapsedRealtimeNanos(),
     )
 
-    val activeWorkerCount = activeCpuWorkerCount + gpuWorkerCount
-    repeat(activeWorkerCount) { offset ->
-      val activeWorkerIndex = (nextWorkerIndex + offset) % activeWorkerCount
-      val workerIndex = if (activeWorkerIndex < activeCpuWorkerCount) {
-        activeWorkerIndex
-      } else {
-        cpuWorkerCount + activeWorkerIndex - activeCpuWorkerCount
-      }
+    val workerCount = workers.size
+    repeat(workerCount) { offset ->
+      val workerIndex = (nextWorkerIndex + offset) % workerCount
       if (workers[workerIndex].trySubmit(imageProxy, pendingFrame)) {
-        nextWorkerIndex = (activeWorkerIndex + 1) % activeWorkerCount
+        nextWorkerIndex = (workerIndex + 1) % workerCount
         return latestUndeliveredBatch
       }
     }
@@ -161,7 +142,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   @Synchronized
   private fun copyFrameToBitmap(imageProxy: ImageProxy, bitmap: Bitmap) {
     require(imageProxy.format == PixelFormat.RGBA_8888) {
-      "SpellForMe detector requires RGBA_8888 frames."
+      "SayLens detector requires RGBA_8888 frames."
     }
 
     val width = imageProxy.width
@@ -208,87 +189,10 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   @Synchronized
   private fun publishResult(frame: PendingFrame, batch: NativeDetectionBatch) {
     recordThroughput(batch.inferenceTimeMs)
-    recordCalibration(frame.activeCpuWorkerCount, batch.inferenceTimeMs)
     if (frame.sequence <= latestSequence) return
 
     latestSequence = frame.sequence
     latestBatch = batch
-  }
-
-  private fun recordCalibration(
-    completedWithCpuWorkerCount: Int,
-    inferenceTimeMs: Double,
-  ) {
-    val calibration = workerCalibration ?: return
-    if (completedWithCpuWorkerCount != calibration.currentWorkerCount) return
-
-    val now = SystemClock.elapsedRealtimeNanos()
-    if (calibration.stageStartedAtNanos == 0L) {
-      calibration.stageStartedAtNanos = now
-      Log.i(
-        TAG,
-        "Calibrating ${calibration.currentWorkerCount} CPU workers: warm-up.",
-      )
-      return
-    }
-    if (
-      now - calibration.stageStartedAtNanos <
-      CALIBRATION_WARM_UP_INTERVAL_NANOS
-    ) return
-
-    if (calibration.measurementStartedAtNanos == 0L) {
-      calibration.measurementStartedAtNanos = now
-    }
-    calibration.completedInferences += 1
-    calibration.totalInferenceTimeMs += inferenceTimeMs
-    val elapsedNanos = now - calibration.measurementStartedAtNanos
-    if (elapsedNanos < CALIBRATION_MEASUREMENT_INTERVAL_NANOS) return
-
-    val sample = WorkerCalibrationSample(
-      averageInferenceTimeMs =
-        calibration.totalInferenceTimeMs / calibration.completedInferences,
-      cpuWorkerCount = calibration.currentWorkerCount,
-      inferencesPerSecond =
-        calibration.completedInferences * NANOSECONDS_PER_SECOND / elapsedNanos,
-    )
-    calibration.samples += sample
-    Log.i(
-      TAG,
-      "Calibration sample: ${sample.cpuWorkerCount} CPU workers, " +
-        "%.1f fps, %.0f ms average latency."
-          .format(sample.inferencesPerSecond, sample.averageInferenceTimeMs),
-    )
-
-    if (calibration.moveToNextCandidate()) {
-      activeCpuWorkerCount = calibration.currentWorkerCount
-      nextWorkerIndex = 0
-      return
-    }
-
-    finishCalibration(calibration)
-  }
-
-  private fun finishCalibration(calibration: WorkerCalibration) {
-    val peakThroughput = calibration.samples.maxOf { it.inferencesPerSecond }
-    val selectedSample = calibration.samples
-      .filter {
-        it.inferencesPerSecond >= peakThroughput * CALIBRATION_NEAR_PEAK_RATIO
-      }
-      .minBy { it.cpuWorkerCount }
-
-    activeCpuWorkerCount = selectedSample.cpuWorkerCount
-    nextWorkerIndex = 0
-    workerCalibration = null
-
-    for (workerIndex in activeCpuWorkerCount until cpuWorkerCount) {
-      workers[workerIndex].close()
-    }
-    Log.i(
-      TAG,
-      "Calibration complete: selected ${selectedSample.cpuWorkerCount} CPU " +
-        "workers at %.1f fps (peak %.1f fps)."
-          .format(selectedSample.inferencesPerSecond, peakThroughput),
-    )
   }
 
   private fun recordThroughput(inferenceTimeMs: Double) {
@@ -350,66 +254,173 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     gpuWorkerCount: Int,
   ): Array<DetectorWorker> {
     val workers = mutableListOf<DetectorWorker>()
-    repeat(cpuWorkerCount) { cpuWorkerIndex ->
+    val cpuThreadPriority = if (
+      cpuWorkerCount == POWER_SAVING_CPU_WORKERS &&
+      gpuWorkerCount == MIN_GPU_WORKERS
+    ) {
+      Process.THREAD_PRIORITY_BACKGROUND
+    } else {
+      Process.THREAD_PRIORITY_MORE_FAVORABLE
+    }
+    repeat(cpuWorkerCount) {
       workers += DetectorWorker(
         id = workers.size + 1,
         preferredDelegate = Delegate.CPU,
-        prewarm =
-          !performanceCapabilities.supportsHighPerformance ||
-            cpuWorkerIndex < INITIAL_PREWARMED_CPU_WORKERS,
+        prewarm = true,
+        threadPriority = cpuThreadPriority,
       )
     }
     repeat(gpuWorkerCount) {
       workers += DetectorWorker(
         id = workers.size + 1,
         preferredDelegate = Delegate.GPU,
-        prewarm = false,
+        prewarm = true,
+        threadPriority = Process.THREAD_PRIORITY_MORE_FAVORABLE,
       )
     }
     return workers.toTypedArray()
   }
 
   private fun resolvePerformanceCapabilities(): DevicePerformanceCapabilities {
-    val availableProcessors = Runtime.getRuntime().availableProcessors()
-    val context = NitroModules.applicationContext
-      ?: return DevicePerformanceCapabilities.lowDevice(availableProcessors)
-    val activityManager = context.getSystemService(
-      Context.ACTIVITY_SERVICE,
-    ) as ActivityManager
-    val memoryClassMb = activityManager.memoryClass
-    val onlySupports32Bit = Build.SUPPORTED_64_BIT_ABIS.isEmpty()
-    val supportsHighPerformance =
-      !activityManager.isLowRamDevice &&
-        !onlySupports32Bit &&
-        availableProcessors >= MIN_HIGH_PERFORMANCE_PROCESSORS &&
-        memoryClassMb >= MIN_HIGH_PERFORMANCE_MEMORY_CLASS_MB
-
-    if (!supportsHighPerformance) {
-      return DevicePerformanceCapabilities.lowDevice(availableProcessors)
-    }
-
-    val memoryWorkerLimit = when {
-      memoryClassMb >= 512 -> 6
-      memoryClassMb >= 384 -> 5
-      else -> 4
-    }
-    val recommendedCpuWorkerCount = minOf(
-      availableProcessors - RESERVED_SYSTEM_PROCESSORS,
-      memoryWorkerLimit,
-      MAX_CPU_WORKERS,
-    ).coerceAtLeast(MIN_HIGH_PERFORMANCE_CPU_WORKERS)
+    val maximumCpuWorkerCount = resolveMaximumCpuWorkerCount()
+    val supportsGpuDelegate = resolveGpuDelegateSupport()
 
     return DevicePerformanceCapabilities(
-      maxCpuWorkerCount = recommendedCpuWorkerCount,
-      recommendedCpuWorkerCount = recommendedCpuWorkerCount,
-      recommendedProfile = HIGH_PERFORMANCE_PROFILE,
+      maxCpuWorkerCount = maximumCpuWorkerCount,
+      recommendedCpuWorkerCount = maximumCpuWorkerCount,
+      recommendedProfile = MAXIMUM_PERFORMANCE_PROFILE,
       supportedProfiles = arrayOf(
-        ULTRA_PERFORMANCE_PROFILE,
-        HIGH_PERFORMANCE_PROFILE,
-        LOW_DEVICE_PROFILE,
+        MAXIMUM_PERFORMANCE_PROFILE,
+        POWER_SAVING_PROFILE,
       ),
-      supportsHighPerformance = true,
+      supportsGpuDelegate = supportsGpuDelegate,
     )
+  }
+
+  /**
+   * Maximum performance uses every core the device reports, capped at six.
+   * On the eight-core Galaxy J6, six workers sustain 10.3-13.3 inferences per
+   * second while eight add no throughput and make each result 150-250 ms
+   * older, which is what makes a moving overlay feel detached from the image.
+   * The remaining cores stay available to the camera and UI pipelines.
+   */
+  private fun resolveMaximumCpuWorkerCount(): Int {
+    val availableProcessors = Runtime.getRuntime().availableProcessors()
+    val workerCount = availableProcessors.coerceIn(
+      MIN_CPU_WORKERS,
+      MAX_CPU_WORKERS,
+    )
+
+    Log.i(
+      TAG,
+      "Maximum CPU workers: $workerCount of $availableProcessors cores.",
+    )
+    return workerCount
+  }
+
+  /**
+   * The GPU delegate is only offered when the device can run it without
+   * killing the process. A 32-bit process has neither the address space nor
+   * the driver headroom for an extra OpenCL context beside the CPU workers,
+   * and a delegate that aborts the process cannot be caught in Kotlin. Static
+   * compatibility is therefore combined with a persisted probe that survives
+   * such a crash and blocks the delegate on the next launch.
+   */
+  private fun resolveGpuDelegateSupport(): Boolean {
+    // MediaPipe's GPU path has aborted the process on every device tested so
+    // far: SIGBUS on the J6's 32-bit stack, and SIGBUS on the arm64 SM-M536B
+    // inside the drishti GL runner while the delegate is still being built.
+    // The CPU pool already saturates both devices, so the delegate stays off
+    // until a device is measured running it. Flip this to re-test.
+    if (!GPU_DELEGATE_ENABLED) {
+      Log.i(TAG, "GPU delegate disabled: no tested device runs it safely.")
+      return false
+    }
+
+    if (Build.SUPPORTED_64_BIT_ABIS.isEmpty() || !Process.is64Bit()) {
+      Log.i(
+        TAG,
+        "GPU delegate disabled: the process runs 32-bit native code.",
+      )
+      return false
+    }
+
+    val context = NitroModules.applicationContext ?: return false
+    val activityManager = context.getSystemService(
+      Context.ACTIVITY_SERVICE,
+    ) as? ActivityManager
+    val openGlEsVersion = activityManager
+      ?.deviceConfigurationInfo
+      ?.reqGlEsVersion
+      ?: 0
+    if (openGlEsVersion < MIN_GPU_DELEGATE_GL_ES_VERSION) {
+      Log.i(
+        TAG,
+        "GPU delegate disabled: OpenGL ES support is below 3.1.",
+      )
+      return false
+    }
+
+    val preferences = gpuDelegatePreferences(context) ?: return false
+    if (preferences.getBoolean(GPU_DELEGATE_BLOCKED_KEY, false)) {
+      Log.i(TAG, "GPU delegate disabled: this device failed a previous probe.")
+      return false
+    }
+    if (preferences.getBoolean(GPU_DELEGATE_VERIFIED_KEY, false)) return true
+
+    val failedProbes = preferences.getInt(GPU_DELEGATE_FAILED_PROBES_KEY, 0)
+    if (failedProbes == 0) return true
+    if (failedProbes < GPU_DELEGATE_PROBE_ATTEMPT_LIMIT) {
+      Log.w(
+        TAG,
+        "Retrying the GPU delegate after $failedProbes incomplete probe(s).",
+      )
+      return true
+    }
+
+    blockGpuDelegate("$failedProbes GPU probes never completed")
+    return false
+  }
+
+  private fun gpuDelegatePreferences(
+    context: Context? = NitroModules.applicationContext,
+  ): SharedPreferences? = context?.getSharedPreferences(
+    GPU_DELEGATE_PREFERENCES_NAME,
+    Context.MODE_PRIVATE,
+  )
+
+  /**
+   * Records that a GPU inference is about to run. The write is synchronous
+   * because the driver may terminate the process before an asynchronous
+   * commit lands, and the counter is what tells the next launch that the
+   * previous probe never returned.
+   */
+  private fun beginGpuDelegateProbe() {
+    val preferences = gpuDelegatePreferences() ?: return
+    if (preferences.getBoolean(GPU_DELEGATE_VERIFIED_KEY, false)) return
+
+    val failedProbes = preferences.getInt(GPU_DELEGATE_FAILED_PROBES_KEY, 0)
+    preferences.edit()
+      .putInt(GPU_DELEGATE_FAILED_PROBES_KEY, failedProbes + 1)
+      .commit()
+  }
+
+  private fun completeGpuDelegateProbe() {
+    val preferences = gpuDelegatePreferences() ?: return
+
+    preferences.edit()
+      .putBoolean(GPU_DELEGATE_VERIFIED_KEY, true)
+      .putInt(GPU_DELEGATE_FAILED_PROBES_KEY, 0)
+      .apply()
+    Log.i(TAG, "GPU delegate verified on this device.")
+  }
+
+  private fun blockGpuDelegate(reason: String) {
+    Log.w(TAG, "Blocking the GPU delegate on this device: $reason.")
+    gpuDelegatePreferences()
+      ?.edit()
+      ?.putBoolean(GPU_DELEGATE_BLOCKED_KEY, true)
+      ?.apply()
   }
 
   private fun createDetector(workerId: Int, delegate: Delegate): ObjectDetector {
@@ -426,6 +437,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     workerId: Int,
     delegate: Delegate,
   ): ObjectDetector {
+    Log.i(TAG, "Initializing object detector worker $workerId with $delegate.")
     val context = NitroModules.applicationContext
       ?: error("React Native application context is not available.")
     val baseOptions = BaseOptions.builder()
@@ -452,17 +464,19 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     private val id: Int,
     preferredDelegate: Delegate,
     prewarm: Boolean,
+    threadPriority: Int,
   ) {
     private val busy = AtomicBoolean(false)
     private val closed = AtomicBoolean(false)
     private var detector: ObjectDetector? = null
     private var hasLoggedFirstResult = false
+    private var hasVerifiedGpuDelegate = false
     private var inputBitmap: Bitmap? = null
     private var activeDelegate = preferredDelegate
     private val executor = Executors.newSingleThreadExecutor { runnable ->
       Thread(
         {
-          Process.setThreadPriority(Process.THREAD_PRIORITY_MORE_FAVORABLE)
+          Process.setThreadPriority(threadPriority)
           runnable.run()
         },
         "$TAG-$id",
@@ -520,7 +534,17 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         val processingOptions = ImageProcessingOptions.builder()
           .setRotationDegrees(frame.rotationDegrees)
           .build()
-        val result = getOrCreateDetector().detect(image, processingOptions)
+        val activeDetector = getOrCreateDetector()
+        val isGpuProbe =
+          activeDelegate == Delegate.GPU && !hasVerifiedGpuDelegate
+        if (isGpuProbe) {
+          beginGpuDelegateProbe()
+        }
+        val result = activeDetector.detect(image, processingOptions)
+        if (isGpuProbe) {
+          hasVerifiedGpuDelegate = true
+          completeGpuDelegateProbe()
+        }
         val batch = mapResult(result, frame)
         publishResult(frame, batch)
         if (!hasLoggedFirstResult) {
@@ -560,6 +584,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     private fun getOrCreateDetector(): ObjectDetector {
       detector?.let { return it }
 
+      val isGpuProbe = activeDelegate == Delegate.GPU && !hasVerifiedGpuDelegate
+      if (isGpuProbe) {
+        beginGpuDelegateProbe()
+      }
+
       return try {
         createDetector(id, activeDelegate).also {
           detector = it
@@ -581,6 +610,7 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
         error,
       )
       activeDelegate = Delegate.CPU
+      blockGpuDelegate("worker $id could not use the GPU delegate")
       closeDetectorSafely()
       detector = null
     }
@@ -595,36 +625,32 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
   }
 
   private companion object {
-    const val TAG = "SpellForMeDetector"
+    const val TAG = "SayLensDetector"
     const val MODEL_NAME = "EfficientDet-Lite0 int8"
     const val MODEL_ASSET_PATH = "efficientdet_lite0_int8.tflite"
-    const val HIGH_PERFORMANCE_PROFILE = "high-performance"
-    const val LOW_DEVICE_PROFILE = "low-device"
-    const val ULTRA_PERFORMANCE_PROFILE = "ultra-performance"
-    const val CALIBRATION_BASELINE_CPU_WORKERS = 2
-    const val INITIAL_PREWARMED_CPU_WORKERS = 2
-    const val DEFAULT_GPU_WORKERS = 0
+    const val MAXIMUM_PERFORMANCE_PROFILE = "maximum-performance"
+    const val POWER_SAVING_PROFILE = "power-saving"
     const val MIN_CPU_WORKERS = 1
     const val MAX_CPU_WORKERS = 6
+    const val POWER_SAVING_CPU_WORKERS = 1
     const val MIN_GPU_WORKERS = 0
     const val MAX_GPU_WORKERS = 1
-    const val MIN_HIGH_PERFORMANCE_CPU_WORKERS = 4
-    const val MIN_HIGH_PERFORMANCE_MEMORY_CLASS_MB = 256
-    const val MIN_HIGH_PERFORMANCE_PROCESSORS = 6
-    const val RESERVED_SYSTEM_PROCESSORS = 2
+    const val MIN_GPU_DELEGATE_GL_ES_VERSION = 0x00030001
+    const val GPU_DELEGATE_PREFERENCES_NAME = "saylens-detector"
+    const val GPU_DELEGATE_BLOCKED_KEY = "gpu-delegate-blocked"
+    const val GPU_DELEGATE_VERIFIED_KEY = "gpu-delegate-verified"
+    const val GPU_DELEGATE_FAILED_PROBES_KEY = "gpu-delegate-failed-probes"
+    const val GPU_DELEGATE_ENABLED = false
+    const val GPU_DELEGATE_PROBE_ATTEMPT_LIMIT = 1
     const val MAX_RESULTS = 5
     const val DEFAULT_SCORE_THRESHOLD = 0.55f
     const val RGBA_BYTES_PER_PIXEL = 4
     const val NANOSECONDS_PER_MILLISECOND = 1_000_000.0
     const val NANOSECONDS_PER_SECOND = 1_000_000_000.0
     const val PERFORMANCE_LOG_INTERVAL_NANOS = 5_000_000_000L
-    const val CALIBRATION_WARM_UP_INTERVAL_NANOS = 1_500_000_000L
-    const val CALIBRATION_MEASUREMENT_INTERVAL_NANOS = 2_500_000_000L
-    const val CALIBRATION_NEAR_PEAK_RATIO = 0.95
   }
 
   private data class PendingFrame(
-    val activeCpuWorkerCount: Int,
     val sequence: Long,
     val width: Int,
     val height: Int,
@@ -632,68 +658,11 @@ class SpellformeObjectDetector : HybridSpellformeObjectDetectorSpec() {
     val startedAtNanos: Long,
   )
 
-  private data class WorkerCalibrationSample(
-    val averageInferenceTimeMs: Double,
-    val cpuWorkerCount: Int,
-    val inferencesPerSecond: Double,
-  )
-
-  private data class WorkerCalibration(
-    private val candidates: IntArray,
-    private var candidateIndex: Int = 0,
-    var stageStartedAtNanos: Long = 0L,
-    var measurementStartedAtNanos: Long = 0L,
-    var completedInferences: Int = 0,
-    var totalInferenceTimeMs: Double = 0.0,
-    val samples: MutableList<WorkerCalibrationSample> = mutableListOf(),
-  ) {
-    val currentWorkerCount: Int
-      get() = candidates[candidateIndex]
-
-    fun moveToNextCandidate(): Boolean {
-      if (candidateIndex >= candidates.lastIndex) return false
-
-      candidateIndex += 1
-      stageStartedAtNanos = 0L
-      measurementStartedAtNanos = 0L
-      completedInferences = 0
-      totalInferenceTimeMs = 0.0
-      return true
-    }
-
-    companion object {
-      fun create(maxCpuWorkerCount: Int) = WorkerCalibration(
-        candidates = intArrayOf(
-          CALIBRATION_BASELINE_CPU_WORKERS,
-          MIN_HIGH_PERFORMANCE_CPU_WORKERS,
-          maxCpuWorkerCount,
-        ).distinct().sorted().toIntArray(),
-      )
-    }
-  }
-
   private data class DevicePerformanceCapabilities(
     val maxCpuWorkerCount: Int,
     val recommendedCpuWorkerCount: Int,
     val recommendedProfile: String,
     val supportedProfiles: Array<String>,
-    val supportsHighPerformance: Boolean,
-  ) {
-    companion object {
-      fun lowDevice(availableProcessors: Int): DevicePerformanceCapabilities {
-        val cpuWorkerCount = availableProcessors.coerceIn(
-          MIN_CPU_WORKERS,
-          MAX_CPU_WORKERS,
-        )
-
-        return DevicePerformanceCapabilities(
-          maxCpuWorkerCount = cpuWorkerCount,
-          recommendedCpuWorkerCount = cpuWorkerCount,
-          recommendedProfile = LOW_DEVICE_PROFILE,
-          supportedProfiles = arrayOf(LOW_DEVICE_PROFILE),
-          supportsHighPerformance = false,
-        )
-      }
-    }
-  }
+    val supportsGpuDelegate: Boolean,
+  )
 }

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-APP_PACKAGE="com.gustavoem.spellforme"
+APP_PACKAGE="com.gustavoem.saylens"
 MEASUREMENT_SECONDS="${1:-30}"
 
 if ! command -v adb >/dev/null 2>&1; then
@@ -29,11 +29,11 @@ sleep "$MEASUREMENT_SECONDS"
 echo
 echo "=== Detector and camera ==="
 adb logcat -d | grep -E \
-  "SpellForMeDetector|SpellForMe camera|AndroidRuntime: FATAL" || true
+  "SayLensDetector|SayLens camera|AndroidRuntime: FATAL" || true
 
 echo
 echo "=== Process CPU snapshot ==="
-adb shell top -b -n 1 | grep -E "PID|spellforme" || true
+adb shell top -b -n 1 | grep -E "PID|saylens" || true
 
 echo
 echo "=== Process memory ==="

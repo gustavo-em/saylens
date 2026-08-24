@@ -22,7 +22,7 @@ export interface NativeDetectionBatch {
   inferenceTimeMs: number;
 }
 
-export interface SpellformeObjectDetector
+export interface SayLensObjectDetector
   extends HybridObject<{
     android: 'kotlin';
   }> {
@@ -30,11 +30,8 @@ export interface SpellformeObjectDetector
   getRecommendedPerformanceProfile(): string;
   getSupportedPerformanceProfiles(): string[];
   getRecommendedCpuWorkerCount(): number;
-  configureWorkers(
-    cpuWorkerCount: number,
-    gpuWorkerCount: number,
-    calibrateCpuWorkers: boolean,
-  ): void;
+  getSupportsGpuDelegate(): boolean;
+  configureWorkers(cpuWorkerCount: number, gpuWorkerCount: number): void;
   detect(frame: Frame): NativeDetectionBatch | undefined;
   close(): void;
 }

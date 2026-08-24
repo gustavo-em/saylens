@@ -60,6 +60,44 @@ react {
 def enableProguardInReleaseBuilds = false
 
 /**
+ * Release version and upload-key settings live in the repository root .env so
+ * they can be changed without touching Gradle. The file is gitignored, so a
+ * clean checkout falls back to the defaults below and to Gradle properties,
+ * which is what CI injects; .env.example documents the keys.
+ */
+def loadDotEnv() {
+    def values = [:]
+    def envFile = rootProject.file('../.env')
+    if (!envFile.exists()) return values
+
+    envFile.eachLine { line ->
+        def trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith('#')) return
+
+        def separator = trimmed.indexOf('=')
+        if (separator <= 0) return
+
+        values[trimmed.substring(0, separator).trim()] =
+            trimmed.substring(separator + 1).trim().replaceAll('^["\']|["\']$', '')
+    }
+    return values
+}
+
+def dotEnv = loadDotEnv()
+def appVersionCode = (dotEnv['VERSION_CODE'] ?: '1') as Integer
+def appVersionName = dotEnv['VERSION_NAME'] ?: '1.0'
+
+// .env first, then a Gradle property, so CI can inject the key without a file.
+def releaseSetting = { String name ->
+    def value = dotEnv[name]
+    if (value != null && !value.isEmpty()) return value
+    return project.hasProperty(name) ? project.property(name) : null
+}
+
+def uploadStoreFile = releaseSetting('SAYLENS_UPLOAD_STORE_FILE')
+def hasUploadKey = uploadStoreFile != null && !uploadStoreFile.toString().isEmpty()
+
+/**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
  * For example, to use the international variant, you can use:
@@ -77,13 +115,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.gustavoem.spellforme"
+    namespace "com.gustavoem.saylens"
     defaultConfig {
-        applicationId "com.gustavoem.spellforme"
+        applicationId "com.gustavoem.saylens"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
     }
     signingConfigs {
         debug {
@@ -92,15 +130,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // Credentials come from the gitignored .env. Without them the release
+        // build falls back to the debug key, which is fine for device testing
+        // and rejected by the Play Store.
+        release {
+            if (hasUploadKey) {
+                storeFile rootProject.file("../${uploadStoreFile}").exists()
+                    ? rootProject.file("../${uploadStoreFile}")
+                    : file(uploadStoreFile)
+                storePassword releaseSetting('SAYLENS_UPLOAD_STORE_PASSWORD')
+                keyAlias releaseSetting('SAYLENS_UPLOAD_KEY_ALIAS')
+                keyPassword releaseSetting('SAYLENS_UPLOAD_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig hasUploadKey
+                ? signingConfigs.release
+                : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }

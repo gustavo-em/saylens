@@ -21,6 +21,8 @@ export interface LearningCopy {
     objectsDetected: (count: number) => string;
     meaningLabel: string;
     pronunciationLabel: string;
+    tapToHearPronunciation: string;
+    pronunciationUnavailable: string;
     detectorAccessibility: (status: string, inferenceTimeMs?: number) => string;
   };
   settings: {
@@ -39,12 +41,10 @@ export interface LearningCopy {
     performanceSection: string;
     performanceTitle: string;
     performanceDescription: string;
-    ultraPerformanceTitle: string;
-    ultraPerformanceDescription: (workerCount: number) => string;
-    highPerformanceTitle: string;
-    highPerformanceDescription: (workerCount: number) => string;
-    lowDeviceTitle: string;
-    lowDeviceDescription: (workerCount: number) => string;
+    maximumPerformanceTitle: string;
+    maximumPerformanceDescription: string;
+    powerSavingTitle: string;
+    powerSavingDescription: string;
   };
 }
 
@@ -93,6 +93,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONÚNCIA',
+      tapToHearPronunciation: 'Toque para ouvir a pronúncia.',
+      pronunciationUnavailable:
+        'A pronúncia não está disponível neste aparelho.',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inferência em ${time} milissegundos`
@@ -103,7 +106,7 @@ const copies: Record<
       subtitle: 'Ajuste a experiência sem sair do modo de aprendizagem.',
       appearanceSection: 'APARÊNCIA',
       appearanceTitle: 'Tema do aplicativo',
-      appearanceDescription: 'Escolha como o SpellForMe aparece para você.',
+      appearanceDescription: 'Escolha como o SayLens aparece para você.',
       lightMode: 'Claro',
       darkMode: 'Escuro',
       languagesSection: 'IDIOMAS',
@@ -115,16 +118,13 @@ const copies: Record<
       performanceSection: 'PERFORMANCE',
       performanceTitle: 'Perfil do dispositivo',
       performanceDescription:
-        'Escolha o equilíbrio ideal entre velocidade e uso de recursos.',
-      ultraPerformanceTitle: 'Ultra performance',
-      ultraPerformanceDescription: workerCount =>
-        `Até ${workerCount} CPU + 1 GPU · calibração automática`,
-      highPerformanceTitle: 'Alto desempenho',
-      highPerformanceDescription: workerCount =>
-        `Até ${workerCount} workers · calibração automática`,
-      lowDeviceTitle: 'Máximo no dispositivo',
-      lowDeviceDescription: workerCount =>
-        `${workerCount} workers CPU · potência máxima`,
+        'Escolha entre toda a potência disponível ou o menor consumo possível.',
+      maximumPerformanceTitle: 'Máximo desempenho',
+      maximumPerformanceDescription:
+        'Reconhecimento mais rápido e fluido. Usa mais bateria.',
+      powerSavingTitle: 'Modo economia',
+      powerSavingDescription:
+        'Poupa bateria e evita aquecimento. Reconhecimento mais lento.',
     },
   },
   en: {
@@ -148,6 +148,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJECT${count === 1 ? '' : 'S'}`,
       meaningLabel: 'MEANING',
       pronunciationLabel: 'PRONUNCIATION',
+      tapToHearPronunciation: 'Tap to hear the pronunciation.',
+      pronunciationUnavailable:
+        'Pronunciation is not available on this device.',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inference in ${time} milliseconds`
@@ -158,7 +161,7 @@ const copies: Record<
       subtitle: 'Tune the experience without leaving learning mode.',
       appearanceSection: 'APPEARANCE',
       appearanceTitle: 'App theme',
-      appearanceDescription: 'Choose how SpellForMe looks for you.',
+      appearanceDescription: 'Choose how SayLens looks for you.',
       lightMode: 'Light',
       darkMode: 'Dark',
       languagesSection: 'LANGUAGES',
@@ -171,16 +174,13 @@ const copies: Record<
       performanceSection: 'PERFORMANCE',
       performanceTitle: 'Device profile',
       performanceDescription:
-        'Choose the best balance between speed and resource usage.',
-      ultraPerformanceTitle: 'Ultra performance',
-      ultraPerformanceDescription: workerCount =>
-        `Up to ${workerCount} CPU + 1 GPU · automatic calibration`,
-      highPerformanceTitle: 'High performance',
-      highPerformanceDescription: workerCount =>
-        `Up to ${workerCount} workers · automatic calibration`,
-      lowDeviceTitle: 'Device maximum',
-      lowDeviceDescription: workerCount =>
-        `${workerCount} CPU workers · maximum power`,
+        'Choose between all available power or the lowest possible usage.',
+      maximumPerformanceTitle: 'Maximum performance',
+      maximumPerformanceDescription:
+        'Faster, smoother recognition. Uses more battery.',
+      powerSavingTitle: 'Power saving',
+      powerSavingDescription:
+        'Saves battery and avoids heating. Slower recognition.',
     },
   },
   es: {
@@ -205,6 +205,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONUNCIACIÓN',
+      tapToHearPronunciation: 'Toca para escuchar la pronunciación.',
+      pronunciationUnavailable:
+        'La pronunciación no está disponible en este dispositivo.',
       detectorAccessibility: (status, time) =>
         `Detector: ${status}${
           time == null ? '' : `, inferencia en ${time} milisegundos`
@@ -215,7 +218,7 @@ const copies: Record<
       subtitle: 'Ajusta la experiencia sin salir del modo de aprendizaje.',
       appearanceSection: 'APARIENCIA',
       appearanceTitle: 'Tema de la aplicación',
-      appearanceDescription: 'Elige cómo se muestra SpellForMe.',
+      appearanceDescription: 'Elige cómo se muestra SayLens.',
       lightMode: 'Claro',
       darkMode: 'Oscuro',
       languagesSection: 'IDIOMAS',
@@ -228,16 +231,13 @@ const copies: Record<
       performanceSection: 'RENDIMIENTO',
       performanceTitle: 'Perfil del dispositivo',
       performanceDescription:
-        'Elige el mejor equilibrio entre velocidad y uso de recursos.',
-      ultraPerformanceTitle: 'Rendimiento ultra',
-      ultraPerformanceDescription: workerCount =>
-        `Hasta ${workerCount} CPU + 1 GPU · calibración automática`,
-      highPerformanceTitle: 'Alto rendimiento',
-      highPerformanceDescription: workerCount =>
-        `Hasta ${workerCount} workers · calibración automática`,
-      lowDeviceTitle: 'Máximo del dispositivo',
-      lowDeviceDescription: workerCount =>
-        `${workerCount} workers CPU · potencia máxima`,
+        'Elige entre toda la potencia disponible o el menor consumo posible.',
+      maximumPerformanceTitle: 'Máximo rendimiento',
+      maximumPerformanceDescription:
+        'Reconocimiento más rápido y fluido. Usa más batería.',
+      powerSavingTitle: 'Modo ahorro',
+      powerSavingDescription:
+        'Ahorra batería y evita el calentamiento. Reconocimiento más lento.',
     },
   },
 };

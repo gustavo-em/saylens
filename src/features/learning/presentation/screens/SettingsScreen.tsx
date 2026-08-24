@@ -58,7 +58,7 @@ export function SettingsScreen({
               <BrandMark>
                 <AppMark height={26} width={26} />
               </BrandMark>
-              <Eyebrow>SPELLFORME</Eyebrow>
+              <Eyebrow>SAYLENS</Eyebrow>
             </BrandRow>
             <Title accessibilityRole="header">{copy.settings.title}</Title>
             <Subtitle>{copy.settings.subtitle}</Subtitle>
@@ -211,11 +211,7 @@ export function SettingsScreen({
                   )
                   .map(profile => {
                     const selected = profile === performanceProfile;
-                    const option = getPerformanceOption(
-                      copy,
-                      profile,
-                      performanceCapabilities.highPerformanceCpuWorkerCount,
-                    );
+                    const option = getPerformanceOption(copy, profile);
 
                     return (
                       <PerformanceOption
@@ -256,35 +252,19 @@ function getLanguageCode(language: LearningLanguage) {
   return language === 'pt-BR' ? 'PT' : language.toUpperCase();
 }
 
-function getPerformanceOption(
-  copy: LearningCopy,
-  profile: PerformanceProfile,
-  highPerformanceCpuWorkerCount: number,
-) {
+function getPerformanceOption(copy: LearningCopy, profile: PerformanceProfile) {
   switch (profile) {
-    case 'ultra-performance':
+    case 'maximum-performance':
       return {
-        description: copy.settings.ultraPerformanceDescription(
-          highPerformanceCpuWorkerCount,
-        ),
-        icon: 'GPU',
-        title: copy.settings.ultraPerformanceTitle,
-      };
-    case 'high-performance':
-      return {
-        description: copy.settings.highPerformanceDescription(
-          highPerformanceCpuWorkerCount,
-        ),
+        description: copy.settings.maximumPerformanceDescription,
         icon: 'MAX',
-        title: copy.settings.highPerformanceTitle,
+        title: copy.settings.maximumPerformanceTitle,
       };
-    case 'low-device':
+    case 'power-saving':
       return {
-        description: copy.settings.lowDeviceDescription(
-          highPerformanceCpuWorkerCount,
-        ),
+        description: copy.settings.powerSavingDescription,
         icon: 'ECO',
-        title: copy.settings.lowDeviceTitle,
+        title: copy.settings.powerSavingTitle,
       };
   }
 }

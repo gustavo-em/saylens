@@ -3,24 +3,39 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import App from '../src/app/App';
 
-let mockSupportsHighPerformance = true;
-
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
-jest.mock('react-native-spellforme-object-detector', () => ({
+jest.mock('react-native-saylens-object-detector', () => ({
   objectDetector: {
-    getRecommendedCpuWorkerCount: () => (mockSupportsHighPerformance ? 4 : 2),
-    getRecommendedPerformanceProfile: () =>
-      mockSupportsHighPerformance ? 'high-performance' : 'low-device',
-    getSupportedPerformanceProfiles: () =>
-      mockSupportsHighPerformance
-        ? ['ultra-performance', 'high-performance', 'low-device']
-        : ['low-device'],
+    getRecommendedCpuWorkerCount: () => 8,
+    getRecommendedPerformanceProfile: () => 'maximum-performance',
+    getSupportsGpuDelegate: () => true,
+    getSupportedPerformanceProfiles: () => [
+      'maximum-performance',
+      'power-saving',
+    ],
   },
 }));
+
+jest.mock(
+  '../src/features/learning/infrastructure/pronunciation/systemPronunciationPlayer',
+  () => ({
+    systemPronunciationPlayer: {
+      speak: jest.fn(async () => undefined),
+      stop: jest.fn(async () => undefined),
+    },
+  }),
+);
+
+const mockPronunciationPlayer = jest.requireMock(
+  '../src/features/learning/infrastructure/pronunciation/systemPronunciationPlayer',
+).systemPronunciationPlayer as {
+  speak: jest.Mock;
+  stop: jest.Mock;
+};
 
 jest.mock('react-native-vision-camera', () => {
   const ReactModule = require('react');
@@ -59,21 +74,26 @@ jest.mock(
         performanceProfile: string;
       }) => {
         ReactModule.useEffect(() => {
-          if (isActive) {
-            onDetections({
-              objects: [
-                {
-                  id: 'bottle-0',
-                  label: 'bottle',
-                  confidence: 0.91,
-                  bounds: { x: 0.2, y: 0.25, width: 0.3, height: 0.4 },
-                },
-              ],
-              sourceWidth: 360,
-              sourceHeight: 640,
-              inferenceTimeMs: 45,
-            });
-          }
+          if (!isActive) return;
+
+          const result = {
+            objects: [
+              {
+                id: 'bottle-0',
+                label: 'bottle',
+                confidence: 0.91,
+                bounds: { x: 0.2, y: 0.25, width: 0.3, height: 0.4 },
+              },
+            ],
+            sourceWidth: 360,
+            sourceHeight: 640,
+            inferenceTimeMs: 45,
+          };
+
+          // The tracker only shows a layer once a label has been seen twice,
+          // so the fake detector has to deliver two results like the real one.
+          onDetections(result);
+          onDetections(result);
         }, [isActive, onDetections]);
 
         return ReactModule.createElement(MockView, {
@@ -88,7 +108,8 @@ jest.mock(
 
 describe('App', () => {
   beforeEach(() => {
-    mockSupportsHighPerformance = true;
+    mockPronunciationPlayer.speak.mockReset().mockResolvedValue(undefined);
+    mockPronunciationPlayer.stop.mockReset().mockResolvedValue(undefined);
   });
 
   it('opens on the camera screen with both navigation tabs', async () => {
@@ -108,7 +129,7 @@ describe('App', () => {
 
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
-    expect(renderedTree).toContain('SpellForMe');
+    expect(renderedTree).toContain('SayLens');
     expect(renderedTree).toContain('Câmera');
     expect(renderedTree).toContain('Configurações');
     expect(renderedTree).toContain('camera-preview');
@@ -146,16 +167,19 @@ describe('App', () => {
     ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
     expect(settingsTree).toContain('Perfil do dispositivo');
-    expect(settingsTree).toContain('Ultra performance');
-    expect(settingsTree).toContain('4 CPU + 1 GPU');
-    expect(settingsTree).toContain('Máximo no dispositivo');
+    expect(settingsTree).toContain('Máximo desempenho');
+    expect(settingsTree).toContain(
+      'Reconhecimento mais rápido e fluido. Usa mais bateria.',
+    );
+    expect(settingsTree).not.toContain('workers');
+    expect(settingsTree).toContain('Modo economia');
     expect(settingsTree).not.toContain('BASE TÉCNICA');
     expect(settingsTree).not.toContain('MILESTONE');
     expect(settingsTree).not.toContain('Guia de enquadramento');
     expect(settingsTree).not.toContain('APONTE PARA UM OBJETO');
   });
 
-  it('switches to the Ultra CPU and GPU performance profile', async () => {
+  it('starts with maximum performance selected', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -166,21 +190,15 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'performance-profile-ultra-performance' })
-        .props.onPress();
-    });
-
     expect(
       renderer!.root.findByProps({
-        testID: 'performance-profile-ultra-performance',
+        testID: 'performance-profile-maximum-performance',
       }).props.accessibilityState.checked,
     ).toBe(true);
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props
         .performanceProfile,
-    ).toBe('ultra-performance');
+    ).toBe('maximum-performance');
   });
 
   it('switches between dark and light appearance modes', async () => {
@@ -212,17 +230,12 @@ describe('App', () => {
     expect(JSON.stringify(renderer!.toJSON())).toContain('#EFF5FD');
   });
 
-  it('switches to the low-device performance profile', async () => {
+  it('restores the saved preferences on the next launch', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
       renderer = ReactTestRenderer.create(<App />);
     });
-
-    expect(
-      renderer!.root.findByProps({ testID: 'camera-preview' }).props
-        .performanceProfile,
-    ).toBe('high-performance');
 
     await ReactTestRenderer.act(() => {
       renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
@@ -230,22 +243,82 @@ describe('App', () => {
 
     await ReactTestRenderer.act(() => {
       renderer!.root
-        .findByProps({ testID: 'performance-profile-low-device' })
+        .findByProps({ testID: 'appearance-light' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'performance-profile-power-saving' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'learning-language-es' })
+        .props.onPress();
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.unmount();
+    });
+
+    let relaunched: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      relaunched = ReactTestRenderer.create(<App />);
+    });
+
+    expect(
+      relaunched!.root.findByProps({ testID: 'camera-preview' }).props
+        .performanceProfile,
+    ).toBe('power-saving');
+
+    await ReactTestRenderer.act(() => {
+      relaunched!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    expect(
+      relaunched!.root.findByProps({ testID: 'appearance-light' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+    expect(
+      relaunched!.root.findByProps({ testID: 'learning-language-es' }).props
+        .accessibilityState.checked,
+    ).toBe(true);
+  });
+
+  it('switches to the power-saving performance profile', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props
+        .performanceProfile,
+    ).toBe('maximum-performance');
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'performance-profile-power-saving' })
         .props.onPress();
     });
 
     expect(
-      renderer!.root.findByProps({ testID: 'performance-profile-low-device' })
-        .props.accessibilityState.checked,
+      renderer!.root.findByProps({
+        testID: 'performance-profile-power-saving',
+      }).props.accessibilityState.checked,
     ).toBe(true);
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props
         .performanceProfile,
-    ).toBe('low-device');
+    ).toBe('power-saving');
   });
 
-  it('hides demanding profiles on devices that cannot sustain them', async () => {
-    mockSupportsHighPerformance = false;
+  it('shows both performance profiles on every device', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -257,19 +330,13 @@ describe('App', () => {
     });
 
     expect(
-      renderer!.root.findAllByProps({
-        testID: 'performance-profile-ultra-performance',
-      }),
-    ).toHaveLength(0);
-    expect(
-      renderer!.root.findAllByProps({
-        testID: 'performance-profile-high-performance',
-      }),
-    ).toHaveLength(0);
-    expect(
-      renderer!.root.findByProps({ testID: 'performance-profile-low-device' })
-        .props.accessibilityState.checked,
+      renderer!.root.findByProps({
+        testID: 'performance-profile-maximum-performance',
+      }).props.accessibilityState.checked,
     ).toBe(true);
+    renderer!.root.findByProps({
+      testID: 'performance-profile-power-saving',
+    });
   });
 
   it('shows compact vocabulary details on a detected object', async () => {
@@ -297,11 +364,45 @@ describe('App', () => {
     expect(renderedTree).toContain('BÓ-tl');
     expect(renderedTree).toContain('SIGNIFICADO');
     expect(renderedTree).toContain('PRONÚNCIA');
+    expect(renderedTree).toContain('Toque para ouvir a pronúncia.');
     expect(renderedTree).toContain('Aa');
     expect(renderedTree).toContain('91');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),
     ).toHaveLength(0);
+  });
+
+  it('pronounces a detected word in the selected learning language', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'camera-container' })
+        .props.onLayout({
+          nativeEvent: { layout: { width: 360, height: 640 } },
+        });
+    });
+
+    const detectedObjects = renderer!.root.findAllByProps({
+      testID: 'detected-object-bottle-1',
+    });
+    const detectedObjectButton = detectedObjects.find(
+      object =>
+        object.props.accessibilityRole === 'button' &&
+        typeof object.props.onPress === 'function',
+    );
+
+    expect(detectedObjectButton!.props.accessibilityRole).toBe('button');
+    await ReactTestRenderer.act(async () => {
+      detectedObjectButton!.props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Bottle', 'en');
   });
 
   it('updates the interface and vocabulary when language preferences change', async () => {
@@ -352,5 +453,20 @@ describe('App', () => {
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).toContain('1 OBJECT');
     expect(renderedTree).not.toContain('Explore spanish around you');
+
+    const spanishObjectButton = renderer!.root
+      .findAllByProps({ testID: 'detected-object-bottle-1' })
+      .find(
+        object =>
+          object.props.accessibilityRole === 'button' &&
+          typeof object.props.onPress === 'function',
+      );
+
+    await ReactTestRenderer.act(async () => {
+      spanishObjectButton!.props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Botella', 'es');
   });
 });

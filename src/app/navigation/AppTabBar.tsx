@@ -24,6 +24,8 @@ export function AppTabBar({ activeTab, labels, onSelect }: AppTabBarProps) {
       $landscape={isLandscape}
     >
       <TabsContainer $landscape={isLandscape}>
+        <GlassSheen pointerEvents="none" />
+        <GlassTint pointerEvents="none" />
         {tabs.map(tab => {
           const isSelected = activeTab === tab.value;
 
@@ -88,13 +90,34 @@ const NavigationSafeArea = styled(SafeAreaView)<{ $landscape: boolean }>`
 `;
 
 const TabsContainer = styled.View<{ $landscape: boolean }>`
+  position: relative;
+  overflow: hidden;
   flex-direction: ${({ $landscape }) => ($landscape ? 'column' : 'row')};
   gap: 8px;
   padding: 6px;
-  border: 1px solid rgba(145, 169, 201, 0.24);
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: 26px;
-  background-color: rgba(7, 17, 31, 0.98);
+  background-color: ${({ theme }) => theme.colors.glassStrong};
   elevation: 16;
+`;
+
+const GlassSheen = styled.View`
+  position: absolute;
+  top: 0px;
+  right: 18px;
+  left: 18px;
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.glassHighlight};
+`;
+
+const GlassTint = styled.View`
+  position: absolute;
+  top: -38px;
+  left: 14%;
+  width: 58%;
+  height: 60px;
+  border-radius: 30px;
+  background-color: rgba(78, 151, 255, 0.12);
 `;
 
 const TabButton = styled.Pressable<{
@@ -107,9 +130,12 @@ const TabButton = styled.Pressable<{
   align-items: center;
   justify-content: center;
   gap: 9px;
+  border: 1px solid
+    ${({ $selected }) =>
+      $selected ? 'rgba(196, 224, 255, 0.30)' : 'transparent'};
   border-radius: 20px;
   background-color: ${({ $selected }) =>
-    $selected ? '#1A6FEC' : 'transparent'};
+    $selected ? 'rgba(26, 111, 236, 0.68)' : 'transparent'};
   overflow: hidden;
 `;
 

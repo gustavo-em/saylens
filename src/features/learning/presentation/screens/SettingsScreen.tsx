@@ -40,6 +40,8 @@ export function SettingsScreen({
 
   return (
     <Container>
+      <AmbientGlowTop pointerEvents="none" />
+      <AmbientGlowBottom pointerEvents="none" />
       <SettingsSafeArea edges={['top']}>
         <Content showsVerticalScrollIndicator={false} $landscape={isLandscape}>
           <Header>
@@ -54,6 +56,7 @@ export function SettingsScreen({
           <Section>
             <SectionTitle>{copy.settings.languagesSection}</SectionTitle>
             <LanguagePanel>
+              <PanelSheen pointerEvents="none" />
               <LanguagePair>
                 <PairItem>
                   <PairLabel>{copy.settings.nativeLanguageTitle}</PairLabel>
@@ -144,6 +147,7 @@ export function SettingsScreen({
           <Section>
             <SectionTitle>{copy.settings.performanceSection}</SectionTitle>
             <PerformancePanel>
+              <PanelSheen pointerEvents="none" />
               <PerformanceHeader>
                 <SettingTitle>{copy.settings.performanceTitle}</SettingTitle>
                 <PerformanceDescription>
@@ -242,6 +246,26 @@ const Container = styled.View`
   background-color: ${({ theme }) => theme.colors.background};
 `;
 
+const AmbientGlowTop = styled.View`
+  position: absolute;
+  top: -120px;
+  right: -110px;
+  width: 310px;
+  height: 310px;
+  border-radius: 155px;
+  background-color: rgba(26, 111, 236, 0.19);
+`;
+
+const AmbientGlowBottom = styled.View`
+  position: absolute;
+  bottom: 30px;
+  left: -150px;
+  width: 300px;
+  height: 300px;
+  border-radius: 150px;
+  background-color: rgba(67, 143, 255, 0.1);
+`;
+
 const SettingsSafeArea = styled(SafeAreaView)`
   flex: 1;
 `;
@@ -258,7 +282,9 @@ const Content = styled.ScrollView.attrs<{ $landscape: boolean }>(
   }),
 )<{ $landscape: boolean }>``;
 
-const Header = styled.View``;
+const Header = styled.View`
+  padding: 2px 2px 0px;
+`;
 
 const BrandRow = styled.View`
   flex-direction: row;
@@ -271,7 +297,8 @@ const BrandMark = styled.Text`
   height: 26px;
   overflow: hidden;
   border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.accent};
+  border: 1px solid rgba(198, 224, 255, 0.32);
+  background-color: ${({ theme }) => theme.colors.glassBlue};
   color: #ffffff;
   font-size: 15px;
   font-weight: 900;
@@ -318,17 +345,29 @@ const SectionTitle = styled.Text`
 `;
 
 const LanguagePanel = styled.View`
+  position: relative;
   overflow: hidden;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: 24px;
-  background-color: ${({ theme }) => theme.colors.card};
+  background-color: ${({ theme }) => theme.colors.glass};
+  elevation: 10;
+`;
+
+const PanelSheen = styled.View`
+  position: absolute;
+  top: 0px;
+  right: 22px;
+  left: 22px;
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.glassHighlight};
+  z-index: 2;
 `;
 
 const LanguagePair = styled.View`
   flex-direction: row;
   align-items: center;
   padding: 18px;
-  background-color: ${({ theme }) => theme.colors.cardElevated};
+  background-color: rgba(66, 126, 206, 0.1);
 `;
 
 const PairItem = styled.View`
@@ -374,7 +413,7 @@ const PairConnectorArrow = styled.Text`
 
 const PanelSeparator = styled.View`
   height: 1px;
-  background-color: ${({ theme }) => theme.colors.borderSubtle};
+  background-color: ${({ theme }) => theme.colors.glassBorder};
 `;
 
 const LanguageSelector = styled.View`
@@ -400,10 +439,10 @@ const LanguageOption = styled.Pressable<{ $selected: boolean }>`
   padding: 8px 6px;
   border: 1px solid
     ${({ $selected, theme }) =>
-      $selected ? theme.colors.accent : theme.colors.borderSubtle};
+      $selected ? 'rgba(139, 190, 255, 0.66)' : theme.colors.glassBorder};
   border-radius: ${({ theme }) => theme.radii.pill}px;
   background-color: ${({ $selected }) =>
-    $selected ? '#1A6FEC' : 'rgba(255, 255, 255, 0.02)'};
+    $selected ? 'rgba(26, 111, 236, 0.52)' : 'rgba(255, 255, 255, 0.035)'};
 `;
 
 const LanguageCode = styled.Text<{ $selected: boolean }>`
@@ -430,10 +469,13 @@ const SettingTitle = styled.Text`
 `;
 
 const PerformancePanel = styled.View`
+  position: relative;
+  overflow: hidden;
   padding: 18px;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: 24px;
-  background-color: ${({ theme }) => theme.colors.card};
+  background-color: ${({ theme }) => theme.colors.glass};
+  elevation: 10;
 `;
 
 const PerformanceHeader = styled.View`
@@ -458,10 +500,10 @@ const PerformanceOption = styled.Pressable<{ $selected: boolean }>`
   padding: 13px;
   border: 1px solid
     ${({ $selected, theme }) =>
-      $selected ? theme.colors.accent : theme.colors.borderSubtle};
+      $selected ? 'rgba(139, 190, 255, 0.66)' : theme.colors.glassBorder};
   border-radius: 18px;
   background-color: ${({ $selected }) =>
-    $selected ? 'rgba(26, 111, 236, 0.12)' : 'rgba(255, 255, 255, 0.02)'};
+    $selected ? 'rgba(26, 111, 236, 0.24)' : 'rgba(255, 255, 255, 0.035)'};
 `;
 
 const PerformanceIcon = styled.Text<{ $selected: boolean }>`

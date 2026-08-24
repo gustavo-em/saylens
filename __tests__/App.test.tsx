@@ -98,12 +98,22 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'camera-container' })
+        .props.onLayout({
+          nativeEvent: { layout: { height: 1280, width: 720 } },
+        });
+    });
+
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
     expect(renderedTree).toContain('SpellForMe');
     expect(renderedTree).toContain('Câmera');
     expect(renderedTree).toContain('Configurações');
     expect(renderedTree).toContain('camera-preview');
+    expect(renderedTree).toContain('Bottle');
+    expect(renderedTree).not.toContain('91%');
   });
 
   it('pauses the camera while the settings screen is selected', async () => {

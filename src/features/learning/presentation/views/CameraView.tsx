@@ -231,17 +231,14 @@ export function CameraView({
 
             return (
               <InterpolatedObjectTarget
-                accessibilityLabel={`${vocabulary.word}, ${
-                  vocabulary.meaning
-                }. ${vocabulary.pronunciationHint}. ${Math.round(
-                  object.confidence * 100,
-                )}%`}
+                accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${vocabulary.pronunciationHint}`}
                 durationMs={viewModel.detectionInterpolationDurationMs}
                 key={object.id}
                 targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
               >
                 <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
+                  <ObjectCardSheen pointerEvents="none" />
                   <ObjectCardHeader>
                     <ObjectIdentity>
                       <LearningBadge>Aa</LearningBadge>
@@ -249,9 +246,6 @@ export function CameraView({
                         {vocabulary.word}
                       </ObjectWord>
                     </ObjectIdentity>
-                    <ObjectConfidence>
-                      {Math.round(object.confidence * 100)}%
-                    </ObjectConfidence>
                   </ObjectCardHeader>
                   <ObjectDetails>
                     <ObjectDetail>
@@ -286,6 +280,7 @@ export function CameraView({
           $landscape={isLandscape}
         >
           <Header>
+            <HeaderSheen pointerEvents="none" />
             <BrandGroup>
               <BrandRow>
                 <HeaderMark>S</HeaderMark>
@@ -339,18 +334,29 @@ const ObjectTarget = styled(Animated.View)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
-  border: 1.5px solid #1a6fec;
-  border-radius: 12px;
-  background-color: rgba(26, 111, 236, 0.07);
+  border: 1.5px solid rgba(100, 166, 255, 0.92);
+  border-radius: 14px;
+  background-color: rgba(26, 111, 236, 0.09);
 `;
 
 const ObjectCard = styled.View`
   position: absolute;
   width: ${OBJECT_CARD_WIDTH}px;
+  overflow: hidden;
   padding: 11px;
-  border: 1px solid rgba(111, 169, 255, 0.56);
-  border-radius: 14px;
-  background-color: rgba(7, 17, 31, 0.97);
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 16px;
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+  elevation: 12;
+`;
+
+const ObjectCardSheen = styled.View`
+  position: absolute;
+  top: 0px;
+  right: 14px;
+  left: 14px;
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.glassHighlight};
 `;
 
 const ObjectCardHeader = styled.View`
@@ -372,7 +378,8 @@ const LearningBadge = styled.Text`
   height: 28px;
   overflow: hidden;
   border-radius: 9px;
-  background-color: #1a6fec;
+  border: 1px solid rgba(184, 217, 255, 0.28);
+  background-color: ${({ theme }) => theme.colors.glassBlue};
   color: #ffffff;
   font-size: 12px;
   font-weight: 900;
@@ -394,7 +401,8 @@ const ObjectDetails = styled.View`
   margin-top: 9px;
   padding: 7px 8px;
   border-radius: 9px;
-  background-color: rgba(26, 111, 236, 0.14);
+  border: 1px solid rgba(133, 183, 255, 0.18);
+  background-color: rgba(26, 111, 236, 0.18);
 `;
 
 const ObjectDetail = styled.View`
@@ -423,15 +431,6 @@ const ObjectDetailDivider = styled.View`
   background-color: rgba(130, 181, 255, 0.35);
 `;
 
-const ObjectConfidence = styled.Text`
-  padding: 4px 6px;
-  border-radius: 7px;
-  background-color: rgba(26, 111, 236, 0.18);
-  color: #9bc4ff;
-  font-size: 10px;
-  font-weight: 800;
-`;
-
 const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
   flex: 1;
   padding-right: ${({ $landscape }) => ($landscape ? 154 : 0)}px;
@@ -440,10 +439,26 @@ const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
 `;
 
 const Header = styled.View`
+  position: relative;
+  overflow: hidden;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 0px;
+  margin: 10px 12px 0px;
+  padding: 12px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 22px;
+  background-color: ${({ theme }) => theme.colors.glass};
+  elevation: 10;
+`;
+
+const HeaderSheen = styled.View`
+  position: absolute;
+  top: 0px;
+  right: 18px;
+  left: 18px;
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.glassHighlight};
 `;
 
 const BrandGroup = styled.View``;
@@ -459,7 +474,8 @@ const HeaderMark = styled.Text`
   height: 28px;
   overflow: hidden;
   border-radius: 9px;
-  background-color: ${({ theme }) => theme.colors.accent};
+  border: 1px solid rgba(198, 224, 255, 0.32);
+  background-color: ${({ theme }) => theme.colors.glassBlue};
   color: #ffffff;
   font-size: 16px;
   font-weight: 900;
@@ -486,9 +502,9 @@ const LiveBadge = styled.View`
   align-items: center;
   gap: 7px;
   padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: rgba(7, 17, 31, 0.92);
+  background-color: rgba(255, 255, 255, 0.07);
 `;
 
 const LiveDot = styled.View<{ $ready: boolean }>`
@@ -537,9 +553,10 @@ const PermissionCard = styled.View`
   width: 100%;
   align-items: center;
   padding: 28px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: ${({ theme }) => theme.radii.extraLarge}px;
-  background-color: ${({ theme }) => theme.colors.card};
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+  elevation: 14;
 `;
 
 const PermissionIcon = styled.View`

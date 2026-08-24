@@ -59,7 +59,7 @@ const entries: Record<string, VocabularyRecord> = {
     en: word('Couch', '/kaʊtʃ/', 'CÁUTCH', 'The couch is very comfortable.'),
     es: word('Sofá', '/soˈfa/', 'so-FÁ', 'El sofá es muy cómodo.'),
   },
-  table: {
+  'dining table': {
     'pt-BR': word(
       'Mesa',
       '/ˈmezɐ/',
@@ -198,6 +198,951 @@ const entries: Record<string, VocabularyRecord> = {
     'pt-BR': word('Gato', '/ˈɡatu/', 'GÁ-to', 'O gato está dormindo.'),
     en: word('Cat', '/kæt/', 'KÉT', 'The cat is sleeping.'),
     es: word('Gato', '/ˈɡato/', 'GÁ-to', 'El gato está durmiendo.'),
+  },
+  bicycle: {
+    'pt-BR': word(
+      'Bicicleta',
+      '/bisiˈklɛtɐ/',
+      'bi-si-CLÉ-ta',
+      'Eu vou de bicicleta para o trabalho.',
+    ),
+    en: word(
+      'Bicycle',
+      '/ˈbaɪ.sɪ.kəl/',
+      'BÁI-si-cãl',
+      'I ride my bicycle to work.',
+    ),
+    es: word(
+      'Bicicleta',
+      '/biθiˈkleta/',
+      'bi-si-CLÊ-ta',
+      'Voy en bicicleta al trabajo.',
+    ),
+  },
+  motorcycle: {
+    'pt-BR': word(
+      'Motocicleta',
+      '/motosiˈklɛtɐ/',
+      'mo-to-si-CLÉ-ta',
+      'A motocicleta está estacionada na rua.',
+    ),
+    en: word(
+      'Motorcycle',
+      '/ˈmoʊ.t̬ɚˌsaɪ.kəl/',
+      'MÔU-tor-sai-cãl',
+      'The motorcycle is parked on the street.',
+    ),
+    es: word(
+      'Motocicleta',
+      '/motoθiˈkleta/',
+      'mo-to-si-CLÊ-ta',
+      'La motocicleta está aparcada en la calle.',
+    ),
+  },
+  airplane: {
+    'pt-BR': word(
+      'Avião',
+      '/aviˈɐ̃w̃/',
+      'a-vi-ÃO',
+      'O avião está pronto para decolar.',
+    ),
+    en: word(
+      'Airplane',
+      '/ˈer.pleɪn/',
+      'ÉR-plein',
+      'The airplane is ready to take off.',
+    ),
+    es: word(
+      'Avión',
+      '/aˈbjon/',
+      'a-vi-ÔN',
+      'El avión está listo para despegar.',
+    ),
+  },
+  bus: {
+    'pt-BR': word(
+      'Ônibus',
+      '/ˈonibus/',
+      'Ô-ni-bus',
+      'O ônibus chega em cinco minutos.',
+    ),
+    en: word('Bus', '/bʌs/', 'BÂS', 'The bus arrives in five minutes.'),
+    es: word(
+      'Autobús',
+      '/awtoˈbus/',
+      'au-to-BÚS',
+      'El autobús llega en cinco minutos.',
+    ),
+  },
+  train: {
+    'pt-BR': word(
+      'Trem',
+      '/tɾẽj̃/',
+      'TRÊIN',
+      'O trem parte da plataforma três.',
+    ),
+    en: word(
+      'Train',
+      '/treɪn/',
+      'TRÊIN',
+      'The train leaves from platform three.',
+    ),
+    es: word('Tren', '/tɾen/', 'TRÊN', 'El tren sale del andén tres.'),
+  },
+  truck: {
+    'pt-BR': word(
+      'Caminhão',
+      '/kamiˈɲɐ̃w̃/',
+      'ca-mi-NHÃO',
+      'O caminhão está carregado.',
+    ),
+    en: word('Truck', '/trʌk/', 'TRÂK', 'The truck is loaded.'),
+    es: word('Camión', '/kaˈmjon/', 'ca-mi-ÔN', 'El camión está cargado.'),
+  },
+  boat: {
+    'pt-BR': word('Barco', '/ˈbaʁku/', 'BAR-co', 'O barco está no porto.'),
+    en: word('Boat', '/boʊt/', 'BÔUT', 'The boat is at the port.'),
+    es: word('Barco', '/ˈbaɾko/', 'BAR-co', 'El barco está en el puerto.'),
+  },
+  'traffic light': {
+    'pt-BR': word(
+      'Semáforo',
+      '/seˈmafoɾu/',
+      'se-MÁ-fo-ro',
+      'O semáforo está vermelho.',
+    ),
+    en: word(
+      'Traffic light',
+      '/ˈtræf.ɪk ˌlaɪt/',
+      'TRÉ-fic LÁIT',
+      'The traffic light is red.',
+    ),
+    es: word(
+      'Semáforo',
+      '/seˈmafoɾo/',
+      'se-MÁ-fo-ro',
+      'El semáforo está en rojo.',
+    ),
+  },
+  'fire hydrant': {
+    'pt-BR': word(
+      'Hidrante',
+      '/iˈdɾɐ̃tʃi/',
+      'i-DRÃN-tchi',
+      'O hidrante fica na esquina.',
+    ),
+    en: word(
+      'Fire hydrant',
+      '/ˈfaɪr ˌhaɪ.drənt/',
+      'FÁI-âr RÁI-drent',
+      'The fire hydrant is on the corner.',
+    ),
+    es: word(
+      'Hidrante',
+      '/iˈðɾante/',
+      'i-DRÁN-te',
+      'El hidrante está en la esquina.',
+    ),
+  },
+  'stop sign': {
+    'pt-BR': word(
+      'Placa de pare',
+      '/ˈplakɐ dʒi ˈpaɾi/',
+      'PLÁ-ca de PÁ-ri',
+      'Pare na placa de pare.',
+    ),
+    en: word(
+      'Stop sign',
+      '/ˈstɑːp ˌsaɪn/',
+      'STÓP SÁIN',
+      'Stop at the stop sign.',
+    ),
+    es: word(
+      'Señal de alto',
+      '/seˈɲal de ˈalto/',
+      'se-NHÁL de ÁL-to',
+      'Detente en la señal de alto.',
+    ),
+  },
+  'parking meter': {
+    'pt-BR': word(
+      'Parquímetro',
+      '/paʁˈkimetɾu/',
+      'par-QUÍ-me-tro',
+      'Coloque moedas no parquímetro.',
+    ),
+    en: word(
+      'Parking meter',
+      '/ˈpɑːr.kɪŋ ˌmiː.t̬ɚ/',
+      'PÁR-quin MÍ-târ',
+      'Put coins in the parking meter.',
+    ),
+    es: word(
+      'Parquímetro',
+      '/paɾˈkimetɾo/',
+      'par-QUÍ-me-tro',
+      'Pon monedas en el parquímetro.',
+    ),
+  },
+  bench: {
+    'pt-BR': word('Banco', '/ˈbɐ̃ku/', 'BÃN-co', 'Vamos sentar naquele banco.'),
+    en: word('Bench', '/bentʃ/', 'BÉNTCH', 'Let us sit on that bench.'),
+    es: word('Banco', '/ˈbaŋko/', 'BÁN-co', 'Sentémonos en ese banco.'),
+  },
+  bird: {
+    'pt-BR': word(
+      'Pássaro',
+      '/ˈpasaɾu/',
+      'PÁ-sa-ro',
+      'O pássaro está cantando.',
+    ),
+    en: word('Bird', '/bɝːd/', 'BÂRD', 'The bird is singing.'),
+    es: word('Pájaro', '/ˈpaxaɾo/', 'PÁ-rra-ro', 'El pájaro está cantando.'),
+  },
+  horse: {
+    'pt-BR': word(
+      'Cavalo',
+      '/kaˈvalu/',
+      'ca-VÁ-lo',
+      'O cavalo corre pelo campo.',
+    ),
+    en: word('Horse', '/hɔːrs/', 'RÓRS', 'The horse runs across the field.'),
+    es: word(
+      'Caballo',
+      '/kaˈbaʎo/',
+      'ca-BÁ-io',
+      'El caballo corre por el campo.',
+    ),
+  },
+  sheep: {
+    'pt-BR': word('Ovelha', '/oˈveʎɐ/', 'o-VÊ-lha', 'A ovelha está no pasto.'),
+    en: word('Sheep', '/ʃiːp/', 'CHÍP', 'The sheep is in the pasture.'),
+    es: word('Oveja', '/oˈbexa/', 'o-VÊ-rra', 'La oveja está en el pasto.'),
+  },
+  cow: {
+    'pt-BR': word('Vaca', '/ˈvakɐ/', 'VÁ-ca', 'A vaca está comendo capim.'),
+    en: word('Cow', '/kaʊ/', 'CÁU', 'The cow is eating grass.'),
+    es: word('Vaca', '/ˈbaka/', 'BÁ-ca', 'La vaca está comiendo hierba.'),
+  },
+  elephant: {
+    'pt-BR': word(
+      'Elefante',
+      '/eleˈfɐ̃tʃi/',
+      'e-le-FÃN-tchi',
+      'O elefante é enorme.',
+    ),
+    en: word('Elephant', '/ˈel.ə.fənt/', 'É-le-fent', 'The elephant is huge.'),
+    es: word(
+      'Elefante',
+      '/eleˈfante/',
+      'e-le-FÁN-te',
+      'El elefante es enorme.',
+    ),
+  },
+  bear: {
+    'pt-BR': word('Urso', '/ˈuʁsu/', 'UR-so', 'O urso vive na floresta.'),
+    en: word('Bear', '/ber/', 'BÉR', 'The bear lives in the forest.'),
+    es: word('Oso', '/ˈoso/', 'Ô-so', 'El oso vive en el bosque.'),
+  },
+  zebra: {
+    'pt-BR': word(
+      'Zebra',
+      '/ˈzebɾɐ/',
+      'ZÊ-bra',
+      'A zebra tem listras pretas e brancas.',
+    ),
+    en: word(
+      'Zebra',
+      '/ˈziː.brə/',
+      'ZÍ-bra',
+      'The zebra has black and white stripes.',
+    ),
+    es: word(
+      'Cebra',
+      '/ˈθebɾa/',
+      'SÊ-bra',
+      'La cebra tiene rayas negras y blancas.',
+    ),
+  },
+  giraffe: {
+    'pt-BR': word(
+      'Girafa',
+      '/ʒiˈɾafɐ/',
+      'ji-RÁ-fa',
+      'A girafa tem o pescoço comprido.',
+    ),
+    en: word('Giraffe', '/dʒəˈræf/', 'je-RÉF', 'The giraffe has a long neck.'),
+    es: word(
+      'Jirafa',
+      '/xiˈɾafa/',
+      'rri-RÁ-fa',
+      'La jirafa tiene el cuello largo.',
+    ),
+  },
+  umbrella: {
+    'pt-BR': word(
+      'Guarda-chuva',
+      '/ˈɡwaʁdɐ ˈʃuvɐ/',
+      'GUAR-da-CHÚ-va',
+      'Leve o guarda-chuva, vai chover.',
+    ),
+    en: word(
+      'Umbrella',
+      '/ʌmˈbrel.ə/',
+      'am-BRÉ-la',
+      'Take the umbrella, it will rain.',
+    ),
+    es: word(
+      'Paraguas',
+      '/paˈɾaɣwas/',
+      'pa-RÁ-guas',
+      'Lleva el paraguas, va a llover.',
+    ),
+  },
+  handbag: {
+    'pt-BR': word(
+      'Bolsa',
+      '/ˈbowsɐ/',
+      'BÔU-sa',
+      'A bolsa está sobre a cadeira.',
+    ),
+    en: word(
+      'Handbag',
+      '/ˈhænd.bæɡ/',
+      'RÉND-bég',
+      'The handbag is on the chair.',
+    ),
+    es: word('Bolso', '/ˈbolso/', 'BÔL-so', 'El bolso está sobre la silla.'),
+  },
+  tie: {
+    'pt-BR': word(
+      'Gravata',
+      '/ɡɾaˈvatɐ/',
+      'gra-VÁ-ta',
+      'Ele está usando uma gravata azul.',
+    ),
+    en: word('Tie', '/taɪ/', 'TÁI', 'He is wearing a blue tie.'),
+    es: word(
+      'Corbata',
+      '/koɾˈbata/',
+      'cor-BÁ-ta',
+      'Él lleva una corbata azul.',
+    ),
+  },
+  suitcase: {
+    'pt-BR': word(
+      'Mala',
+      '/ˈmalɐ/',
+      'MÁ-la',
+      'A mala está pronta para a viagem.',
+    ),
+    en: word(
+      'Suitcase',
+      '/ˈsuːt.keɪs/',
+      'SÚT-queis',
+      'The suitcase is ready for the trip.',
+    ),
+    es: word(
+      'Maleta',
+      '/maˈleta/',
+      'ma-LÊ-ta',
+      'La maleta está lista para el viaje.',
+    ),
+  },
+  frisbee: {
+    'pt-BR': word(
+      'Frisbee',
+      '/ˈfɾizbi/',
+      'FRÍZ-bi',
+      'Vamos jogar frisbee no parque.',
+    ),
+    en: word(
+      'Frisbee',
+      '/ˈfrɪz.bi/',
+      'FRÍZ-bi',
+      'Let us play frisbee in the park.',
+    ),
+    es: word(
+      'Frisbee',
+      '/ˈfɾisbi/',
+      'FRÍS-bi',
+      'Juguemos al frisbee en el parque.',
+    ),
+  },
+  skis: {
+    'pt-BR': word('Esquis', '/esˈkis/', 'es-QUÍS', 'Os esquis estão na neve.'),
+    en: word('Skis', '/skiːz/', 'SKÍZ', 'The skis are on the snow.'),
+    es: word('Esquís', '/esˈkis/', 'es-QUÍS', 'Los esquís están en la nieve.'),
+  },
+  snowboard: {
+    'pt-BR': word(
+      'Snowboard',
+      '/snowˈbɔʁdʒi/',
+      'snou-BÓR-de',
+      'Ele desce a montanha de snowboard.',
+    ),
+    en: word(
+      'Snowboard',
+      '/ˈsnoʊ.bɔːrd/',
+      'SNÔU-bord',
+      'He goes down the mountain on a snowboard.',
+    ),
+    es: word(
+      'Snowboard',
+      '/esnowˈboɾð/',
+      'es-nou-BÔRD',
+      'Él baja la montaña en snowboard.',
+    ),
+  },
+  'sports ball': {
+    'pt-BR': word('Bola', '/ˈbɔlɐ/', 'BÓ-la', 'A bola está no gramado.'),
+    en: word(
+      'Sports ball',
+      '/ˈspɔːrts ˌbɑːl/',
+      'SPÓRTS BÓL',
+      'The sports ball is on the field.',
+    ),
+    es: word('Pelota', '/peˈlota/', 'pe-LÔ-ta', 'La pelota está en el campo.'),
+  },
+  kite: {
+    'pt-BR': word('Pipa', '/ˈpipɐ/', 'PÍ-pa', 'A pipa voa alto no céu.'),
+    en: word('Kite', '/kaɪt/', 'CÁIT', 'The kite flies high in the sky.'),
+    es: word(
+      'Cometa',
+      '/koˈmeta/',
+      'co-MÊ-ta',
+      'La cometa vuela alto en el cielo.',
+    ),
+  },
+  'baseball bat': {
+    'pt-BR': word(
+      'Taco de beisebol',
+      '/ˈtaku dʒi bejzeˈbɔw/',
+      'TÁ-co de bei-ze-BÓL',
+      'Ele segura o taco de beisebol.',
+    ),
+    en: word(
+      'Baseball bat',
+      '/ˈbeɪs.bɑːl ˌbæt/',
+      'BÊIS-bol BÉT',
+      'He is holding the baseball bat.',
+    ),
+    es: word(
+      'Bate de béisbol',
+      '/ˈbate de ˈbejsbol/',
+      'BÁ-te de BÊIS-bol',
+      'Él sostiene el bate de béisbol.',
+    ),
+  },
+  'baseball glove': {
+    'pt-BR': word(
+      'Luva de beisebol',
+      '/ˈluvɐ dʒi bejzeˈbɔw/',
+      'LÚ-va de bei-ze-BÓL',
+      'A luva de beisebol é de couro.',
+    ),
+    en: word(
+      'Baseball glove',
+      '/ˈbeɪs.bɑːl ˌɡlʌv/',
+      'BÊIS-bol GLÂV',
+      'The baseball glove is made of leather.',
+    ),
+    es: word(
+      'Guante de béisbol',
+      '/ˈɡwante de ˈbejsbol/',
+      'GUÁN-te de BÊIS-bol',
+      'El guante de béisbol es de cuero.',
+    ),
+  },
+  skateboard: {
+    'pt-BR': word(
+      'Skate',
+      '/ˈskejtʃi/',
+      'es-QUÊI-tchi',
+      'Ele anda de skate na praça.',
+    ),
+    en: word(
+      'Skateboard',
+      '/ˈskeɪt.bɔːrd/',
+      'SKÊIT-bord',
+      'He rides a skateboard in the square.',
+    ),
+    es: word(
+      'Monopatín',
+      '/monopaˈtin/',
+      'mo-no-pa-TÍN',
+      'Él anda en monopatín en la plaza.',
+    ),
+  },
+  surfboard: {
+    'pt-BR': word(
+      'Prancha de surfe',
+      '/ˈpɾɐ̃ʃɐ dʒi ˈsuʁfi/',
+      'PRÃN-cha de SUR-fi',
+      'A prancha de surfe está na areia.',
+    ),
+    en: word(
+      'Surfboard',
+      '/ˈsɝːf.bɔːrd/',
+      'SÂRF-bord',
+      'The surfboard is on the sand.',
+    ),
+    es: word(
+      'Tabla de surf',
+      '/ˈtabla de suɾf/',
+      'TÁ-bla de SURF',
+      'La tabla de surf está en la arena.',
+    ),
+  },
+  'tennis racket': {
+    'pt-BR': word(
+      'Raquete de tênis',
+      '/ʁaˈkɛtʃi dʒi ˈtenis/',
+      'ra-QUÉ-tchi de TÊ-nis',
+      'A raquete de tênis é leve.',
+    ),
+    en: word(
+      'Tennis racket',
+      '/ˈten.ɪs ˌræk.ɪt/',
+      'TÉ-nis RÉ-quet',
+      'The tennis racket is light.',
+    ),
+    es: word(
+      'Raqueta de tenis',
+      '/raˈketa de ˈtenis/',
+      'ra-QUÊ-ta de TÊ-nis',
+      'La raqueta de tenis es ligera.',
+    ),
+  },
+  'wine glass': {
+    'pt-BR': word(
+      'Taça de vinho',
+      '/ˈtasɐ dʒi ˈviɲu/',
+      'TÁ-sa de VI-nho',
+      'A taça de vinho está cheia.',
+    ),
+    en: word(
+      'Wine glass',
+      '/ˈwaɪn ˌɡlæs/',
+      'UÁIN GLÉS',
+      'The wine glass is full.',
+    ),
+    es: word(
+      'Copa de vino',
+      '/ˈkopa de ˈbino/',
+      'CÔ-pa de BÍ-no',
+      'La copa de vino está llena.',
+    ),
+  },
+  fork: {
+    'pt-BR': word(
+      'Garfo',
+      '/ˈɡaʁfu/',
+      'GAR-fo',
+      'O garfo está ao lado do prato.',
+    ),
+    en: word('Fork', '/fɔːrk/', 'FÓRK', 'The fork is next to the plate.'),
+    es: word(
+      'Tenedor',
+      '/teneˈðoɾ/',
+      'te-ne-DÔR',
+      'El tenedor está al lado del plato.',
+    ),
+  },
+  knife: {
+    'pt-BR': word('Faca', '/ˈfakɐ/', 'FÁ-ca', 'A faca está muito afiada.'),
+    en: word('Knife', '/naɪf/', 'NÁIF', 'The knife is very sharp.'),
+    es: word(
+      'Cuchillo',
+      '/kuˈtʃiʎo/',
+      'cu-CHÍ-io',
+      'El cuchillo está muy afilado.',
+    ),
+  },
+  spoon: {
+    'pt-BR': word('Colher', '/koˈʎɛʁ/', 'co-LHÉR', 'Use a colher para a sopa.'),
+    en: word('Spoon', '/spuːn/', 'SPÚN', 'Use the spoon for the soup.'),
+    es: word(
+      'Cuchara',
+      '/kuˈtʃaɾa/',
+      'cu-CHÁ-ra',
+      'Usa la cuchara para la sopa.',
+    ),
+  },
+  bowl: {
+    'pt-BR': word(
+      'Tigela',
+      '/tʃiˈʒɛlɐ/',
+      'tchi-JÉ-la',
+      'A tigela está cheia de frutas.',
+    ),
+    en: word('Bowl', '/boʊl/', 'BÔUL', 'The bowl is full of fruit.'),
+    es: word('Tazón', '/taˈθon/', 'ta-SÔN', 'El tazón está lleno de fruta.'),
+  },
+  banana: {
+    'pt-BR': word('Banana', '/baˈnɐnɐ/', 'ba-NÃ-na', 'A banana está madura.'),
+    en: word('Banana', '/bəˈnæn.ə/', 'ba-NÉ-na', 'The banana is ripe.'),
+    es: word('Plátano', '/ˈplatano/', 'PLÁ-ta-no', 'El plátano está maduro.'),
+  },
+  apple: {
+    'pt-BR': word('Maçã', '/maˈsɐ̃/', 'ma-SÃ', 'A maçã está sobre a mesa.'),
+    en: word('Apple', '/ˈæp.əl/', 'É-pâl', 'The apple is on the table.'),
+    es: word(
+      'Manzana',
+      '/manˈθana/',
+      'man-SÁ-na',
+      'La manzana está sobre la mesa.',
+    ),
+  },
+  sandwich: {
+    'pt-BR': word(
+      'Sanduíche',
+      '/sɐ̃duˈiʃi/',
+      'san-du-Í-chi',
+      'Eu quero um sanduíche no almoço.',
+    ),
+    en: word(
+      'Sandwich',
+      '/ˈsæn.wɪtʃ/',
+      'SÉND-uitch',
+      'I want a sandwich for lunch.',
+    ),
+    es: word(
+      'Sándwich',
+      '/ˈsanɡwitʃ/',
+      'SÁN-guitch',
+      'Quiero un sándwich para el almuerzo.',
+    ),
+  },
+  orange: {
+    'pt-BR': word('Laranja', '/laˈɾɐ̃ʒɐ/', 'la-RÃN-ja', 'A laranja é doce.'),
+    en: word('Orange', '/ˈɔːr.ɪndʒ/', 'Ó-rinj', 'The orange is sweet.'),
+    es: word('Naranja', '/naˈɾaŋxa/', 'na-RÁN-rra', 'La naranja es dulce.'),
+  },
+  broccoli: {
+    'pt-BR': word(
+      'Brócolis',
+      '/ˈbɾɔkolis/',
+      'BRÓ-co-lis',
+      'O brócolis está no vapor.',
+    ),
+    en: word(
+      'Broccoli',
+      '/ˈbrɑː.kəl.i/',
+      'BRÓ-co-li',
+      'The broccoli is steamed.',
+    ),
+    es: word('Brócoli', '/ˈbɾokoli/', 'BRÔ-co-li', 'El brócoli está al vapor.'),
+  },
+  carrot: {
+    'pt-BR': word(
+      'Cenoura',
+      '/seˈnoɾɐ/',
+      'se-NÔ-ra',
+      'A cenoura é boa para a visão.',
+    ),
+    en: word(
+      'Carrot',
+      '/ˈker.ət/',
+      'QUÉ-ret',
+      'The carrot is good for your eyes.',
+    ),
+    es: word(
+      'Zanahoria',
+      '/θanaˈoɾja/',
+      'sa-na-Ô-ria',
+      'La zanahoria es buena para la vista.',
+    ),
+  },
+  'hot dog': {
+    'pt-BR': word(
+      'Cachorro-quente',
+      '/kaˈʃoʁu ˈkẽtʃi/',
+      'ca-CHÔ-rro-QUÊN-tchi',
+      'Comprei um cachorro-quente na feira.',
+    ),
+    en: word(
+      'Hot dog',
+      '/ˈhɑːt ˌdɑːɡ/',
+      'RÓT DÓG',
+      'I bought a hot dog at the fair.',
+    ),
+    es: word(
+      'Perrito caliente',
+      '/peˈrito kaˈljente/',
+      'pe-RRÍ-to ca-LIÊN-te',
+      'Compré un perrito caliente en la feria.',
+    ),
+  },
+  pizza: {
+    'pt-BR': word(
+      'Pizza',
+      '/ˈpitsɐ/',
+      'PÍ-tsa',
+      'A pizza acabou de sair do forno.',
+    ),
+    en: word(
+      'Pizza',
+      '/ˈpiːt.sə/',
+      'PÍT-sa',
+      'The pizza just came out of the oven.',
+    ),
+    es: word(
+      'Pizza',
+      '/ˈpitsa/',
+      'PÍT-sa',
+      'La pizza acaba de salir del horno.',
+    ),
+  },
+  donut: {
+    'pt-BR': word(
+      'Rosquinha',
+      '/ʁosˈkiɲɐ/',
+      'ros-QUI-nha',
+      'A rosquinha tem cobertura de chocolate.',
+    ),
+    en: word(
+      'Donut',
+      '/ˈdoʊ.nʌt/',
+      'DÔU-nat',
+      'The donut has chocolate icing.',
+    ),
+    es: word(
+      'Dona',
+      '/ˈdona/',
+      'DÔ-na',
+      'La dona tiene cobertura de chocolate.',
+    ),
+  },
+  cake: {
+    'pt-BR': word(
+      'Bolo',
+      '/ˈbolu/',
+      'BÔ-lo',
+      'O bolo de aniversário está pronto.',
+    ),
+    en: word('Cake', '/keɪk/', 'QUÊIK', 'The birthday cake is ready.'),
+    es: word(
+      'Pastel',
+      '/pasˈtel/',
+      'pas-TÉL',
+      'El pastel de cumpleaños está listo.',
+    ),
+  },
+  'potted plant': {
+    'pt-BR': word(
+      'Planta em vaso',
+      '/ˈplɐ̃tɐ ẽj ˈvazu/',
+      'PLÃN-ta em VÁ-zo',
+      'A planta em vaso fica na janela.',
+    ),
+    en: word(
+      'Potted plant',
+      '/ˈpɑː.t̬ɪd ˌplænt/',
+      'PÓ-ted PLÉNT',
+      'The potted plant is by the window.',
+    ),
+    es: word(
+      'Planta en maceta',
+      '/ˈplanta en maˈθeta/',
+      'PLÁN-ta en ma-SÊ-ta',
+      'La planta en maceta está junto a la ventana.',
+    ),
+  },
+  bed: {
+    'pt-BR': word('Cama', '/ˈkɐmɐ/', 'CÃ-ma', 'A cama já está arrumada.'),
+    en: word('Bed', '/bed/', 'BÉD', 'The bed is already made.'),
+    es: word('Cama', '/ˈkama/', 'CÁ-ma', 'La cama ya está hecha.'),
+  },
+  toilet: {
+    'pt-BR': word(
+      'Vaso sanitário',
+      '/ˈvazu saniˈtaɾju/',
+      'VÁ-zo sa-ni-TÁ-rio',
+      'O vaso sanitário está limpo.',
+    ),
+    en: word('Toilet', '/ˈtɔɪ.lət/', 'TÓI-let', 'The toilet is clean.'),
+    es: word('Inodoro', '/inoˈðoɾo/', 'i-no-DÔ-ro', 'El inodoro está limpio.'),
+  },
+  remote: {
+    'pt-BR': word(
+      'Controle remoto',
+      '/kõˈtɾoli ʁeˈmɔtu/',
+      'con-TRÔ-le re-MÓ-to',
+      'O controle remoto está no sofá.',
+    ),
+    en: word('Remote', '/rɪˈmoʊt/', 'ri-MÔUT', 'The remote is on the couch.'),
+    es: word(
+      'Control remoto',
+      '/konˈtɾol reˈmoto/',
+      'con-TRÔL re-MÔ-to',
+      'El control remoto está en el sofá.',
+    ),
+  },
+  microwave: {
+    'pt-BR': word(
+      'Micro-ondas',
+      '/mikɾoˈõdɐs/',
+      'mi-cro-ÔN-das',
+      'Aqueça a comida no micro-ondas.',
+    ),
+    en: word(
+      'Microwave',
+      '/ˈmaɪ.krə.weɪv/',
+      'MÁI-cro-ueiv',
+      'Heat the food in the microwave.',
+    ),
+    es: word(
+      'Microondas',
+      '/mikɾoˈondas/',
+      'mi-cro-ÔN-das',
+      'Calienta la comida en el microondas.',
+    ),
+  },
+  oven: {
+    'pt-BR': word('Forno', '/ˈfoʁnu/', 'FÔR-no', 'O pão está no forno.'),
+    en: word('Oven', '/ˈʌv.ən/', 'Â-vãn', 'The bread is in the oven.'),
+    es: word('Horno', '/ˈoɾno/', 'ÔR-no', 'El pan está en el horno.'),
+  },
+  toaster: {
+    'pt-BR': word(
+      'Torradeira',
+      '/toʁaˈdejɾɐ/',
+      'to-rra-DÊI-ra',
+      'A torradeira está na bancada.',
+    ),
+    en: word(
+      'Toaster',
+      '/ˈtoʊ.stɚ/',
+      'TÔUS-târ',
+      'The toaster is on the counter.',
+    ),
+    es: word(
+      'Tostadora',
+      '/tostaˈðoɾa/',
+      'tos-ta-DÔ-ra',
+      'La tostadora está en la encimera.',
+    ),
+  },
+  sink: {
+    'pt-BR': word('Pia', '/ˈpiɐ/', 'PÍ-a', 'A pia está cheia de louça.'),
+    en: word('Sink', '/sɪŋk/', 'SÍNK', 'The sink is full of dishes.'),
+    es: word(
+      'Fregadero',
+      '/fɾeɣaˈðeɾo/',
+      'fre-ga-DÊ-ro',
+      'El fregadero está lleno de platos.',
+    ),
+  },
+  refrigerator: {
+    'pt-BR': word(
+      'Geladeira',
+      '/ʒelaˈdejɾɐ/',
+      'je-la-DÊI-ra',
+      'O leite está na geladeira.',
+    ),
+    en: word(
+      'Refrigerator',
+      '/rɪˈfrɪdʒ.ə.reɪ.t̬ɚ/',
+      'ri-FRÍ-je-rei-târ',
+      'The milk is in the refrigerator.',
+    ),
+    es: word(
+      'Refrigerador',
+      '/refɾixeɾaˈðoɾ/',
+      're-fri-rre-ra-DÔR',
+      'La leche está en el refrigerador.',
+    ),
+  },
+  vase: {
+    'pt-BR': word('Vaso', '/ˈvazu/', 'VÁ-zo', 'O vaso tem flores frescas.'),
+    en: word('Vase', '/veɪs/', 'VÊIS', 'The vase has fresh flowers.'),
+    es: word(
+      'Jarrón',
+      '/xaˈron/',
+      'rra-RÔN',
+      'El jarrón tiene flores frescas.',
+    ),
+  },
+  scissors: {
+    'pt-BR': word(
+      'Tesoura',
+      '/teˈzoɾɐ/',
+      'te-ZÔ-ra',
+      'A tesoura está na gaveta.',
+    ),
+    en: word(
+      'Scissors',
+      '/ˈsɪz.ɚz/',
+      'SÍ-zârs',
+      'The scissors are in the drawer.',
+    ),
+    es: word(
+      'Tijeras',
+      '/tiˈxeɾas/',
+      'ti-RRÊ-ras',
+      'Las tijeras están en el cajón.',
+    ),
+  },
+  'teddy bear': {
+    'pt-BR': word(
+      'Ursinho de pelúcia',
+      '/uʁˈsiɲu dʒi peˈlusjɐ/',
+      'ur-SI-nho de pe-LÚ-sia',
+      'A criança dorme com o ursinho de pelúcia.',
+    ),
+    en: word(
+      'Teddy bear',
+      '/ˈted.i ˌber/',
+      'TÉ-di BÉR',
+      'The child sleeps with the teddy bear.',
+    ),
+    es: word(
+      'Osito de peluche',
+      '/oˈsito de peˈlutʃe/',
+      'o-SÍ-to de pe-LÚ-che',
+      'El niño duerme con el osito de peluche.',
+    ),
+  },
+  'hair drier': {
+    'pt-BR': word(
+      'Secador de cabelo',
+      '/sekaˈdoʁ dʒi kaˈbelu/',
+      'se-ca-DÔR de ca-BÊ-lo',
+      'O secador de cabelo está quebrado.',
+    ),
+    en: word(
+      'Hair drier',
+      '/ˈher ˌdraɪ.ɚ/',
+      'RÉR DRÁI-âr',
+      'The hair drier is broken.',
+    ),
+    es: word(
+      'Secador de pelo',
+      '/sekaˈðoɾ de ˈpelo/',
+      'se-ca-DÔR de PÊ-lo',
+      'El secador de pelo está roto.',
+    ),
+  },
+  toothbrush: {
+    'pt-BR': word(
+      'Escova de dentes',
+      '/esˈkovɐ dʒi ˈdẽtʃis/',
+      'es-CÔ-va de DÊN-tchis',
+      'Troque a escova de dentes a cada três meses.',
+    ),
+    en: word(
+      'Toothbrush',
+      '/ˈtuːθ.brʌʃ/',
+      'TÚTH-brach',
+      'Change your toothbrush every three months.',
+    ),
+    es: word(
+      'Cepillo de dientes',
+      '/θeˈpiʎo de ˈdjentes/',
+      'se-PÍ-io de DIÊN-tes',
+      'Cambia el cepillo de dientes cada tres meses.',
+    ),
   },
 };
 

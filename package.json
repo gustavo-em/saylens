@@ -1,5 +1,5 @@
 {
-  "name": "spell-for-me",
+  "name": "say-lens",
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@11.6.2",
@@ -13,16 +13,18 @@
     "start": "react-native start",
     "test": "jest --runInBand --no-watchman",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run format:check && npm run lint && npm run typecheck && npm test"
+    "validate": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "android:bundle": "./scripts/release-android.sh"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.1.1",
     "react": "19.2.3",
     "react-native": "0.87.0",
     "react-native-nitro-image": "0.15.2",
     "react-native-nitro-modules": "0.37.0",
     "react-native-reanimated": "4.6.0",
     "react-native-safe-area-context": "^5.5.2",
-    "react-native-spellforme-object-detector": "file:modules/vision-object-detector",
+    "react-native-saylens-object-detector": "file:modules/vision-object-detector",
     "react-native-svg": "^15.15.5",
     "react-native-vision-camera": "5.2.2",
     "react-native-vision-camera-worklets": "5.2.2",

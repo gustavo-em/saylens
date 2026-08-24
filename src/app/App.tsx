@@ -4,10 +4,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import styled, { ThemeProvider } from 'styled-components/native';
 
 import { VisionCameraViewport } from '../features/learning/infrastructure/camera/VisionCameraViewport';
+import { systemPronunciationPlayer } from '../features/learning/infrastructure/pronunciation/systemPronunciationPlayer';
 import { localVocabularyRepository } from '../features/learning/infrastructure/vocabulary/localVocabularyRepository';
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
+import { asyncStoragePreferencesStore } from './infrastructure/preferences/asyncStoragePreferencesStore';
 import { AppTabBar } from './navigation/AppTabBar';
 import { getAppTheme } from './theme/theme';
 import { useAppViewModel } from './view-models/useAppViewModel';
@@ -47,6 +49,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         isActive={viewModel.cameraIsActive}
         languageSettings={viewModel.languageSettings}
         copy={viewModel.copy}
+        pronunciationPlayer={systemPronunciationPlayer}
         renderCamera={renderCamera}
         vocabularyRepository={localVocabularyRepository}
       />
@@ -75,12 +78,12 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
 }
 
 export default function App() {
-  const viewModel = useAppViewModel();
+  const viewModel = useAppViewModel(asyncStoragePreferencesStore);
 
   return (
     <ThemeProvider theme={getAppTheme(viewModel.appearanceMode)}>
       <SafeAreaProvider>
-        <AppContent viewModel={viewModel} />
+        {viewModel.isRestored ? <AppContent viewModel={viewModel} /> : <Root />}
       </SafeAreaProvider>
     </ThemeProvider>
   );

@@ -11,6 +11,7 @@ import { appearanceModes, type AppearanceMode } from '../theme/theme';
 
 export interface AppPreferences {
   appearanceMode: AppearanceMode;
+  showDiagnostics: boolean;
   learningLanguage: LearningLanguage;
   nativeLanguage: LearningLanguage;
   performanceProfile: PerformanceProfile;
@@ -18,6 +19,7 @@ export interface AppPreferences {
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   appearanceMode: 'dark',
+  showDiagnostics: false,
   learningLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.learningLanguage,
   nativeLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.nativeLanguage,
   performanceProfile: 'maximum-performance',
@@ -51,6 +53,10 @@ export function sanitizeAppPreferences(
     : profiles[0];
 
   return {
+    showDiagnostics:
+      typeof values.showDiagnostics === 'boolean'
+        ? values.showDiagnostics
+        : defaults.showDiagnostics,
     appearanceMode: pick(
       values.appearanceMode,
       appearanceModes,

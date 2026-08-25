@@ -4,6 +4,11 @@ import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { DetectionFrame } from '../../domain/DetectedObject';
+import {
+  recordSample,
+  summariseSamples,
+  type DetectorSample,
+} from '../../domain/DetectorMetrics';
 import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
 import type { VocabularyEntry } from '../../domain/VocabularyEntry';
 import type { LearningCopy } from '../localization/learningCopy';
@@ -44,6 +49,7 @@ export function useCameraViewModel({
     null,
   );
   const detectionTracker = useRef(new DetectionMotionTracker());
+  const [detectorSamples, setDetectorSamples] = useState<DetectorSample[]>([]);
   const lastDetectionUpdate = useRef(0);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
@@ -110,6 +116,12 @@ export function useCameraViewModel({
     lastDetectionUpdate.current = now;
     setRecognitionError(null);
     setDetectionFrame(trackedFrame);
+    setDetectorSamples(current =>
+      recordSample(current, {
+        inferenceTimeMs: frame.inferenceTimeMs,
+        receivedAtMs: now,
+      }),
+    );
   }, []);
 
   const handleDetectionError = useCallback((message: string) => {
@@ -180,9 +192,11 @@ export function useCameraViewModel({
     detectionFrame,
     detectionInterpolationDurationMs,
     detectionItems,
+    detectorMetrics: summariseSamples(detectorSamples, Date.now()),
     hasPermission: cameraAccess.status === 'authorized',
     isCameraLive: isActive && isPreviewReady,
     isRequestingPermission,
+    languageSettings,
     onObjectPress: handleObjectPress,
     onPermissionAction: handlePermissionAction,
     permissionActionLabel: isRequestingPermission

@@ -1,7 +1,21 @@
-import type { LearningLanguage } from '../../domain/LearningLanguage';
+import {
+  languageBase,
+  type LanguageBase,
+  type LearningLanguage,
+} from '../../domain/LearningLanguage';
 
 export interface LearningCopy {
   tabs: { camera: string; settings: string };
+  history: {
+    title: string;
+    subtitle: string;
+    empty: string;
+    tapToHear: string;
+    justNow: string;
+    minutesAgo: (minutes: number) => string;
+    hoursAgo: (hours: number) => string;
+    daysAgo: (days: number) => string;
+  };
   languageName: (language: LearningLanguage) => string;
   languageShortName: (language: LearningLanguage) => string;
   camera: {
@@ -22,6 +36,7 @@ export interface LearningCopy {
     meaningLabel: string;
     pronunciationLabel: string;
     tapToHearPronunciation: string;
+    tapToChangeLanguages: string;
     pronunciationUnavailable: string;
     detectorAccessibility: (status: string, inferenceTimeMs?: number) => string;
   };
@@ -45,33 +60,74 @@ export interface LearningCopy {
     maximumPerformanceDescription: string;
     powerSavingTitle: string;
     powerSavingDescription: string;
+    diagnosticsTitle: string;
+    diagnosticsDescription: string;
+    diagnosticsOn: string;
+    diagnosticsOff: string;
   };
 }
 
-const languageNames: Record<
-  LearningLanguage,
-  Record<LearningLanguage, string>
-> = {
-  'pt-BR': { 'pt-BR': 'Português (Brasil)', en: 'Inglês', es: 'Espanhol' },
-  en: { 'pt-BR': 'Portuguese (Brazil)', en: 'English', es: 'Spanish' },
-  es: { 'pt-BR': 'Portugués (Brasil)', en: 'Inglés', es: 'Español' },
+const languageNames: Record<LanguageBase, Record<LearningLanguage, string>> = {
+  'pt-BR': {
+    'pt-BR': 'Português (Brasil)',
+    'en-US': 'Inglês (EUA)',
+    'en-GB': 'Inglês (Reino Unido)',
+    es: 'Espanhol',
+  },
+  en: {
+    'pt-BR': 'Portuguese (Brazil)',
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    es: 'Spanish',
+  },
+  es: {
+    'pt-BR': 'Portugués (Brasil)',
+    'en-US': 'Inglés (EE. UU.)',
+    'en-GB': 'Inglés (Reino Unido)',
+    es: 'Español',
+  },
 };
 
 const shortLanguageNames: Record<
-  LearningLanguage,
+  LanguageBase,
   Record<LearningLanguage, string>
 > = {
-  'pt-BR': { 'pt-BR': 'Português', en: 'Inglês', es: 'Espanhol' },
-  en: { 'pt-BR': 'Portuguese', en: 'English', es: 'Spanish' },
-  es: { 'pt-BR': 'Portugués', en: 'Inglés', es: 'Español' },
+  'pt-BR': {
+    'pt-BR': 'Português',
+    'en-US': 'Inglês (EUA)',
+    'en-GB': 'Inglês (RU)',
+    es: 'Espanhol',
+  },
+  en: {
+    'pt-BR': 'Portuguese',
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    es: 'Spanish',
+  },
+  es: {
+    'pt-BR': 'Portugués',
+    'en-US': 'Inglés (EE. UU.)',
+    'en-GB': 'Inglés (RU)',
+    es: 'Español',
+  },
 };
 
 const copies: Record<
-  LearningLanguage,
+  LanguageBase,
   Omit<LearningCopy, 'languageName' | 'languageShortName'>
 > = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
+    history: {
+      title: 'Vistos recentemente',
+      subtitle: 'Os últimos 15 objetos que você reconheceu.',
+      empty: 'Aponte a câmera para um objeto para começar seu histórico.',
+      tapToHear: 'Toque para ouvir de novo.',
+      justNow: 'agora há pouco',
+      minutesAgo: minutes => `há ${minutes} min`,
+      hoursAgo: hours => `há ${hours} h`,
+      daysAgo: days => (days === 1 ? 'ontem' : `há ${days} dias`),
+    },
     camera: {
       caption: language =>
         `Explore ${languageNames['pt-BR'][
@@ -94,6 +150,7 @@ const copies: Record<
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONÚNCIA',
       tapToHearPronunciation: 'Toque para ouvir a pronúncia.',
+      tapToChangeLanguages: 'Toque para escolher os idiomas.',
       pronunciationUnavailable:
         'A pronúncia não está disponível neste aparelho.',
       detectorAccessibility: (status, time) =>
@@ -125,10 +182,25 @@ const copies: Record<
       powerSavingTitle: 'Modo economia',
       powerSavingDescription:
         'Poupa bateria e evita aquecimento. Reconhecimento mais lento.',
+      diagnosticsTitle: 'Painel de diagnóstico',
+      diagnosticsDescription:
+        'Mostra taxa do detector, latência e memória sobre a câmera.',
+      diagnosticsOn: 'Ligado',
+      diagnosticsOff: 'Desligado',
     },
   },
   en: {
     tabs: { camera: 'Camera', settings: 'Settings' },
+    history: {
+      title: 'Recently seen',
+      subtitle: 'The last 15 objects you recognised.',
+      empty: 'Point the camera at an object to start your history.',
+      tapToHear: 'Tap to hear it again.',
+      justNow: 'just now',
+      minutesAgo: minutes => `${minutes} min ago`,
+      hoursAgo: hours => `${hours} h ago`,
+      daysAgo: days => (days === 1 ? 'yesterday' : `${days} days ago`),
+    },
     camera: {
       caption: language =>
         `Explore ${languageNames.en[language].toLowerCase()} around you`,
@@ -149,6 +221,7 @@ const copies: Record<
       meaningLabel: 'MEANING',
       pronunciationLabel: 'PRONUNCIATION',
       tapToHearPronunciation: 'Tap to hear the pronunciation.',
+      tapToChangeLanguages: 'Tap to choose the languages.',
       pronunciationUnavailable:
         'Pronunciation is not available on this device.',
       detectorAccessibility: (status, time) =>
@@ -181,10 +254,25 @@ const copies: Record<
       powerSavingTitle: 'Power saving',
       powerSavingDescription:
         'Saves battery and avoids heating. Slower recognition.',
+      diagnosticsTitle: 'Diagnostics panel',
+      diagnosticsDescription:
+        'Shows detector rate, latency and memory over the camera.',
+      diagnosticsOn: 'On',
+      diagnosticsOff: 'Off',
     },
   },
   es: {
     tabs: { camera: 'Cámara', settings: 'Configuración' },
+    history: {
+      title: 'Vistos recientemente',
+      subtitle: 'Los últimos 15 objetos que reconociste.',
+      empty: 'Apunta la cámara a un objeto para empezar tu historial.',
+      tapToHear: 'Toca para escucharlo de nuevo.',
+      justNow: 'hace un momento',
+      minutesAgo: minutes => `hace ${minutes} min`,
+      hoursAgo: hours => `hace ${hours} h`,
+      daysAgo: days => (days === 1 ? 'ayer' : `hace ${days} días`),
+    },
     camera: {
       caption: language =>
         `Explora ${languageNames.es[language].toLowerCase()} a tu alrededor`,
@@ -206,6 +294,7 @@ const copies: Record<
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONUNCIACIÓN',
       tapToHearPronunciation: 'Toca para escuchar la pronunciación.',
+      tapToChangeLanguages: 'Toca para elegir los idiomas.',
       pronunciationUnavailable:
         'La pronunciación no está disponible en este dispositivo.',
       detectorAccessibility: (status, time) =>
@@ -238,14 +327,21 @@ const copies: Record<
       powerSavingTitle: 'Modo ahorro',
       powerSavingDescription:
         'Ahorra batería y evita el calentamiento. Reconocimiento más lento.',
+      diagnosticsTitle: 'Panel de diagnóstico',
+      diagnosticsDescription:
+        'Muestra tasa del detector, latencia y memoria sobre la cámara.',
+      diagnosticsOn: 'Activado',
+      diagnosticsOff: 'Desactivado',
     },
   },
 };
 
 export function getLearningCopy(language: LearningLanguage): LearningCopy {
+  const base = languageBase(language);
+
   return {
-    ...copies[language],
-    languageName: target => languageNames[language][target],
-    languageShortName: target => shortLanguageNames[language][target],
+    ...copies[base],
+    languageName: target => languageNames[base][target],
+    languageShortName: target => shortLanguageNames[base][target],
   };
 }

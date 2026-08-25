@@ -6,8 +6,9 @@ import {
 
 const stored: AppPreferences = {
   appearanceMode: 'light',
+  showDiagnostics: true,
   learningLanguage: 'es',
-  nativeLanguage: 'en',
+  nativeLanguage: 'en-US',
   performanceProfile: 'power-saving',
 };
 

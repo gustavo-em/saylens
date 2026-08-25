@@ -4,7 +4,7 @@ describe('localVocabularyRepository', () => {
   it('combines the language being learned with the learner native language', () => {
     expect(
       localVocabularyRepository.findByLabel('bottle', {
-        nativeLanguage: 'en',
+        nativeLanguage: 'en-US',
         learningLanguage: 'es',
       }),
     ).toMatchObject({
@@ -117,7 +117,7 @@ describe('detector label coverage', () => {
     const uncurated = detectorLabels.filter(label => {
       const entry = localVocabularyRepository.findByLabel(label, {
         nativeLanguage: 'pt-BR',
-        learningLanguage: 'en',
+        learningLanguage: 'en-US',
       });
 
       return !/^\/.+\/$/.test(entry.pronunciation);
@@ -131,7 +131,7 @@ describe('detector label coverage', () => {
     expect(
       localVocabularyRepository.findByLabel('dining table', {
         nativeLanguage: 'pt-BR',
-        learningLanguage: 'en',
+        learningLanguage: 'en-US',
       }),
     ).toMatchObject({
       word: 'Table',

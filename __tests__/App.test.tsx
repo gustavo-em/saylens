@@ -112,7 +112,7 @@ describe('App', () => {
     mockPronunciationPlayer.stop.mockReset().mockResolvedValue(undefined);
   });
 
-  it('opens on the camera screen with both navigation tabs', async () => {
+  it('opens on the camera screen with a settings control', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -130,8 +130,8 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
     expect(renderedTree).toContain('SayLens');
-    expect(renderedTree).toContain('Câmera');
-    expect(renderedTree).toContain('Configurações');
+    expect(renderedTree).toContain('camera-open-settings');
+    expect(renderedTree).toContain('camera-language-pair');
     expect(renderedTree).toContain('camera-preview');
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).not.toContain('91%');
@@ -148,11 +148,11 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(true);
 
-    const settingsTabs = renderer!.root.findAllByProps({
-      testID: 'tab-settings',
+    const settingsControls = renderer!.root.findAllByProps({
+      testID: 'camera-open-settings',
     });
-    const pressableSettingsTab = settingsTabs.find(
-      tab => typeof tab.props.onPress === 'function',
+    const pressableSettingsTab = settingsControls.find(
+      control => typeof control.props.onPress === 'function',
     );
 
     await ReactTestRenderer.act(() => {
@@ -187,7 +187,9 @@ describe('App', () => {
     });
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     expect(
@@ -209,7 +211,9 @@ describe('App', () => {
     });
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     expect(
@@ -238,7 +242,9 @@ describe('App', () => {
     });
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     await ReactTestRenderer.act(() => {
@@ -272,7 +278,9 @@ describe('App', () => {
     ).toBe('power-saving');
 
     await ReactTestRenderer.act(() => {
-      relaunched!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      relaunched!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     expect(
@@ -298,7 +306,9 @@ describe('App', () => {
     ).toBe('maximum-performance');
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     await ReactTestRenderer.act(() => {
@@ -326,7 +336,9 @@ describe('App', () => {
     });
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     expect(
@@ -362,11 +374,10 @@ describe('App', () => {
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).toContain('Garrafa');
     expect(renderedTree).toContain('BÓ-tl');
-    expect(renderedTree).toContain('SIGNIFICADO');
-    expect(renderedTree).toContain('PRONÚNCIA');
+    expect(renderedTree).toContain('Garrafa');
+    expect(renderedTree).toContain('Botella');
     expect(renderedTree).toContain('Toque para ouvir a pronúncia.');
-    expect(renderedTree).toContain('Aa');
-    expect(renderedTree).toContain('91');
+    expect(renderedTree).toContain('PT');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),
     ).toHaveLength(0);
@@ -402,7 +413,10 @@ describe('App', () => {
       await Promise.resolve();
     });
 
-    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Bottle', 'en');
+    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith(
+      'Bottle',
+      'en-US',
+    );
   });
 
   it('updates the interface and vocabulary when language preferences change', async () => {
@@ -413,18 +427,20 @@ describe('App', () => {
     });
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-settings' }).props.onPress();
+      renderer!.root
+        .findByProps({ testID: 'camera-open-settings' })
+        .props.onPress();
     });
 
     await ReactTestRenderer.act(() => {
       renderer!.root
-        .findByProps({ testID: 'native-language-en' })
+        .findByProps({ testID: 'native-language-en-US' })
         .props.onPress();
     });
 
     expect(JSON.stringify(renderer!.toJSON())).toContain('Settings');
     expect(
-      renderer!.root.findByProps({ testID: 'learning-language-en' }).props
+      renderer!.root.findByProps({ testID: 'learning-language-en-US' }).props
         .accessibilityState.checked,
     ).toBe(true);
 
@@ -440,7 +456,7 @@ describe('App', () => {
     ).toBe(true);
 
     await ReactTestRenderer.act(() => {
-      renderer!.root.findByProps({ testID: 'tab-camera' }).props.onPress();
+      renderer!.root.findByProps({ testID: 'settings-close' }).props.onPress();
       renderer!.root
         .findByProps({ testID: 'camera-container' })
         .props.onLayout({
@@ -451,7 +467,8 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
     expect(renderedTree).toContain('Botella');
     expect(renderedTree).toContain('Bottle');
-    expect(renderedTree).toContain('1 OBJECT');
+    expect(renderedTree).toContain('EN');
+    expect(renderedTree).toContain('ES');
     expect(renderedTree).not.toContain('Explore spanish around you');
 
     const spanishObjectButton = renderer!.root

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
@@ -9,9 +9,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import styled from 'styled-components/native';
+import styled, { useTheme } from 'styled-components/native';
 
 import { AppMark } from '../../../../app/components/AppMark';
+import { languageCodes, languageFlags } from '../../domain/LearningLanguage';
 import type { DetectedObject } from '../../domain/DetectedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
@@ -20,6 +21,9 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 interface CameraViewProps {
   copy: LearningCopy;
   isActive: boolean;
+  onOpenHistory: () => void;
+  onOpenSettings: () => void;
+  showDiagnostics: boolean;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   viewModel: CameraViewModel;
 }
@@ -29,13 +33,54 @@ interface ViewportSize {
   height: number;
 }
 
-const OBJECT_CARD_WIDTH = 190;
+const OBJECT_CARD_WIDTH = 208;
 const OBJECT_CARD_EDGE_INSET = 8;
 const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
 const OBJECT_CARD_TOP_SAFE_INSET = 92;
 const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const TARGET_CORNERS = [
+  'topLeft',
+  'topRight',
+  'bottomLeft',
+  'bottomRight',
+] as const;
+
+function SettingsIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.8}
+      />
+      <Path
+        d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.7 7.7 0 0 0-1.7-1l-.4-2.6h-3.9l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.7 7.7 0 0 0 1.7 1l.4 2.6h3.9l.4-2.6a7.7 7.7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5Z"
+        fill="none"
+        stroke={color}
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <Svg height={18} viewBox="0 0 24 24" width={18}>
+      <Path d="M4 9v6h4l5 4V5L8 9H4Z" fill="#111827" />
+      <Path
+        d="M16 8.2a5 5 0 0 1 0 7.6M18.7 5.5a9 9 0 0 1 0 13"
+        fill="none"
+        stroke="#111827"
+        strokeLinecap="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
+  );
+}
 
 function getObjectStyle(
   object: DetectedObject,
@@ -152,6 +197,9 @@ function InterpolatedObjectTarget({
       style={animatedStyle}
       testID={testID}
     >
+      {TARGET_CORNERS.map(corner => (
+        <TargetCorner key={corner} $corner={corner} pointerEvents="none" />
+      ))}
       {children}
     </ObjectTarget>
   );
@@ -160,9 +208,17 @@ function InterpolatedObjectTarget({
 export function CameraView({
   copy,
   isActive,
+  onOpenHistory,
+  onOpenSettings,
+  showDiagnostics,
   renderCamera,
   viewModel,
 }: CameraViewProps) {
+  const theme = useTheme();
+  const { learningLanguage, nativeLanguage } = viewModel.languageSettings;
+  const nativeCode = languageCodes[nativeLanguage];
+  const learningCode = languageCodes[learningLanguage];
+  const languagePairLabel = `${nativeCode} para ${learningCode}`;
   const [viewport, setViewport] = useState<ViewportSize>({
     width: 0,
     height: 0,
@@ -206,25 +262,10 @@ export function CameraView({
 
   const detectionFrame = viewModel.detectionFrame;
   const isLandscape = viewport.width > viewport.height;
-  const recognitionStatus =
-    viewModel.recognitionError != null
-      ? copy.camera.unavailable
-      : detectionFrame == null
-      ? copy.camera.analyzing
-      : detectionFrame.objects.length === 0
-      ? copy.camera.searching
-      : copy.camera.objectsDetected(detectionFrame.objects.length);
   const displayedError =
     viewModel.cameraError ??
     viewModel.pronunciationError ??
     viewModel.recognitionError;
-  const detectorAccessibilityLabel =
-    detectionFrame == null
-      ? copy.camera.detectorAccessibility(recognitionStatus)
-      : copy.camera.detectorAccessibility(
-          recognitionStatus,
-          Math.round(detectionFrame.inferenceTimeMs),
-        );
 
   return (
     <Container onLayout={handleLayout} testID="camera-container">
@@ -251,47 +292,29 @@ export function CameraView({
                 targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
               >
+                <CardAnchor pointerEvents="none" />
                 <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
-                  <ObjectCardSheen pointerEvents="none" />
-                  <ObjectCardHeader>
-                    <ObjectIdentity>
-                      <LearningBadge>Aa</LearningBadge>
-                      <ObjectWord numberOfLines={1}>
-                        {vocabulary.word}
-                      </ObjectWord>
-                    </ObjectIdentity>
-                    <ObjectAudioCue pointerEvents="none">
-                      <Svg height={16} viewBox="0 0 24 24" width={16}>
-                        <Path d="M4 9v6h4l5 4V5L8 9H4Z" fill="#FFFFFF" />
-                        <Path
-                          d="M16 8.2a5 5 0 0 1 0 7.6M18.7 5.5a9 9 0 0 1 0 13"
-                          fill="none"
-                          stroke="#FFFFFF"
-                          strokeLinecap="round"
-                          strokeWidth={1.8}
-                        />
-                      </Svg>
-                    </ObjectAudioCue>
-                  </ObjectCardHeader>
-                  <ObjectDetails>
-                    <ObjectDetail>
-                      <ObjectDetailLabel>
-                        {copy.camera.meaningLabel}
-                      </ObjectDetailLabel>
-                      <ObjectDetailValue numberOfLines={1}>
-                        {vocabulary.meaning}
-                      </ObjectDetailValue>
-                    </ObjectDetail>
-                    <ObjectDetailDivider />
-                    <ObjectDetail>
-                      <ObjectDetailLabel>
-                        {copy.camera.pronunciationLabel}
-                      </ObjectDetailLabel>
-                      <ObjectDetailValue numberOfLines={1}>
-                        {vocabulary.pronunciationHint}
-                      </ObjectDetailValue>
-                    </ObjectDetail>
-                  </ObjectDetails>
+                  <ObjectWord numberOfLines={1}>{vocabulary.word}</ObjectWord>
+                  <TranslationRow>
+                    {vocabulary.translations.map((translation, index) => (
+                      <React.Fragment key={translation}>
+                        {index > 0 ? <TranslationDot>•</TranslationDot> : null}
+                        <Translation numberOfLines={1} $secondary={index > 0}>
+                          {translation}
+                        </Translation>
+                      </React.Fragment>
+                    ))}
+                  </TranslationRow>
+                  <ObjectDefinition numberOfLines={3}>
+                    {vocabulary.example}
+                  </ObjectDefinition>
+                  <ObjectRule />
+                  <ObjectPronunciation>
+                    <SpeakerIcon />
+                    <PronunciationText numberOfLines={1}>
+                      {vocabulary.pronunciation}
+                    </PronunciationText>
+                  </ObjectPronunciation>
                 </ObjectCard>
               </InterpolatedObjectTarget>
             );
@@ -306,21 +329,61 @@ export function CameraView({
           $landscape={isLandscape}
         >
           <Header>
-            <HeaderMark accessibilityLabel="SayLens" accessible>
+            <HeaderMark
+              accessibilityHint={copy.history.title}
+              accessibilityLabel="SayLens"
+              accessibilityRole="button"
+              onPress={onOpenHistory}
+              testID="camera-open-history"
+            >
               <AppMark height={42} testID="camera-brand-logo" width={42} />
             </HeaderMark>
-            <ObjectCountBadge
-              accessibilityLabel={detectorAccessibilityLabel}
-              accessible
+            <SettingsButton
+              accessibilityLabel={copy.tabs.settings}
+              accessibilityRole="button"
+              onPress={onOpenSettings}
+              testID="camera-open-settings"
             >
-              <ObjectCountDot />
-              <ObjectCountText>
-                {copy.camera.objectsDetected(
-                  detectionFrame?.objects.length ?? 0,
-                )}
-              </ObjectCountText>
-            </ObjectCountBadge>
+              <SettingsIcon color={theme.colors.text} />
+            </SettingsButton>
           </Header>
+
+          <LanguagePill
+            accessibilityHint={copy.camera.tapToChangeLanguages}
+            accessibilityLabel={languagePairLabel}
+            accessibilityRole="button"
+            onPress={onOpenSettings}
+            testID="camera-language-pair"
+          >
+            <LanguageFlag>{languageFlags[nativeLanguage]}</LanguageFlag>
+            <LanguageCode>{nativeCode}</LanguageCode>
+            <LanguageArrow>→</LanguageArrow>
+            <LanguageFlag>{languageFlags[learningLanguage]}</LanguageFlag>
+            <LanguageCode>{learningCode}</LanguageCode>
+            <LanguageCheck>✓</LanguageCheck>
+          </LanguagePill>
+
+          {showDiagnostics ? (
+            <DiagnosticsPanel accessible testID="camera-diagnostics">
+              <DiagnosticsLine>
+                {`${viewModel.detectorMetrics.framesPerSecond.toFixed(
+                  1,
+                )} fps  ·  ${viewModel.detectorMetrics.sampleCount} amostras`}
+              </DiagnosticsLine>
+              <DiagnosticsLine>
+                {`p50 ${Math.round(
+                  viewModel.detectorMetrics.latencyP50Ms,
+                )} ms  ·  p95 ${Math.round(
+                  viewModel.detectorMetrics.latencyP95Ms,
+                )} ms`}
+              </DiagnosticsLine>
+              <DiagnosticsLine>
+                {`${detectionFrame?.sourceWidth ?? 0}x${
+                  detectionFrame?.sourceHeight ?? 0
+                }`}
+              </DiagnosticsLine>
+            </DiagnosticsPanel>
+          ) : null}
 
           {displayedError != null ? (
             <ErrorBanner>
@@ -354,111 +417,103 @@ const ObjectTarget = styled(AnimatedPressable)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
-  border: 1.5px solid rgba(100, 166, 255, 0.92);
-  border-radius: 14px;
-  background-color: rgba(26, 111, 236, 0.09);
+  background-color: transparent;
+`;
+
+/** The object is framed by four corner brackets rather than a closed box, so
+ * the camera image stays readable underneath. */
+const TargetCorner = styled.View<{
+  $corner: (typeof TARGET_CORNERS)[number];
+}>`
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(255, 255, 255, 0.94);
+  ${({ $corner }) =>
+    $corner === 'topLeft'
+      ? 'top: 0px; left: 0px; border-top-width: 2.5px; border-left-width: 2.5px; border-top-left-radius: 8px;'
+      : $corner === 'topRight'
+      ? 'top: 0px; right: 0px; border-top-width: 2.5px; border-right-width: 2.5px; border-top-right-radius: 8px;'
+      : $corner === 'bottomLeft'
+      ? 'bottom: 0px; left: 0px; border-bottom-width: 2.5px; border-left-width: 2.5px; border-bottom-left-radius: 8px;'
+      : 'bottom: 0px; right: 0px; border-bottom-width: 2.5px; border-right-width: 2.5px; border-bottom-right-radius: 8px;'}
 `;
 
 const ObjectCard = styled.View`
   position: absolute;
-  width: ${OBJECT_CARD_WIDTH}px;
-  overflow: hidden;
-  padding: 11px;
-  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
-  border-radius: 16px;
-  background-color: ${({ theme }) => theme.colors.glassStrong};
-  elevation: 12;
+  width: 208px;
+  padding: 16px;
+  border-radius: 20px;
+  background-color: ${({ theme }) => theme.colors.overlayCard};
+  elevation: 14;
 `;
 
-const ObjectCardSheen = styled.View`
+/** Short leader line and dot tying the card back to the object it describes. */
+const CardAnchor = styled.View`
   position: absolute;
-  top: 0px;
-  right: 14px;
-  left: 14px;
-  height: 1px;
-  background-color: ${({ theme }) => theme.colors.glassHighlight};
-`;
-
-const ObjectCardHeader = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-`;
-
-const ObjectIdentity = styled.View`
-  flex: 1;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-`;
-
-const LearningBadge = styled.Text`
-  width: 28px;
-  height: 28px;
-  overflow: hidden;
-  border-radius: 9px;
-  border: 1px solid rgba(184, 217, 255, 0.28);
-  background-color: ${({ theme }) => theme.colors.glassBlue};
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 28px;
-  text-align: center;
+  top: -14px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 5px;
+  background-color: ${({ theme }) => theme.colors.overlayCard};
 `;
 
 const ObjectWord = styled.Text`
-  flex: 1;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.4px;
+  color: ${({ theme }) => theme.colors.overlayInk};
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
 `;
 
-const ObjectAudioCue = styled.View`
-  width: 28px;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(184, 217, 255, 0.28);
-  border-radius: 14px;
-  background-color: ${({ theme }) => theme.colors.glassBlue};
-`;
-
-const ObjectDetails = styled.View`
+const TranslationRow = styled.View`
   flex-direction: row;
   align-items: center;
-  margin-top: 9px;
-  padding: 7px 8px;
-  border-radius: 9px;
-  border: 1px solid rgba(133, 183, 255, 0.18);
-  background-color: rgba(26, 111, 236, 0.18);
-`;
-
-const ObjectDetail = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const ObjectDetailLabel = styled.Text`
-  color: #82b5ff;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: 0.9px;
-`;
-
-const ObjectDetailValue = styled.Text`
   margin-top: 2px;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
 `;
 
-const ObjectDetailDivider = styled.View`
-  width: 1px;
-  height: 26px;
-  margin: 0px 8px;
-  background-color: rgba(130, 181, 255, 0.35);
+const Translation = styled.Text<{ $secondary: boolean }>`
+  color: ${({ theme, $secondary }) =>
+    $secondary
+      ? theme.colors.translationSecondary
+      : theme.colors.translationPrimary};
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+`;
+
+const TranslationDot = styled.Text`
+  margin: 0px 6px;
+  color: ${({ theme }) => theme.colors.overlayMuted};
+  font-size: 16px;
+  line-height: 22px;
+`;
+
+const ObjectDefinition = styled.Text`
+  margin-top: 10px;
+  color: ${({ theme }) => theme.colors.overlayInk};
+  font-size: 14px;
+  line-height: 20px;
+`;
+
+const ObjectRule = styled.View`
+  height: 1px;
+  margin: 12px 0px;
+  background-color: ${({ theme }) => theme.colors.overlayRule};
+`;
+
+const ObjectPronunciation = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+const PronunciationText = styled.Text`
+  flex: 1;
+  color: ${({ theme }) => theme.colors.overlayMuted};
+  font-size: 12px;
+  line-height: 16px;
 `;
 
 const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
@@ -475,37 +530,12 @@ const Header = styled.View`
   margin: 10px 12px 0px;
 `;
 
-const HeaderMark = styled.View`
+const HeaderMark = styled.Pressable`
   width: 42px;
   height: 42px;
   overflow: hidden;
   border-radius: 8px;
   elevation: 8;
-`;
-
-const ObjectCountBadge = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
-  border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: ${({ theme }) => theme.colors.glass};
-  elevation: 6;
-`;
-
-const ObjectCountDot = styled.View`
-  width: 5px;
-  height: 5px;
-  border-radius: 3px;
-  background-color: ${({ theme }) => theme.colors.accent};
-`;
-
-const ObjectCountText = styled.Text`
-  color: ${({ theme }) => theme.colors.mutedStrong};
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
 `;
 
 const ErrorBanner = styled.View`
@@ -600,4 +630,72 @@ const PermissionError = styled.Text`
   color: #ffb4ab;
   font-size: 13px;
   text-align: center;
+`;
+
+const LanguagePill = styled.Pressable`
+  align-self: center;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+`;
+
+const LanguageFlag = styled.Text`
+  font-size: 18px;
+  line-height: 22px;
+`;
+
+const LanguageCode = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+`;
+
+const LanguageArrow = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 16px;
+`;
+
+const LanguageCheck = styled.Text`
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background-color: ${({ theme }) => theme.colors.translationPrimary};
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 22px;
+  text-align: center;
+`;
+
+const SettingsButton = styled.Pressable`
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 21px;
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+  elevation: 6;
+`;
+
+const DiagnosticsPanel = styled.View`
+  align-self: flex-start;
+  margin: 12px;
+  padding: 10px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 12px;
+  background-color: rgba(5, 18, 37, 0.86);
+`;
+
+const DiagnosticsLine = styled.Text`
+  color: #d8e6ff;
+  font-size: 11px;
+  line-height: 16px;
+  font-variant: tabular-nums;
 `;

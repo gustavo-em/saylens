@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
@@ -14,6 +14,10 @@ interface CameraScreenProps {
   isActive: boolean;
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
+  onOpenHistory: () => void;
+  onOpenSettings: () => void;
+  showDiagnostics: boolean;
+  onObjectsSeen: (labels: readonly string[]) => void;
   pronunciationPlayer: PronunciationPlayer;
   renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
   vocabularyRepository: VocabularyRepository;
@@ -24,6 +28,10 @@ export function CameraScreen({
   isActive,
   languageSettings,
   copy,
+  onOpenHistory,
+  onOpenSettings,
+  showDiagnostics,
+  onObjectsSeen,
   pronunciationPlayer,
   renderCamera,
   vocabularyRepository,
@@ -37,10 +45,23 @@ export function CameraScreen({
     vocabularyRepository,
   });
 
+  const visibleLabels = viewModel.detectionItems
+    .map(item => item.object.label)
+    .join('|');
+
+  useEffect(() => {
+    if (visibleLabels.length === 0) return;
+
+    onObjectsSeen(visibleLabels.split('|'));
+  }, [onObjectsSeen, visibleLabels]);
+
   return (
     <CameraView
       renderCamera={renderCamera}
       copy={copy}
+      onOpenHistory={onOpenHistory}
+      onOpenSettings={onOpenSettings}
+      showDiagnostics={showDiagnostics}
       isActive={isActive}
       viewModel={viewModel}
     />

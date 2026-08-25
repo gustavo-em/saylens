@@ -24,7 +24,10 @@ interface CameraViewProps {
   onOpenHistory: () => void;
   onOpenSettings: () => void;
   showDiagnostics: boolean;
-  renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
+  renderCamera: (
+    callbacks: CameraViewportCallbacks,
+    options: { isActive: boolean },
+  ) => ReactNode;
   viewModel: CameraViewModel;
 }
 
@@ -269,7 +272,25 @@ export function CameraView({
 
   return (
     <Container onLayout={handleLayout} testID="camera-container">
-      {renderCamera(viewModel.viewportCallbacks)}
+      {renderCamera(viewModel.viewportCallbacks, {
+        isActive: isActive && !viewModel.isFrozen,
+      })}
+
+      {isActive ? (
+        <FreezeSurface
+          accessibilityHint={
+            viewModel.isFrozen
+              ? copy.camera.tapToResume
+              : copy.camera.tapToFreeze
+          }
+          accessibilityLabel={
+            viewModel.isFrozen ? copy.camera.frozen : copy.camera.live
+          }
+          accessibilityRole="button"
+          onPress={viewModel.toggleFrozen}
+          testID="camera-freeze-surface"
+        />
+      ) : null}
       {isActive ? <Scrim pointerEvents="none" /> : null}
 
       {isActive && detectionFrame != null && viewport.width > 0 ? (
@@ -362,6 +383,13 @@ export function CameraView({
             <LanguageCode>{learningCode}</LanguageCode>
             <LanguageCheck>✓</LanguageCheck>
           </LanguagePill>
+
+          {viewModel.isFrozen ? (
+            <FrozenBadge testID="camera-frozen-badge">
+              <FrozenDot />
+              <FrozenText>{copy.camera.frozen}</FrozenText>
+            </FrozenBadge>
+          ) : null}
 
           {showDiagnostics ? (
             <DiagnosticsPanel accessible testID="camera-diagnostics">
@@ -698,4 +726,36 @@ const DiagnosticsLine = styled.Text`
   font-size: 11px;
   line-height: 16px;
   font-variant: tabular-nums;
+`;
+
+/** Sits under the detection layer, so tapping a card still speaks its word. */
+const FreezeSurface = styled.Pressable`
+  position: absolute;
+  inset: 0px;
+`;
+
+const FrozenBadge = styled.View`
+  align-self: center;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+`;
+
+const FrozenDot = styled.View`
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const FrozenText = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
 `;

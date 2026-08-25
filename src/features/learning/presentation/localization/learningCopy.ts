@@ -37,6 +37,10 @@ export interface LearningCopy {
     pronunciationLabel: string;
     tapToHearPronunciation: string;
     tapToChangeLanguages: string;
+    tapToFreeze: string;
+    tapToResume: string;
+    frozen: string;
+    live: string;
     pronunciationUnavailable: string;
     detectorAccessibility: (status: string, inferenceTimeMs?: number) => string;
   };
@@ -151,6 +155,10 @@ const copies: Record<
       pronunciationLabel: 'PRONÚNCIA',
       tapToHearPronunciation: 'Toque para ouvir a pronúncia.',
       tapToChangeLanguages: 'Toque para escolher os idiomas.',
+      tapToFreeze: 'Toque para congelar a cena.',
+      tapToResume: 'Toque para voltar ao tempo real.',
+      frozen: 'CONGELADO',
+      live: 'AO VIVO',
       pronunciationUnavailable:
         'A pronúncia não está disponível neste aparelho.',
       detectorAccessibility: (status, time) =>
@@ -222,6 +230,10 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIATION',
       tapToHearPronunciation: 'Tap to hear the pronunciation.',
       tapToChangeLanguages: 'Tap to choose the languages.',
+      tapToFreeze: 'Tap to freeze the scene.',
+      tapToResume: 'Tap to go back to live.',
+      frozen: 'FROZEN',
+      live: 'LIVE',
       pronunciationUnavailable:
         'Pronunciation is not available on this device.',
       detectorAccessibility: (status, time) =>
@@ -295,6 +307,10 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIACIÓN',
       tapToHearPronunciation: 'Toca para escuchar la pronunciación.',
       tapToChangeLanguages: 'Toca para elegir los idiomas.',
+      tapToFreeze: 'Toca para congelar la escena.',
+      tapToResume: 'Toca para volver al tiempo real.',
+      frozen: 'CONGELADO',
+      live: 'EN VIVO',
       pronunciationUnavailable:
         'La pronunciación no está disponible en este dispositivo.',
       detectorAccessibility: (status, time) =>

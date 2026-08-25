@@ -49,9 +49,13 @@ export function useCameraViewModel({
     null,
   );
   const detectionTracker = useRef(new DetectionMotionTracker());
+  const frozenRef = useRef(false);
   const [detectorSamples, setDetectorSamples] = useState<DetectorSample[]>([]);
   const lastDetectionUpdate = useRef(0);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
+  // Freezing keeps the last detections on screen so a card can be read and
+  // tapped without holding the object in frame.
+  const [isFrozen, setIsFrozen] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const requestedAutomatically = useRef(false);
 
@@ -107,6 +111,8 @@ export function useCameraViewModel({
   }, []);
 
   const handleDetections = useCallback((frame: DetectionFrame) => {
+    if (frozenRef.current) return;
+
     const now = Date.now();
     const trackedFrame = detectionTracker.current.update(frame, now);
 
@@ -122,6 +128,13 @@ export function useCameraViewModel({
         receivedAtMs: now,
       }),
     );
+  }, []);
+
+  const toggleFrozen = useCallback(() => {
+    setIsFrozen(current => {
+      frozenRef.current = !current;
+      return !current;
+    });
   }, []);
 
   const handleDetectionError = useCallback((message: string) => {
@@ -147,6 +160,15 @@ export function useCameraViewModel({
       pronunciationPlayer,
     ],
   );
+
+  useEffect(() => {
+    if (isActive) return;
+
+    // Leaving the camera clears the freeze, so returning always shows live
+    // detections rather than a stale frame from the previous session.
+    frozenRef.current = false;
+    setIsFrozen(false);
+  }, [isActive]);
 
   useEffect(() => {
     setPronunciationError(null);
@@ -195,6 +217,8 @@ export function useCameraViewModel({
     detectorMetrics: summariseSamples(detectorSamples, Date.now()),
     hasPermission: cameraAccess.status === 'authorized',
     isCameraLive: isActive && isPreviewReady,
+    isFrozen,
+    toggleFrozen,
     isRequestingPermission,
     languageSettings,
     onObjectPress: handleObjectPress,

@@ -19,9 +19,9 @@ type AppViewModel = ReturnType<typeof useAppViewModel>;
 
 function AppContent({ viewModel }: { viewModel: AppViewModel }) {
   const renderCamera = useCallback(
-    (callbacks: CameraViewportCallbacks) => (
+    (callbacks: CameraViewportCallbacks, options: { isActive: boolean }) => (
       <VisionCameraViewport
-        isActive={viewModel.cameraIsActive}
+        isActive={options.isActive}
         cameraErrorMessage={viewModel.copy.camera.previewFailed}
         detectionErrorMessage={viewModel.copy.camera.recognitionUnavailable}
         performanceCapabilities={viewModel.performanceCapabilities}
@@ -30,7 +30,6 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
       />
     ),
     [
-      viewModel.cameraIsActive,
       viewModel.copy.camera,
       viewModel.performanceCapabilities,
       viewModel.performanceProfile,

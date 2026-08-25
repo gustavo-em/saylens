@@ -19,7 +19,10 @@ interface CameraScreenProps {
   showDiagnostics: boolean;
   onObjectsSeen: (labels: readonly string[]) => void;
   pronunciationPlayer: PronunciationPlayer;
-  renderCamera: (callbacks: CameraViewportCallbacks) => ReactNode;
+  renderCamera: (
+    callbacks: CameraViewportCallbacks,
+    options: { isActive: boolean },
+  ) => ReactNode;
   vocabularyRepository: VocabularyRepository;
 }
 

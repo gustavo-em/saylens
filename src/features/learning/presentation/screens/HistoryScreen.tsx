@@ -3,6 +3,7 @@ import styled from 'styled-components/native';
 
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
+import { isFavorite, type FavoriteWord } from '../../domain/FavoriteWord';
 import {
   languageFlags,
   type LearningLanguageSettings,
@@ -13,7 +14,9 @@ import type { LearningCopy } from '../localization/learningCopy';
 interface HistoryScreenProps {
   copy: LearningCopy;
   languageSettings: LearningLanguageSettings;
+  favorites: readonly FavoriteWord[];
   onClose: () => void;
+  onToggleFavorite: (label: string) => void;
   pronunciationPlayer: PronunciationPlayer;
   viewedObjects: readonly ViewedObject[];
   vocabularyRepository: VocabularyRepository;
@@ -40,7 +43,9 @@ function formatSeenAt(copy: LearningCopy, seenAtMs: number) {
 export function HistoryScreen({
   copy,
   languageSettings,
+  favorites,
   onClose,
+  onToggleFavorite,
   pronunciationPlayer,
   viewedObjects,
   vocabularyRepository,
@@ -94,6 +99,22 @@ export function HistoryScreen({
                     </Flag>
                     <Word numberOfLines={1}>{vocabulary.word}</Word>
                     <SeenAt>{formatSeenAt(copy, entry.seenAtMs)}</SeenAt>
+                    <FavoriteButton
+                      accessibilityLabel={copy.history.favorite}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: isFavorite(favorites, entry.label),
+                      }}
+                      hitSlop={10}
+                      onPress={() => onToggleFavorite(entry.label)}
+                      testID={`history-favorite-${entry.label}`}
+                    >
+                      <FavoriteMark
+                        $active={isFavorite(favorites, entry.label)}
+                      >
+                        {isFavorite(favorites, entry.label) ? '★' : '☆'}
+                      </FavoriteMark>
+                    </FavoriteButton>
                   </RowHeader>
 
                   <Translations numberOfLines={1}>
@@ -267,4 +288,15 @@ const EmptyText = styled.Text`
   color: ${({ theme }) => theme.colors.muted};
   font-size: 14px;
   line-height: 20px;
+`;
+
+const FavoriteButton = styled.Pressable`
+  padding: 2px;
+`;
+
+const FavoriteMark = styled.Text<{ $active: boolean }>`
+  color: ${({ theme, $active }) =>
+    $active ? theme.colors.accent : theme.colors.muted};
+  font-size: 18px;
+  line-height: 22px;
 `;

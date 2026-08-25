@@ -7,6 +7,7 @@ import { VisionCameraViewport } from '../features/learning/infrastructure/camera
 import { systemPronunciationPlayer } from '../features/learning/infrastructure/pronunciation/systemPronunciationPlayer';
 import { localVocabularyRepository } from '../features/learning/infrastructure/vocabulary/localVocabularyRepository';
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
+import { asyncStorageFavoriteWordStore } from '../features/learning/infrastructure/favorites/asyncStorageFavoriteWordStore';
 import { asyncStorageViewedObjectStore } from '../features/learning/infrastructure/history/asyncStorageViewedObjectStore';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
@@ -77,6 +78,8 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           languageSettings={viewModel.languageSettings}
           onClose={() => viewModel.selectTab('camera')}
           pronunciationPlayer={systemPronunciationPlayer}
+          favorites={viewModel.favorites}
+          onToggleFavorite={viewModel.toggleFavoriteLabel}
           viewedObjects={viewModel.viewedObjects}
           vocabularyRepository={localVocabularyRepository}
         />
@@ -106,6 +109,7 @@ export default function App() {
   const viewModel = useAppViewModel(
     asyncStoragePreferencesStore,
     asyncStorageViewedObjectStore,
+    asyncStorageFavoriteWordStore,
   );
 
   return (

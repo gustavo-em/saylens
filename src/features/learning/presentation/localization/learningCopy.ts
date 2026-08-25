@@ -20,6 +20,7 @@ export interface LearningCopy {
     subtitle: string;
     empty: string;
     tapToHear: string;
+    favorite: string;
     justNow: string;
     minutesAgo: (minutes: number) => string;
     hoursAgo: (hours: number) => string;
@@ -145,6 +146,7 @@ const copies: Record<
       subtitle: 'Os últimos 15 objetos que você reconheceu.',
       empty: 'Aponte a câmera para um objeto para começar seu histórico.',
       tapToHear: 'Toque para ouvir de novo.',
+      favorite: 'Favoritar',
       justNow: 'agora há pouco',
       minutesAgo: minutes => `há ${minutes} min`,
       hoursAgo: hours => `há ${hours} h`,
@@ -231,6 +233,7 @@ const copies: Record<
       subtitle: 'The last 15 objects you recognised.',
       empty: 'Point the camera at an object to start your history.',
       tapToHear: 'Tap to hear it again.',
+      favorite: 'Favourite',
       justNow: 'just now',
       minutesAgo: minutes => `${minutes} min ago`,
       hoursAgo: hours => `${hours} h ago`,
@@ -316,6 +319,7 @@ const copies: Record<
       subtitle: 'Los últimos 15 objetos que reconociste.',
       empty: 'Apunta la cámara a un objeto para empezar tu historial.',
       tapToHear: 'Toca para escucharlo de nuevo.',
+      favorite: 'Favorito',
       justNow: 'hace un momento',
       minutesAgo: minutes => `hace ${minutes} min`,
       hoursAgo: hours => `hace ${hours} h`,

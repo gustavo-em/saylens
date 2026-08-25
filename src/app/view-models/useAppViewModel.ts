@@ -5,7 +5,13 @@ import type { PerformanceProfile } from '../../features/learning/domain/Performa
 import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
 import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
+import type { FavoriteWordStore } from '../../features/learning/application/ports/FavoriteWordStore';
 import type { ViewedObjectStore } from '../../features/learning/application/ports/ViewedObjectStore';
+import {
+  sanitizeFavorites,
+  toggleFavorite,
+  type FavoriteWord,
+} from '../../features/learning/domain/FavoriteWord';
 import {
   recordViewedObjects,
   sanitizeViewedObjects,
@@ -23,6 +29,7 @@ import type { AppearanceMode } from '../theme/theme';
 export function useAppViewModel(
   preferencesStore: PreferencesStore,
   viewedObjectStore: ViewedObjectStore,
+  favoriteWordStore: FavoriteWordStore,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
@@ -35,6 +42,7 @@ export function useAppViewModel(
   // user did not choose.
   const [isRestored, setIsRestored] = useState(false);
   const [viewedObjects, setViewedObjects] = useState<ViewedObject[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
   const cameraAccess = useVisionCameraAccess();
 
   useEffect(() => {
@@ -51,6 +59,32 @@ export function useAppViewModel(
       isCurrent = false;
     };
   }, [viewedObjectStore]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    favoriteWordStore
+      .load()
+      .then(stored => {
+        if (isCurrent) setFavorites(sanitizeFavorites(stored));
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [favoriteWordStore]);
+
+  const toggleFavoriteLabel = useCallback(
+    (label: string) => {
+      setFavorites(current => {
+        const next = toggleFavorite(current, label, Date.now());
+        favoriteWordStore.save(next).catch(() => undefined);
+        return next;
+      });
+    },
+    [favoriteWordStore],
+  );
 
   const recordViewedLabels = useCallback(
     (labels: readonly string[]) => {
@@ -167,7 +201,9 @@ export function useAppViewModel(
     isRestored,
     recordViewedLabels,
     selectTab,
+    favorites,
     showDiagnostics: preferences.showDiagnostics,
+    toggleFavoriteLabel,
     toggleDiagnostics,
     viewedObjects,
     languageSettings: {

@@ -15,6 +15,17 @@ export interface LearningCopy {
     samples: string;
     profile: string;
   };
+  quiz: {
+    title: string;
+    subtitle: string;
+    prompt: string;
+    scoreLabel: (correct: number, answered: number) => string;
+    correct: string;
+    wrong: (answer: string) => string;
+    next: string;
+    locked: (missing: number) => string;
+    start: string;
+  };
   history: {
     title: string;
     subtitle: string;
@@ -132,6 +143,20 @@ const copies: Record<
 > = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
+    quiz: {
+      title: 'Praticar',
+      subtitle: 'Reconheça a palavra pela definição.',
+      prompt: 'Que palavra é esta?',
+      scoreLabel: (correct, answered) => `${correct} de ${answered}`,
+      correct: 'Certo!',
+      wrong: answer => `Era ${answer}`,
+      next: 'Próxima',
+      locked: missing =>
+        `Encontre mais ${missing} ${
+          missing === 1 ? 'objeto' : 'objetos'
+        } com a câmera para começar.`,
+      start: 'Praticar',
+    },
     diagnostics: {
       inferences: 'Inferências',
       latency: 'Latência por inferência',
@@ -219,6 +244,20 @@ const copies: Record<
   },
   en: {
     tabs: { camera: 'Camera', settings: 'Settings' },
+    quiz: {
+      title: 'Practise',
+      subtitle: 'Match the word to its definition.',
+      prompt: 'Which word is this?',
+      scoreLabel: (correct, answered) => `${correct} of ${answered}`,
+      correct: 'Correct!',
+      wrong: answer => `It was ${answer}`,
+      next: 'Next',
+      locked: missing =>
+        `Find ${missing} more ${
+          missing === 1 ? 'object' : 'objects'
+        } with the camera to start.`,
+      start: 'Practise',
+    },
     diagnostics: {
       inferences: 'Inferences',
       latency: 'Latency per inference',
@@ -305,6 +344,20 @@ const copies: Record<
   },
   es: {
     tabs: { camera: 'Cámara', settings: 'Configuración' },
+    quiz: {
+      title: 'Practicar',
+      subtitle: 'Reconoce la palabra por su definición.',
+      prompt: '¿Qué palabra es esta?',
+      scoreLabel: (correct, answered) => `${correct} de ${answered}`,
+      correct: '¡Correcto!',
+      wrong: answer => `Era ${answer}`,
+      next: 'Siguiente',
+      locked: missing =>
+        `Encuentra ${missing} ${
+          missing === 1 ? 'objeto' : 'objetos'
+        } más con la cámara para empezar.`,
+      start: 'Practicar',
+    },
     diagnostics: {
       inferences: 'Inferencias',
       latency: 'Latencia por inferencia',

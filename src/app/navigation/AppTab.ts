@@ -1,1 +1,1 @@
-export type AppTab = 'camera' | 'settings' | 'history';
+export type AppTab = 'camera' | 'settings' | 'history' | 'quiz';

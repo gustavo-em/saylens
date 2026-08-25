@@ -11,6 +11,7 @@ import { asyncStorageFavoriteWordStore } from '../features/learning/infrastructu
 import { asyncStorageViewedObjectStore } from '../features/learning/infrastructure/history/asyncStorageViewedObjectStore';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
+import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
 import { asyncStoragePreferencesStore } from './infrastructure/preferences/asyncStoragePreferencesStore';
 import { getPerformanceProfileSettings } from '../features/learning/domain/PerformanceProfile';
@@ -79,8 +80,20 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           onClose={() => viewModel.selectTab('camera')}
           pronunciationPlayer={systemPronunciationPlayer}
           favorites={viewModel.favorites}
+          onOpenQuiz={() => viewModel.selectTab('quiz')}
           onToggleFavorite={viewModel.toggleFavoriteLabel}
           viewedObjects={viewModel.viewedObjects}
+          vocabularyRepository={localVocabularyRepository}
+        />
+      ) : null}
+
+      {viewModel.activeTab === 'quiz' ? (
+        <QuizScreen
+          copy={viewModel.copy}
+          labels={viewModel.quizLabels}
+          languageSettings={viewModel.languageSettings}
+          onClose={() => viewModel.selectTab('history')}
+          pronunciationPlayer={systemPronunciationPlayer}
           vocabularyRepository={localVocabularyRepository}
         />
       ) : null}

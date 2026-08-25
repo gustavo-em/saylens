@@ -16,6 +16,7 @@ interface HistoryScreenProps {
   languageSettings: LearningLanguageSettings;
   favorites: readonly FavoriteWord[];
   onClose: () => void;
+  onOpenQuiz: () => void;
   onToggleFavorite: (label: string) => void;
   pronunciationPlayer: PronunciationPlayer;
   viewedObjects: readonly ViewedObject[];
@@ -45,6 +46,7 @@ export function HistoryScreen({
   languageSettings,
   favorites,
   onClose,
+  onOpenQuiz,
   onToggleFavorite,
   pronunciationPlayer,
   viewedObjects,
@@ -66,6 +68,13 @@ export function HistoryScreen({
             <Title accessibilityRole="header">{copy.history.title}</Title>
             <Subtitle>{copy.history.subtitle}</Subtitle>
           </HeaderText>
+          <PractiseButton
+            accessibilityRole="button"
+            onPress={onOpenQuiz}
+            testID="history-open-quiz"
+          >
+            <PractiseText>{copy.quiz.start}</PractiseText>
+          </PractiseButton>
         </Header>
 
         {viewedObjects.length === 0 ? (
@@ -118,14 +127,12 @@ export function HistoryScreen({
                   </RowHeader>
 
                   <Translations numberOfLines={1}>
-                    {vocabulary.meaning}
-                    {vocabulary.translations.length > 1
-                      ? `  •  ${vocabulary.translations
-                          .filter(
-                            translation => translation !== vocabulary.meaning,
-                          )
-                          .join('  •  ')}`
-                      : ''}
+                    {[
+                      vocabulary.meaning,
+                      ...vocabulary.translations.filter(
+                        translation => translation !== vocabulary.meaning,
+                      ),
+                    ].join('  •  ')}
                   </Translations>
 
                   <Example numberOfLines={2}>{vocabulary.example}</Example>
@@ -299,4 +306,16 @@ const FavoriteMark = styled.Text<{ $active: boolean }>`
     $active ? theme.colors.accent : theme.colors.muted};
   font-size: 18px;
   line-height: 22px;
+`;
+
+const PractiseButton = styled.Pressable`
+  padding: 10px 16px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const PractiseText = styled.Text`
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
 `;

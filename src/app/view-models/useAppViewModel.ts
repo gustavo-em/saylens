@@ -202,6 +202,14 @@ export function useAppViewModel(
     recordViewedLabels,
     selectTab,
     favorites,
+    // Practice draws on everything the learner has met: what is still in
+    // history plus everything kept as a favourite.
+    quizLabels: Array.from(
+      new Set([
+        ...viewedObjects.map(entry => entry.label),
+        ...favorites.map(entry => entry.label),
+      ]),
+    ),
     showDiagnostics: preferences.showDiagnostics,
     toggleFavoriteLabel,
     toggleDiagnostics,

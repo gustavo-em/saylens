@@ -2,12 +2,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
 import styled from 'styled-components/native';
 
-import { AppMark } from '../../../../app/components/AppMark';
 import {
   appearanceModes,
   type AppearanceMode,
 } from '../../../../app/theme/theme';
 import {
+  languageFlags,
   learningLanguages,
   type LearningLanguage,
   type LearningLanguageSettings,
@@ -24,9 +24,12 @@ interface SettingsScreenProps {
   copy: LearningCopy;
   languageSettings: LearningLanguageSettings;
   onAppearanceModeChange: (mode: AppearanceMode) => void;
+  onClose: () => void;
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
   onPerformanceProfileChange: (profile: PerformanceProfile) => void;
+  onToggleDiagnostics: (enabled: boolean) => void;
+  showDiagnostics: boolean;
   performanceCapabilities: PerformanceCapabilities;
   performanceProfile: PerformanceProfile;
 }
@@ -36,9 +39,12 @@ export function SettingsScreen({
   copy,
   languageSettings,
   onAppearanceModeChange,
+  onClose,
   onLearningLanguageChange,
   onNativeLanguageChange,
   onPerformanceProfileChange,
+  onToggleDiagnostics,
+  showDiagnostics,
   performanceCapabilities,
   performanceProfile,
 }: SettingsScreenProps) {
@@ -54,14 +60,15 @@ export function SettingsScreen({
       <SettingsSafeArea edges={['top']}>
         <Content showsVerticalScrollIndicator={false} $landscape={isLandscape}>
           <Header>
-            <BrandRow>
-              <BrandMark>
-                <AppMark height={26} width={26} />
-              </BrandMark>
-              <Eyebrow>SAYLENS</Eyebrow>
-            </BrandRow>
+            <BackButton
+              accessibilityLabel={copy.tabs.camera}
+              accessibilityRole="button"
+              onPress={onClose}
+              testID="settings-close"
+            >
+              <BackChevron>‹</BackChevron>
+            </BackButton>
             <Title accessibilityRole="header">{copy.settings.title}</Title>
-            <Subtitle>{copy.settings.subtitle}</Subtitle>
           </Header>
 
           <Section>
@@ -146,7 +153,7 @@ export function SettingsScreen({
                       $selected={nativeLanguage === language}
                     >
                       <LanguageCode $selected={nativeLanguage === language}>
-                        {getLanguageCode(language)}
+                        {languageFlags[language]}
                       </LanguageCode>
                       <LanguageOptionText
                         numberOfLines={1}
@@ -178,7 +185,7 @@ export function SettingsScreen({
                       $selected={learningLanguage === language}
                     >
                       <LanguageCode $selected={learningLanguage === language}>
-                        {getLanguageCode(language)}
+                        {languageFlags[language]}
                       </LanguageCode>
                       <LanguageOptionText
                         numberOfLines={1}
@@ -240,16 +247,34 @@ export function SettingsScreen({
                     );
                   })}
               </PerformanceOptions>
+
+              <DiagnosticsRow>
+                <DiagnosticsText>
+                  <SettingTitle>{copy.settings.diagnosticsTitle}</SettingTitle>
+                  <PerformanceDescription>
+                    {copy.settings.diagnosticsDescription}
+                  </PerformanceDescription>
+                </DiagnosticsText>
+                <DiagnosticsToggle
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: showDiagnostics }}
+                  onPress={() => onToggleDiagnostics(!showDiagnostics)}
+                  testID="settings-toggle-diagnostics"
+                  $enabled={showDiagnostics}
+                >
+                  <DiagnosticsToggleText $enabled={showDiagnostics}>
+                    {showDiagnostics
+                      ? copy.settings.diagnosticsOn
+                      : copy.settings.diagnosticsOff}
+                  </DiagnosticsToggleText>
+                </DiagnosticsToggle>
+              </DiagnosticsRow>
             </PerformancePanel>
           </Section>
         </Content>
       </SettingsSafeArea>
     </Container>
   );
-}
-
-function getLanguageCode(language: LearningLanguage) {
-  return language === 'pt-BR' ? 'PT' : language.toUpperCase();
 }
 
 function getPerformanceOption(copy: LearningCopy, profile: PerformanceProfile) {
@@ -312,27 +337,10 @@ const Content = styled.ScrollView.attrs<{ $landscape: boolean }>(
 )<{ $landscape: boolean }>``;
 
 const Header = styled.View`
-  padding: 2px 2px 0px;
-`;
-
-const BrandRow = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: 9px;
-`;
-
-const BrandMark = styled.View`
-  width: 26px;
-  height: 26px;
-  overflow: hidden;
-  border-radius: 8px;
-`;
-
-const Eyebrow = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.8px;
+  gap: 12px;
+  padding: 2px 2px 0px;
 `;
 
 const Title = styled.Text.attrs({
@@ -340,18 +348,11 @@ const Title = styled.Text.attrs({
   minimumFontScale: 0.82,
   numberOfLines: 1,
 })`
-  margin-top: 16px;
+  flex: 1;
   color: ${({ theme }) => theme.colors.text};
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -1px;
-`;
-
-const Subtitle = styled.Text`
-  margin-top: 8px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
 `;
 
 const Section = styled.View`
@@ -634,4 +635,54 @@ const SelectionIndicator = styled.Text<{ $selected: boolean }>`
   font-weight: 900;
   line-height: 22px;
   text-align: center;
+`;
+
+const BackButton = styled.Pressable`
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: 17px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const BackChevron = styled.Text`
+  margin-top: -3px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 24px;
+  line-height: 26px;
+`;
+
+const DiagnosticsRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top-width: 1px;
+  border-top-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const DiagnosticsText = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const DiagnosticsToggle = styled.Pressable<{ $enabled: boolean }>`
+  padding: 8px 14px;
+  border: 1px solid
+    ${({ theme, $enabled }) =>
+      $enabled ? theme.colors.accent : theme.colors.borderSubtle};
+  border-radius: 999px;
+  background-color: ${({ theme, $enabled }) =>
+    $enabled ? theme.colors.accent : 'transparent'};
+`;
+
+const DiagnosticsToggleText = styled.Text<{ $enabled: boolean }>`
+  color: ${({ theme, $enabled }) =>
+    $enabled ? '#ffffff' : theme.colors.muted};
+  font-size: 12px;
+  font-weight: 800;
 `;

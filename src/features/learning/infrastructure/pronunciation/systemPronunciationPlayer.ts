@@ -10,7 +10,8 @@ interface NativePronunciationModule {
 
 const speechLocales: Record<LearningLanguage, string> = {
   'pt-BR': 'pt-BR',
-  en: 'en-US',
+  'en-US': 'en-US',
+  'en-GB': 'en-GB',
   es: 'es-ES',
 };
 

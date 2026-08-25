@@ -29,6 +29,16 @@ modules/**/android/build/
 !android/app/debug.keystore
 keystore.properties
 
+# iOS
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+xcuserdata/
+*.xcuserstate
+DerivedData/
+**/.xcode.env.local
+*.ipa
+
 # IDEs and operating systems
 .DS_Store
 .idea/

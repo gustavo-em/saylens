@@ -8,5 +8,11 @@ android/app/build/
 modules/**/android/.cxx/
 modules/**/android/build/
 
+ios/Pods/
+ios/build/
+ios/*.xcodeproj/
+ios/*.xcworkspace/
+ios/**/Images.xcassets/
+
 coverage/
 reports/

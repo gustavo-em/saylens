@@ -70,80 +70,96 @@ DetectorConfiguration   the numbers, in one place
 
 ## The detector
 
-### Why Vision and not the Android model
+### The same model as Android
 
-Recorded in full in [ADR-0009](adr/0009-ios-vision-detector.md). In short: the
-Android build bundles EfficientDet-Lite0 and its 80 COCO labels, every one of
-them curated in the dictionary; iOS reads Apple's Vision taxonomy of 1303
-labels that already ships with the operating system, 72 of which map onto that
-same dictionary. Nothing is added to the download, and a learner pointing at a mug, a
-desk, or a plant gets a box instead of nothing.
+iOS runs MediaPipe Tasks with the EfficientDet-Lite0 int8 model already in this
+repository, read from the same file the Android build packages. The reasoning,
+and the Vision-based design it replaced, are in
+[ADR-0010](adr/0010-ios-shares-the-android-detector.md) and
+[ADR-0009](adr/0009-ios-vision-detector.md).
 
-### Two phases per frame
+Recognition is therefore identical on both platforms: the same 80 COCO labels,
+the same score threshold, the same result ceiling, and every label backed by a
+curated word, meaning, pronunciation, and example.
 
-1. **Where.** `VNGenerateObjectnessBasedSaliencyImageRequest` returns
-   class-agnostic boxes around whatever stands out. This phase does not care
-   what the objects are, which is exactly why the app is no longer limited to a
-   fixed class list.
-2. **What.** One `VNClassifyImageRequest` per box, with the box as its
-   `regionOfInterest`, run together in a single `perform` call. Results are
-   filtered by Apple's precision and recall curves rather than a raw confidence
-   number.
+### What happens to a frame
 
-Boxes are inflated by 6% before classification: objectness boxes hug the
-subject, and a classifier reads a little context better than a tight crop.
+```text
+VisionCamera hands over a CMSampleBuffer on its frame queue
+  → the pool offers it to the first idle worker, or drops it
+  → the worker copies it: stood upright, shrunk to 640 on the long side
+  → MediaPipe reads the copy and returns boxes in that copy's pixels
+  → the pool carries names and boxes forward from the last frame
+  → the batch reports the copy's size and no rotation
+```
 
-When several labels survive the filter for one box, the one the app's
-dictionary knows wins over a more confident one it does not. A known label
-carries a meaning, a pronunciation, and an example; an unknown one carries a
-word alone.
+Three of those steps were bought with device evidence rather than reasoning,
+and each one hid the next while it was wrong.
 
-### Frame ownership
+**The copy owns its pixels.** The camera recycles its buffer the moment the
+frame callback returns, so the pixels are copied on the calling queue before
+inference is dispatched. Each worker keeps one destination buffer and resizes
+it only when the camera resolution or the way the phone is held changes.
 
-`detect` is called on VisionCamera's frame queue with a `CMSampleBuffer` the
-capture session owns and recycles the moment the call returns. Inference
-outlives that call, so the pixels are copied first, on the calling queue, into
-a buffer this module owns. Each worker keeps one destination buffer and resizes
-it only when the camera resolution changes, because allocating a megabyte per
-frame at thirty frames a second is work for nothing.
+**The copy stands the image up, by hand.** The sensor delivers landscape
+buffers while the learner holds the phone in portrait, and a detector reads a
+scene lying on its side far worse than one the right way up. The rotation is a
+plain loop over pixels: the Accelerate path that would have done it produced a
+black buffer on the device while behaving correctly on a Mac, and a loop that
+can be read is worth more here than one that cannot be explained.
+
+**The rotation direction is not the Core Graphics one.** VisionCamera names the
+turn that stands a frame up rather than naming where the top of the picture
+ended up, so a frame reported as `left` needs a quarter turn clockwise. This
+was settled by capturing a frame off the device and rotating it both ways until
+one matched the preview.
+
+**The copy is also shrunk**, to 640 pixels on the long side. The model reads
+320 by 320, so two megapixels of camera frame are thrown away by its own
+preprocessing anyway, and the rotation loop costs proportionally less.
+
+**Boxes belong to the copy, not to the camera frame.** The batch reports the
+copy's dimensions and a rotation of zero, because the image was already stood
+up before the model saw it. Reporting the camera's own size here, or a rotation
+on top of one already applied, is what put every card in the same corner of the
+screen.
 
 ### Scheduling
 
 The pool offers a frame to each worker in turn, starting after the one that
 took the previous frame. If every worker is busy the frame is dropped on
 purpose: a queue would only make results older, and an overlay drawn from an
-old result is what makes a card look detached from the object under it. `detect`
-never waits — it returns whatever finished in the meantime, and each finished
-batch is delivered exactly once.
+old result is what makes a card look detached from the object under it.
+`detect` never waits — it returns whatever finished in the meantime, and each
+finished batch is delivered exactly once.
 
 Results can finish out of order when several workers run at once, so a batch
-carries the sequence number of the frame it came from and an older one never
-replaces a newer one already published.
+carries the sequence number of the frame it came from; an older one never
+replaces a newer one already published, and never disturbs what is being
+tracked.
 
-### Orientation
+### Steadiness
 
-Vision is told how the buffer is oriented and answers in the upright image's
-coordinate space. That matters for accuracy — an upside-down chair is a much
-harder chair — and it means the iOS batch reports a rotation of zero and swaps
-the frame dimensions on a quarter turn. The rotation field stays in the shared
-contract for Android, where the frame reaches JavaScript unrotated.
+The model reads every frame from scratch, so the same still object comes back
+with edges a few pixels apart and, now and then, a different name. The pool
+carries the last published frame forward: a new box that overlaps an old one by
+40% or more is the same object, its position is the average of the two, and its
+name only changes when the model is at least 0.1 more confident than it was.
+One bad frame no longer renames the object under the learner's card.
 
 ### Maximum performance
 
 The performance profile arrives from the app's settings screen and maps to the
-worker count, which is the only knob iOS has:
+worker count:
 
 | Profile             | Workers                         | Queue quality of service |
 | ------------------- | ------------------------------- | ------------------------ |
 | Maximum performance | every logical core, capped at 6 | `userInitiated`          |
 | Power saving        | 1                               | `utility`                |
 
-There is no delegate to choose. Vision routes the work to the Neural Engine,
-the GPU, or the CPU by itself, so `getSupportsGpuDelegate` answers `false` and
-the settings screen does not offer a switch that changes nothing. A worker on
-iOS is therefore a pipeline rather than a thread: extra workers overlap the
-CPU-side work around inference — buffer copies, request setup, result mapping —
-rather than multiplying inference itself, because the Neural Engine is shared.
+Every worker runs on the CPU. MediaPipe's iOS delegate is Metal rather than the
+OpenCL path that aborted processes on Android, so it is a reasonable next
+experiment, but it is not one this build has measured.
 
 No core is held back for the camera. AVFoundation runs capture on its own
 real-time queues, which sit above the detector queues in quality of service, so
@@ -221,35 +237,21 @@ xcodebuild -workspace ios/SayLens.xcworkspace -scheme SayLens \
 
 ## Status
 
-Seen working on an iPhone 17 Pro simulator:
+Working on a physical iPhone 13 (A15, iOS 18.6.2), Release build:
 
-- the app builds, launches, and renders, and navigation and storage work;
-- the detector is constructed on start-up and opens one worker per logical
-  core;
-- a worker that cannot run its Vision requests logs the failure and leaves the
-  rest of the pool alone. The simulator proves that path by accident: it
-  cannot create an Espresso context for these requests at all.
+- the camera, the detector, and the overlay run end to end, and objects are
+  recognised and named as they are on Android;
+- measured at 49.9 detections delivered per second, median inference 33 ms,
+  p95 38 ms, with six workers — against 19.7 per second and 114 ms median for
+  the Vision design that preceded it;
+- the two native modules build and register, and their permission flows have
+  been exercised as far as the camera and microphone prompts.
 
-Written and compiling, not yet exercised:
+Not measured yet:
 
-- the two recognition phases, since Vision's models do not run in the
-  simulator;
-- both native modules and their permission flows, which need a real microphone;
-- the taxonomy table, whose 109 identifiers come from Vision's own list and
-  cover 72 of the dictionary's 80 labels.
+- thermals and battery over a sustained session;
+- MediaPipe's Metal delegate, which is offered nowhere until it is;
+- speech recognition and pronunciation over a long session on the device.
 
-Not yet done, and honest about it:
-
-- no latency, throughput, or thermal numbers from a physical iPhone;
-- the alias table has not been checked against what the classifier actually
-  returns in a room, only against the identifiers Vision publishes;
-- the app's dictionary describes 80 labels, so recognitions outside that set
-  reach the learner as a bare English word on a generic card;
-- eight curated labels have no Vision identifier at all: baseball glove, hair
-  drier, parking meter, remote, stop sign, tennis racket, toothbrush, and wine
-  glass;
-- the app icon is still the empty one from the React Native template, so the
-  build installs without artwork.
-
-The evidence to collect first is in [ADR-0009](adr/0009-ios-vision-detector.md)
-under Validation.
+The app icon is still the empty one from the React Native template, so the
+build installs without artwork.

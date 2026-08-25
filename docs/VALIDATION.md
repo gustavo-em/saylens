@@ -161,26 +161,36 @@ still required before a public performance claim beyond this device and build.
 
 ## iOS
 
-The layer builds and runs. Nothing about recognition is measured yet.
+Measured on a physical iPhone 13 (iPhone14,5, A15 Bionic, iOS 18.6.2), Release
+build signed for development, Xcode 26.1.1, on 2026-08-25. Numbers come from
+the app's own diagnostics panel, which counts batches delivered to the
+interface and the inference time carried by each one.
 
-Observed on 2026-08-25, Debug build, iPhone 17 Pro simulator on iOS 26.1,
-Xcode 26.1.1:
+| Detector                                | Delivered per second | Median | p95    | Workers |
+| --------------------------------------- | -------------------- | ------ | ------ | ------- |
+| MediaPipe EfficientDet-Lite0 int8 (CPU) | 49.9                 | 33 ms  | 38 ms  | 6       |
+| Apple Vision saliency + classification  | 19.7                 | 114 ms | 301 ms | 3       |
 
-- the app builds from a clean `pod install`, launches, loads the bundle from
-  Metro, and renders;
-- the detector object is constructed on start-up and its pool opens six
-  workers, one per logical core the simulator reports;
-- every worker's warm-up fails with `Failed to create espresso context`, which
-  is the simulator's own limitation for these Vision requests, and each failure
-  is caught and logged against its worker instead of taking the app down;
-- the menu, the collection screen, and stored progress work.
+The Vision row is kept because it is why the detector changed. It was not slow
+enough to matter; it was the wrong shape for the product, and the reasoning is
+in [ADR-0010](adr/0010-ios-shares-the-android-detector.md).
 
-That is evidence about the plumbing, not about recognition. Vision's models do
-not run in the simulator, so everything that matters — latency for each phase,
-throughput, how stable the boxes are, and how often a label lands in the
-dictionary — still needs a physical iPhone. Android's numbers do not carry
-over: the two platforms recognise through different frameworks with different
-label sets ([ADR-0009](adr/0009-ios-vision-detector.md)).
+The detector reads a frame stood upright and shrunk to 640 pixels on its long
+side. The camera delivers 1920 by 1080, and the model reads 320 by 320, so the
+shrink costs nothing the model would have used.
 
-The first measurements to take are listed in
-[the iOS native layer](IOS.md#status).
+Three defects were found on the device and none of them by reading code:
+
+- Accelerate's rotation produced a black buffer on the phone while behaving
+  correctly on a Mac with the same pixel format and padding;
+- VisionCamera names the turn that stands a frame up, not where the top of the
+  picture ended up, so the first rotation was 180 degrees out;
+- boxes were reported against the camera's frame size while they belonged to
+  the shrunk copy, which put every card in one corner.
+
+Each was found by writing the frame the model reads out of the app and looking
+at it, because a physical device offers no screenshot over the wire and no log
+without root.
+
+Still to measure: thermals and battery over a sustained session, MediaPipe's
+Metal delegate, and the speech modules over a long run.

@@ -9,10 +9,9 @@ import {
   type LearningLanguageSettings,
 } from '../../domain/LearningLanguage';
 import {
-  buildQuestion,
+  buildRound,
   MIN_QUIZ_LABELS,
   recordAnswer,
-  type QuizQuestion,
   type QuizScore,
 } from '../../domain/Quiz';
 import type { LearningCopy } from '../localization/learningCopy';
@@ -37,11 +36,14 @@ export function QuizScreen({
   pronunciationPlayer,
   vocabularyRepository,
 }: QuizScreenProps) {
-  const [question, setQuestion] = useState<QuizQuestion | null>(() =>
-    buildQuestion(labels, pickIndex),
-  );
+  const [round, setRound] = useState(() => buildRound(labels, pickIndex));
+  const [askedIndex, setAskedIndex] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
   const [score, setScore] = useState<QuizScore>({ answered: 0, correct: 0 });
+
+  const question = round[askedIndex] ?? null;
+  const isLastQuestion = askedIndex === round.length - 1;
+  const isRoundOver = round.length > 0 && askedIndex >= round.length;
 
   const uniqueLabels = useMemo(
     () => new Set(labels.map(label => label.trim().toLowerCase())).size,
@@ -82,8 +84,65 @@ export function QuizScreen({
 
   const handleNext = useCallback(() => {
     setChosen(null);
-    setQuestion(buildQuestion(labels, pickIndex));
+    setAskedIndex(current => current + 1);
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    setChosen(null);
+    setScore({ answered: 0, correct: 0 });
+    setAskedIndex(0);
+    setRound(buildRound(labels, pickIndex));
   }, [labels]);
+
+  if (isRoundOver) {
+    return (
+      <Container>
+        <QuizSafeArea edges={['top']}>
+          <Header>
+            <BackButton
+              accessibilityLabel={copy.tabs.camera}
+              accessibilityRole="button"
+              onPress={onClose}
+              testID="quiz-close"
+            >
+              <BackChevron>‹</BackChevron>
+            </BackButton>
+            <HeaderText>
+              <Title accessibilityRole="header">{copy.quiz.title}</Title>
+              <Subtitle>{copy.quiz.subtitle}</Subtitle>
+            </HeaderText>
+          </Header>
+
+          <SummaryCard testID="quiz-summary">
+            <SummaryMark>
+              {score.correct === score.answered ? '🏆' : '🎯'}
+            </SummaryMark>
+            <SummaryTitle>{copy.quiz.roundOver}</SummaryTitle>
+            <SummaryScore>
+              {copy.quiz.roundScore(score.correct, score.answered)}
+            </SummaryScore>
+            <SummaryTrack>
+              <SummaryFill
+                $percentage={
+                  score.answered === 0
+                    ? 0
+                    : (score.correct / score.answered) * 100
+                }
+              />
+            </SummaryTrack>
+          </SummaryCard>
+
+          <NextButton
+            accessibilityRole="button"
+            onPress={handleRestart}
+            testID="quiz-restart"
+          >
+            <NextText>{copy.quiz.again}</NextText>
+          </NextButton>
+        </QuizSafeArea>
+      </Container>
+    );
+  }
 
   if (question == null || answer == null) {
     return (
@@ -133,9 +192,9 @@ export function QuizScreen({
             <Title accessibilityRole="header">{copy.quiz.title}</Title>
             <Subtitle>{copy.quiz.subtitle}</Subtitle>
           </HeaderText>
-          <ScorePill testID="quiz-score">
+          <ScorePill testID="quiz-progress">
             <ScoreText>
-              {copy.quiz.scoreLabel(score.correct, score.answered)}
+              {copy.quiz.progress(askedIndex + 1, round.length)}
             </ScoreText>
           </ScorePill>
         </Header>
@@ -220,13 +279,59 @@ export function QuizScreen({
             onPress={handleNext}
             testID="quiz-next"
           >
-            <NextText>{copy.quiz.next}</NextText>
+            <NextText>
+              {isLastQuestion ? copy.quiz.finish : copy.quiz.next}
+            </NextText>
           </NextButton>
         ) : null}
       </QuizSafeArea>
     </Container>
   );
 }
+
+const SummaryCard = styled.View`
+  align-items: center;
+  padding: 28px 22px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: 22px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const SummaryMark = styled.Text`
+  font-size: 34px;
+  line-height: 40px;
+`;
+
+const SummaryTitle = styled.Text`
+  margin-top: 10px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 800;
+`;
+
+const SummaryScore = styled.Text`
+  margin-top: 6px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+`;
+
+const SummaryTrack = styled.View`
+  align-self: stretch;
+  height: 6px;
+  margin-top: 18px;
+  border-radius: 3px;
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const SummaryFill = styled.View<{ $percentage: number }>`
+  width: ${({ $percentage }) => `${Math.max($percentage, 2)}%`};
+  height: 6px;
+  background-color: ${({ theme }) => theme.colors.success};
+`;
 
 type ChoiceState = 'idle' | 'correct' | 'wrong' | 'muted';
 

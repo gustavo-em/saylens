@@ -7,23 +7,33 @@ export interface QuizQuestion {
 
 export const QUIZ_CHOICE_COUNT = 4;
 export const MIN_QUIZ_LABELS = QUIZ_CHOICE_COUNT;
+/** A round is short enough to finish in one sitting and long enough to score. */
+export const QUIZ_ROUND_LENGTH = 10;
 
-/**
- * Builds a question from the labels the learner has already met. Distractors
- * come from that same pool, so a quiz never asks about a word the learner has
- * not seen through the camera.
- */
-export function buildQuestion(
-  labels: readonly string[],
-  pickIndex: (upperBound: number) => number,
-): QuizQuestion | null {
-  const pool = Array.from(
+type PickIndex = (upperBound: number) => number;
+
+function buildPool(labels: readonly string[]) {
+  return Array.from(
     new Set(labels.map(label => label.trim().toLowerCase())),
   ).filter(label => label.length > 0);
+}
 
-  if (pool.length < MIN_QUIZ_LABELS) return null;
+function shuffle(values: readonly string[], pickIndex: PickIndex) {
+  const shuffled = [...values];
 
-  const answer = pool[pickIndex(pool.length)];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swap = pickIndex(index + 1);
+    [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+function buildQuestion(
+  answer: string,
+  pool: readonly string[],
+  pickIndex: PickIndex,
+): QuizQuestion {
   const distractors: string[] = [];
   const remaining = pool.filter(label => label !== answer);
 
@@ -31,14 +41,30 @@ export function buildQuestion(
     distractors.push(...remaining.splice(pickIndex(remaining.length), 1));
   }
 
-  const choices = [answer, ...distractors];
-  // Shuffle so the answer is not always first.
-  for (let index = choices.length - 1; index > 0; index -= 1) {
-    const swap = pickIndex(index + 1);
-    [choices[index], choices[swap]] = [choices[swap], choices[index]];
-  }
+  return {
+    label: answer,
+    choices: shuffle([answer, ...distractors], pickIndex),
+  };
+}
 
-  return { label: answer, choices };
+/**
+ * Builds a whole round from the labels the learner has already met, one
+ * question per word and never the same word twice. A round has a known length,
+ * so progress and score are two different numbers rather than one confusing
+ * one. Distractors come from that same pool, so a quiz never asks about a word
+ * the learner has not seen through the camera.
+ */
+export function buildRound(
+  labels: readonly string[],
+  pickIndex: PickIndex,
+): QuizQuestion[] {
+  const pool = buildPool(labels);
+
+  if (pool.length < MIN_QUIZ_LABELS) return [];
+
+  return shuffle(pool, pickIndex)
+    .slice(0, QUIZ_ROUND_LENGTH)
+    .map(answer => buildQuestion(answer, pool, pickIndex));
 }
 
 export interface QuizScore {

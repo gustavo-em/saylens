@@ -36,7 +36,11 @@ export interface LearningCopy {
     title: string;
     subtitle: string;
     prompt: string;
-    scoreLabel: (correct: number, answered: number) => string;
+    progress: (current: number, total: number) => string;
+    roundOver: string;
+    roundScore: (correct: number, total: number) => string;
+    again: string;
+    finish: string;
     correct: string;
     wrong: (answer: string) => string;
     next: string;
@@ -209,7 +213,14 @@ const copies: Record<
       title: 'Praticar',
       subtitle: 'Reconheça a palavra pela definição.',
       prompt: 'Que palavra é esta?',
-      scoreLabel: (correct, answered) => `${correct} de ${answered}`,
+      progress: (current, total) => `${current} de ${total}`,
+      roundOver: 'Fim da rodada',
+      roundScore: (correct, total) =>
+        `Você acertou ${correct} de ${total} ${
+          total === 1 ? 'palavra' : 'palavras'
+        }.`,
+      again: 'Jogar de novo',
+      finish: 'Ver resultado',
       correct: 'Certo!',
       wrong: answer => `Era ${answer}`,
       next: 'Próxima',
@@ -364,7 +375,14 @@ const copies: Record<
       title: 'Practise',
       subtitle: 'Match the word to its definition.',
       prompt: 'Which word is this?',
-      scoreLabel: (correct, answered) => `${correct} of ${answered}`,
+      progress: (current, total) => `${current} of ${total}`,
+      roundOver: 'Round over',
+      roundScore: (correct, total) =>
+        `You got ${correct} of ${total} ${
+          total === 1 ? 'word' : 'words'
+        } right.`,
+      again: 'Play again',
+      finish: 'See the result',
       correct: 'Correct!',
       wrong: answer => `It was ${answer}`,
       next: 'Next',
@@ -518,7 +536,14 @@ const copies: Record<
       title: 'Practicar',
       subtitle: 'Reconoce la palabra por su definición.',
       prompt: '¿Qué palabra es esta?',
-      scoreLabel: (correct, answered) => `${correct} de ${answered}`,
+      progress: (current, total) => `${current} de ${total}`,
+      roundOver: 'Fin de la ronda',
+      roundScore: (correct, total) =>
+        `Acertaste ${correct} de ${total} ${
+          total === 1 ? 'palabra' : 'palabras'
+        }.`,
+      again: 'Jugar de nuevo',
+      finish: 'Ver el resultado',
       correct: '¡Correcto!',
       wrong: answer => `Era ${answer}`,
       next: 'Siguiente',

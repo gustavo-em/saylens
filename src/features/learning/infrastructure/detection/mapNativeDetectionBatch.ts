@@ -66,11 +66,20 @@ function rotateBox(
   }
 }
 
+/**
+ * A box is allowed to run past the frame edge. Clamping it to the viewport made
+ * a half-visible object's frame stick to the screen border instead of following
+ * the object out of view.
+ */
+const BOUNDS_OVERFLOW = 0.5;
+
 function normalizeBox(box: RotatedBox): NormalizedBounds {
-  const left = clamp(box.left / box.sourceWidth, 0, 1);
-  const top = clamp(box.top / box.sourceHeight, 0, 1);
-  const right = clamp(box.right / box.sourceWidth, 0, 1);
-  const bottom = clamp(box.bottom / box.sourceHeight, 0, 1);
+  const minimum = -BOUNDS_OVERFLOW;
+  const maximum = 1 + BOUNDS_OVERFLOW;
+  const left = clamp(box.left / box.sourceWidth, minimum, maximum);
+  const top = clamp(box.top / box.sourceHeight, minimum, maximum);
+  const right = clamp(box.right / box.sourceWidth, minimum, maximum);
+  const bottom = clamp(box.bottom / box.sourceHeight, minimum, maximum);
 
   return {
     x: left,

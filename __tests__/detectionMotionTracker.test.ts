@@ -25,6 +25,16 @@ const emptyFrame: DetectionFrame = {
 };
 
 describe('DetectionMotionTracker', () => {
+  it('holds a still box steady when the detector jitters', () => {
+    const tracker = new DetectionMotionTracker();
+    tracker.update(frame(0.1), 1_000);
+    const settled = tracker.update(frame(0.1), 1_100);
+    // A still object still re-measures a fraction of a percent each result.
+    const jittered = tracker.update(frame(0.103), 1_200);
+
+    expect(jittered.objects[0].bounds.x).toBe(settled.objects[0].bounds.x);
+  });
+
   it('keeps a stable id and predicts motion between detector results', () => {
     const tracker = new DetectionMotionTracker();
     tracker.update(frame(0.1), 1_000);
@@ -32,7 +42,12 @@ describe('DetectionMotionTracker', () => {
     const third = tracker.update(frame(0.2), 1_200);
 
     expect(third.objects[0].id).toBe(second.objects[0].id);
-    expect(third.objects[0].bounds.x).toBeGreaterThan(0.2);
+    // Smoothing damps the raw measurement, so the box trails the detector
+    // instead of matching it exactly, but it still travels in the same
+    // direction.
+    expect(third.objects[0].bounds.x).toBeGreaterThan(
+      second.objects[0].bounds.x,
+    );
   });
 
   it('waits for a second sighting before showing a layer', () => {

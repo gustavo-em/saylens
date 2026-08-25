@@ -16,6 +16,14 @@ const MAX_PREDICTION_HORIZON_MS = 180;
 const MISSING_TRACK_RETENTION_MS = 800;
 const MIN_HITS_TO_CONFIRM = 2;
 const VELOCITY_SMOOTHING = 0.55;
+/**
+ * The detector re-measures every box from scratch, so a still object still
+ * moves a pixel or two between results. Blending each new measurement into the
+ * previous one absorbs that noise, and movement under the deadband is treated
+ * as the same position rather than a tiny jump.
+ */
+const BOUNDS_SMOOTHING = 0.35;
+const STILL_DEADBAND = 0.006;
 
 interface MotionVector {
   height: number;
@@ -99,16 +107,41 @@ function projectBounds(
 ): NormalizedBounds {
   const width = clamp(bounds.width + velocity.width * horizonMs, 0, 1);
   const height = clamp(bounds.height + velocity.height * horizonMs, 0, 1);
+  // Position is deliberately not clamped to the viewport: a box leaving the
+  // frame has to keep travelling with its object.
 
   return {
-    x: clamp(bounds.x + velocity.x * horizonMs, 0, 1 - width),
-    y: clamp(bounds.y + velocity.y * horizonMs, 0, 1 - height),
+    x: bounds.x + velocity.x * horizonMs,
+    y: bounds.y + velocity.y * horizonMs,
     width,
     height,
   };
 }
 
 const ZERO_VELOCITY: MotionVector = { height: 0, width: 0, x: 0, y: 0 };
+
+function smoothBounds(
+  previous: NormalizedBounds,
+  observed: NormalizedBounds,
+): NormalizedBounds {
+  const settled =
+    Math.abs(observed.x - previous.x) < STILL_DEADBAND &&
+    Math.abs(observed.y - previous.y) < STILL_DEADBAND &&
+    Math.abs(observed.width - previous.width) < STILL_DEADBAND &&
+    Math.abs(observed.height - previous.height) < STILL_DEADBAND;
+
+  if (settled) return previous;
+
+  const blend = (from: number, to: number) =>
+    from + (to - from) * BOUNDS_SMOOTHING;
+
+  return {
+    height: blend(previous.height, observed.height),
+    width: blend(previous.width, observed.width),
+    x: blend(previous.x, observed.x),
+    y: blend(previous.y, observed.y),
+  };
+}
 
 export class DetectionMotionTracker {
   private nextTrackId = 1;
@@ -164,15 +197,18 @@ export class DetectionMotionTracker {
         nowMs - (matchingTrack?.lastSeenAtMs ?? nowMs),
         1,
       );
+      const bounds = matchingTrack
+        ? smoothBounds(matchingTrack.lastObservedBounds, object.bounds)
+        : object.bounds;
       const velocity = matchingTrack
-        ? calculateVelocity(matchingTrack, object.bounds, elapsedMs)
+        ? calculateVelocity(matchingTrack, bounds, elapsedMs)
         : ZERO_VELOCITY;
       const track: ObjectTrack = {
         confidence: object.confidence,
         hits: (matchingTrack?.hits ?? 0) + 1,
         id,
         label: object.label,
-        lastObservedBounds: object.bounds,
+        lastObservedBounds: bounds,
         lastSeenAtMs: nowMs,
         velocity,
       };
@@ -184,7 +220,7 @@ export class DetectionMotionTracker {
       trackedObjects.push({
         ...object,
         id,
-        bounds: projectBounds(object.bounds, velocity, predictionHorizonMs),
+        bounds: projectBounds(bounds, velocity, predictionHorizonMs),
       });
     });
 

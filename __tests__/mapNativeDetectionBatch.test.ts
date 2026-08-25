@@ -50,7 +50,7 @@ describe('mapNativeDetectionBatch', () => {
     });
   });
 
-  it('clamps invalid native coordinates to the visible frame', () => {
+  it('lets a box run past the frame edge but bounds the overflow', () => {
     const frame = mapNativeDetectionBatch({
       detections: [
         {
@@ -65,11 +65,15 @@ describe('mapNativeDetectionBatch', () => {
       inferenceTimeMs: -1,
     });
 
-    expect(frame.objects[0]).toMatchObject({
-      label: 'bottle',
-      confidence: 1,
-      bounds: { x: 0, y: 0, width: 1, height: 1 },
-    });
+    // A half-visible object keeps a box that follows it off screen, so the
+    // coordinates are allowed past the edge by half a frame.
+    const { bounds, ...rest } = frame.objects[0];
+
+    expect(rest).toMatchObject({ label: 'bottle', confidence: 1 });
+    expect(bounds.x).toBeCloseTo(-0.1);
+    expect(bounds.y).toBeCloseTo(-0.1);
+    expect(bounds.width).toBeCloseTo(1.2);
+    expect(bounds.height).toBeCloseTo(1.2);
     expect(frame.inferenceTimeMs).toBe(0);
   });
 });

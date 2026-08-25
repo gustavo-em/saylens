@@ -2,31 +2,46 @@
 /// DetectionMapper.swift
 /// SayLensObjectDetector
 ///
-/// Turns recognised objects into the typed batch the JavaScript side reads.
-/// Boxes arrive normalized with the origin at the bottom left, which is
-/// Vision's convention, and leave in frame pixels with the origin at the top
-/// left, which is the contract both platforms answer.
+/// Turns a MediaPipe result into the typed batch the JavaScript side reads.
+/// The model is given an upright image, so the boxes come back measured
+/// against the upright frame and nothing is left for JavaScript to rotate.
 ///
 
 import CoreGraphics
 import Foundation
+import MediaPipeTasksVision
 
 enum DetectionMapper {
-  static func batch(from objects: [RecognizedObject], frame: PendingFrame) -> NativeDetectionBatch {
-    let width = CGFloat(frame.width)
-    let height = CGFloat(frame.height)
+  static func objects(from result: ObjectDetectorResult) -> [RecognizedObject] {
+    result.detections.compactMap { detection in
+      guard let category = detection.categories.max(by: { $0.score < $1.score })
+      else { return nil }
 
-    let detections = objects.map { object -> NativeDetection in
-      let box = object.boundingBox
+      // A detection without a name still draws a box. The label map lives in
+      // the model file, and a box under a placeholder is what says the model
+      // found something the metadata failed to name.
+      return RecognizedObject(
+        label: category.categoryName ?? "object",
+        score: category.score,
+        boundingBox: detection.boundingBox
+      )
+    }
+  }
 
-      return NativeDetection(
+  static func batch(
+    from objects: [RecognizedObject],
+    processedSize: CGSize,
+    frame: PendingFrame
+  ) -> NativeDetectionBatch {
+    let detections = objects.map { object in
+      NativeDetection(
         label: object.label,
         score: Double(object.score),
         boundingBox: NativeDetectionBox(
-          left: Double(box.minX * width),
-          top: Double((1 - box.maxY) * height),
-          right: Double(box.maxX * width),
-          bottom: Double((1 - box.minY) * height)
+          left: Double(object.boundingBox.minX),
+          top: Double(object.boundingBox.minY),
+          right: Double(object.boundingBox.maxX),
+          bottom: Double(object.boundingBox.maxY)
         )
       )
     }
@@ -35,12 +50,23 @@ enum DetectionMapper {
 
     return NativeDetectionBatch(
       detections: detections,
-      frameWidth: Double(frame.width),
-      frameHeight: Double(frame.height),
-      // Vision was told how the buffer is oriented and answered in the upright
-      // image's coordinates, so nothing is left for JavaScript to rotate.
+      // The frame the boxes belong to is the one the model read: already
+      // upright, already shrunk. Reporting the camera's own size here, or a
+      // rotation on top of one already applied, is what put every card in the
+      // same corner of the screen.
+      frameWidth: Double(processedSize.width),
+      frameHeight: Double(processedSize.height),
       rotationDegrees: 0,
       inferenceTimeMs: Double(elapsed) / 1_000_000
     )
   }
+}
+
+/// One named box on its way from the detector to the batch. Boxes are in the
+/// upright frame's pixels, with the origin at the top left, which is the space
+/// both MediaPipe and the JavaScript contract use.
+struct RecognizedObject {
+  let label: String
+  let score: Float
+  let boundingBox: CGRect
 }

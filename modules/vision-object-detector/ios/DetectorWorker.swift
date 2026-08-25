@@ -2,32 +2,24 @@
 /// DetectorWorker.swift
 /// SayLensObjectDetector
 ///
-/// One Vision pipeline on one serial queue. A worker either takes a frame or
-/// refuses it; it never queues one. A queue would only make results older, and
-/// an overlay drawn from an old result is what makes a card look detached from
-/// the object under it.
-///
-/// Each frame is read twice. The first pass asks where the objects are without
-/// naming them, and the second names each box on its own. Splitting it this
-/// way is what lets the app draw a box around something the dictionary has
-/// never heard of.
+/// One MediaPipe detector on one serial queue. A worker either takes a frame
+/// or refuses it; it never queues one. A queue would only make results older,
+/// and an overlay drawn from an old result is what makes a card look detached
+/// from the object under it.
 ///
 
+import CoreGraphics
 import CoreVideo
 import Foundation
-import Vision
+import ImageIO
+import MediaPipeTasksVision
 import os
 
-/// One named box, before it becomes part of a batch.
-struct RecognizedObject {
-  let label: String
-  let score: Float
-  /// Normalized, Vision's coordinate space: origin bottom-left.
-  let boundingBox: CGRect
-}
-
 final class DetectorWorker {
-  typealias ResultHandler = (PendingFrame, [RecognizedObject]) -> Void
+  /// The size is the image the model actually read, which is not the frame the
+  /// camera delivered: it was stood up and shrunk on the way in, and the boxes
+  /// come back measured against it.
+  typealias ResultHandler = (PendingFrame, ObjectDetectorResult, CGSize) -> Void
 
   let id: Int
   private let log: Logger
@@ -38,6 +30,7 @@ final class DetectorWorker {
 
   private var isBusy = false
   private var isClosed = false
+  private var detector: ObjectDetector?
   private var hasLoggedFirstResult = false
 
   init(
@@ -57,25 +50,16 @@ final class DetectorWorker {
     )
   }
 
-  /// Vision loads a model the first time each kind of request runs. Doing that
-  /// before the first frame arrives keeps the learner from paying for it while
-  /// pointing the camera at something.
+  /// Builds the detector before the first frame arrives. The first inference
+  /// on a cold detector costs several hundred milliseconds, which the learner
+  /// would otherwise pay while pointing the camera at something.
   func prewarm() {
     queue.async { [weak self] in
-      guard let self, let buffer = Self.makeBlankBuffer() else { return }
+      guard let self else { return }
 
       let startedAt = DispatchTime.now()
-      let handler = VNImageRequestHandler(
-        cvPixelBuffer: buffer,
-        orientation: .up,
-        options: [:]
-      )
-
       do {
-        try handler.perform([
-          VNGenerateObjectnessBasedSaliencyImageRequest(),
-          VNClassifyImageRequest(),
-        ])
+        _ = try self.detectorForCurrentState()
         let elapsed = Self.milliseconds(since: startedAt)
         self.log.info("Worker \(self.id) prewarmed in \(elapsed, format: .fixed(precision: 0)) ms.")
       } catch {
@@ -96,7 +80,7 @@ final class DetectorWorker {
     guard accepted else { return false }
 
     do {
-      let copy = try copier.copy(from: pixelBuffer)
+      let copy = try copier.copy(from: pixelBuffer, orientation: frame.orientation)
       queue.async { [weak self] in
         self?.runInference(on: copy, frame: frame)
       }
@@ -110,6 +94,9 @@ final class DetectorWorker {
 
   func close() {
     state.withLock { isClosed = true }
+    queue.async { [weak self] in
+      self?.detector = nil
+    }
   }
 
   private func runInference(on pixelBuffer: CVPixelBuffer, frame: PendingFrame) {
@@ -118,129 +105,47 @@ final class DetectorWorker {
     if state.withLock({ isClosed }) { return }
 
     do {
-      let handler = VNImageRequestHandler(
-        cvPixelBuffer: pixelBuffer,
-        orientation: frame.orientation,
-        options: [:]
-      )
-      let objects = try recognizeObjects(with: handler)
+      let detector = try detectorForCurrentState()
+      // The buffer was already stood up by the copier, so the model is handed
+      // an upright image and no orientation to interpret.
+      let image = try MPImage(pixelBuffer: pixelBuffer)
+      let result = try detector.detect(image: image)
 
       if !hasLoggedFirstResult {
         hasLoggedFirstResult = true
-        log.info("Worker \(self.id) delivered its first result with \(objects.count) object(s).")
+        log.info("Worker \(self.id) delivered its first result with \(result.detections.count) detection(s).")
       }
 
-      onResult(frame, objects)
+      onResult(
+        frame,
+        result,
+        CGSize(
+          width: CVPixelBufferGetWidth(pixelBuffer),
+          height: CVPixelBufferGetHeight(pixelBuffer)
+        )
+      )
     } catch {
       log.warning("Worker \(self.id) failed on a frame: \(error.localizedDescription).")
     }
   }
 
-  private func recognizeObjects(with handler: VNImageRequestHandler) throws -> [RecognizedObject] {
-    let boxes = try salientBoxes(with: handler)
-    guard !boxes.isEmpty else { return [] }
+  private func detectorForCurrentState() throws -> ObjectDetector {
+    if let detector { return detector }
 
-    let requests = boxes.map { box -> VNClassifyImageRequest in
-      let request = VNClassifyImageRequest()
-      request.regionOfInterest = Self.inflate(box)
-      return request
-    }
-    try handler.perform(requests)
+    let options = ObjectDetectorOptions()
+    options.baseOptions.modelAssetPath = try DetectorModel.resolvePath()
+    options.baseOptions.delegate = .CPU
+    options.runningMode = .image
+    options.maxResults = DetectorConstants.maximumResults
+    options.scoreThreshold = DetectorConstants.scoreThreshold
 
-    return zip(boxes, requests).compactMap { box, request in
-      guard let classification = Self.bestClassification(in: request.results ?? []) else {
-        return nil
-      }
-
-      return RecognizedObject(
-        label: VisionTaxonomy.resolve(identifier: classification.identifier),
-        score: classification.confidence,
-        boundingBox: box
-      )
-    }
-  }
-
-  /// Phase one: where the objects are, without naming them.
-  private func salientBoxes(with handler: VNImageRequestHandler) throws -> [CGRect] {
-    let request = VNGenerateObjectnessBasedSaliencyImageRequest()
-    try handler.perform([request])
-
-    guard
-      let observation = request.results?.first as? VNSaliencyImageObservation,
-      let salientObjects = observation.salientObjects
-    else { return [] }
-
-    return salientObjects
-      .filter { $0.confidence >= DetectorConstants.salientObjectThreshold }
-      .sorted { $0.confidence > $1.confidence }
-      .prefix(DetectorConstants.maximumResults)
-      .map(\.boundingBox)
-  }
-
-  /// Phase two: the best name for one box. A label the dictionary knows wins
-  /// over a more confident one it does not, because a known label carries a
-  /// meaning, a pronunciation, and an example, and an unknown one carries a
-  /// word alone.
-  private static func bestClassification(
-    in observations: [VNClassificationObservation]
-  ) -> VNClassificationObservation? {
-    let ranked = observations
-      .filter {
-        $0.hasMinimumRecall(
-          DetectorConstants.classificationRecall,
-          forPrecision: DetectorConstants.classificationPrecision
-        )
-      }
-      .sorted { $0.confidence > $1.confidence }
-
-    if let known = ranked.first(where: { VisionTaxonomy.appLabel(for: $0.identifier) != nil }) {
-      return known
-    }
-
-    guard
-      let best = ranked.first,
-      best.confidence >= DetectorConstants.unknownLabelConfidence
-    else { return nil }
-
-    return best
+    let created = try ObjectDetector(options: options)
+    detector = created
+    return created
   }
 
   private static func milliseconds(since start: DispatchTime) -> Double {
     let elapsed = DispatchTime.now().uptimeNanoseconds &- start.uptimeNanoseconds
     return Double(elapsed) / 1_000_000
-  }
-
-  /// A small black frame, which is enough to make Vision load its models.
-  private static func makeBlankBuffer() -> CVPixelBuffer? {
-    let side = 64
-    var created: CVPixelBuffer?
-    let status = CVPixelBufferCreate(
-      kCFAllocatorDefault,
-      side,
-      side,
-      kCVPixelFormatType_32BGRA,
-      [kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary] as CFDictionary,
-      &created
-    )
-
-    guard status == kCVReturnSuccess, let buffer = created else { return nil }
-
-    CVPixelBufferLockBaseAddress(buffer, [])
-    if let address = CVPixelBufferGetBaseAddress(buffer) {
-      memset(address, 0, CVPixelBufferGetBytesPerRow(buffer) * side)
-    }
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-
-    return buffer
-  }
-
-  /// Objectness boxes hug the subject. A little context around one reads
-  /// better to the classifier than a tight crop does.
-  private static func inflate(_ box: CGRect) -> CGRect {
-    let horizontal = box.width * DetectorConstants.regionInflation
-    let vertical = box.height * DetectorConstants.regionInflation
-    let inflated = box.insetBy(dx: -horizontal, dy: -vertical)
-
-    return inflated.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
   }
 }

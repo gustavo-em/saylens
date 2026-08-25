@@ -21,23 +21,24 @@ recognition, with one implementation per platform behind a single contract.
 
 ## Platforms
 
-| Platform | Implementation     | Recognition                                                         |
-| -------- | ------------------ | ------------------------------------------------------------------- |
-| Android  | `android/`, Kotlin | MediaPipe Tasks with a bundled EfficientDet-Lite0 int8, 80 labels   |
-| iOS      | `ios/`, Swift      | Apple Vision: objectness saliency, then classification, 1303 labels |
+| Platform | Implementation     | Recognition                                         |
+| -------- | ------------------ | --------------------------------------------------- |
+| Android  | `android/`, Kotlin | MediaPipe Tasks, EfficientDet-Lite0 int8, 80 labels |
+| iOS      | `ios/`, Swift      | MediaPipe Tasks, EfficientDet-Lite0 int8, 80 labels |
 
-The two platforms deliberately recognise different things. Android bundles a
-model and answers with COCO labels; iOS uses the taxonomy already in the
-operating system, ships no model, and can put a box around objects COCO never
-had. The reasoning is in
-[ADR-0004](../../docs/adr/0004-mediapipe-efficientdet-lite0.md) and
-[ADR-0009](../../docs/adr/0009-ios-vision-detector.md), and the iOS layer is
-described in [docs/IOS.md](../../docs/IOS.md).
+Both platforms bundle the same model file and ask it for the same number of
+results above the same score. A difference between them is a difference in
+hardware rather than in what was asked of the model. The iOS build used Apple's
+Vision framework for a while; the device evidence that ended that is in
+[ADR-0009](../../docs/adr/0009-ios-vision-detector.md) and
+[ADR-0010](../../docs/adr/0010-ios-shares-the-android-detector.md), and the iOS
+layer is described in [docs/IOS.md](../../docs/IOS.md).
 
 Both answer the same `NativeDetectionBatch`, so the JavaScript side has no
-platform branch. iOS reports a rotation of zero because Vision is told the
-frame's orientation and answers upright; Android reports the camera's rotation
-and JavaScript applies it.
+platform branch. iOS stands the frame up before inference and therefore reports
+a rotation of zero against the size of the image the model actually read;
+Android hands the model the camera's own buffer and reports the rotation for
+JavaScript to apply.
 
 ## Development
 

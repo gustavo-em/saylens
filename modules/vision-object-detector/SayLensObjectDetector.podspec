@@ -14,10 +14,18 @@ Pod::Spec.new do |spec|
 
   spec.source_files = "ios/**/*.{swift}"
 
-  # Recognition on iOS is Apple's own Vision framework, so this pod ships no
-  # model and no third-party inference dependency: nothing is added to the
-  # download the learner pays for. See docs/adr/0009-ios-vision-detector.md.
-  spec.frameworks = "Vision", "CoreMedia", "CoreVideo", "ImageIO"
+  # The model is a single 4.4 MB binary shared with the Android build, which
+  # reads it from the same path as an Android asset. Copying it into an iOS
+  # folder would put a second copy of the same weights in the repository.
+  spec.resource_bundles = {
+    "SayLensObjectDetectorModel" => ["android/src/main/assets/efficientdet_lite0_int8.tflite"]
+  }
+
+  spec.frameworks = "CoreMedia", "CoreVideo", "ImageIO"
+
+  # Pinned to the version the Android build uses, so a difference between the
+  # two platforms is a difference in hardware rather than in the task library.
+  spec.dependency "MediaPipeTasksVision", "0.10.35"
   spec.dependency "VisionCamera"
 
   load File.join(__dir__, "nitrogen/generated/ios/SayLensObjectDetector+autolinking.rb")

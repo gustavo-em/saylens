@@ -85,15 +85,16 @@ public final class SayLensVisionDetector: HybridSayLensObjectDetectorSpec {
     let bufferWidth = CVPixelBufferGetWidth(pixelBuffer)
     let bufferHeight = CVPixelBufferGetHeight(pixelBuffer)
     let orientation = Self.imageOrientation(of: frame.orientation)
-    // Vision reads the image upright once it knows the orientation, and a
-    // quarter turn swaps the sides the boxes are measured against.
-    let isQuarterTurn = orientation == .right || orientation == .left
 
+    // The model reads the buffer as the sensor delivered it and the boxes come
+    // back in that same space, so the frame's own size travels with them and
+    // the rotation is applied where Android applies it: in JavaScript.
     return pool.submit(
       pixelBuffer: pixelBuffer,
-      width: isQuarterTurn ? bufferHeight : bufferWidth,
-      height: isQuarterTurn ? bufferWidth : bufferHeight,
-      orientation: orientation
+      width: bufferWidth,
+      height: bufferHeight,
+      orientation: orientation,
+      rotationDegrees: Self.rotationDegrees(of: frame.orientation)
     )
   }
 
@@ -108,6 +109,16 @@ public final class SayLensVisionDetector: HybridSayLensObjectDetectorSpec {
   /// VisionCamera reports where the top of the image ended up; Vision wants to
   /// be told the same thing in its own vocabulary. Classification is the
   /// reason this matters: an upside-down chair is a much harder chair.
+  private static func rotationDegrees(of orientation: CameraOrientation) -> Int {
+    switch orientation {
+    case .up: return 0
+    case .right: return 90
+    case .down: return 180
+    case .left: return 270
+    @unknown default: return 0
+    }
+  }
+
   private static func imageOrientation(
     of orientation: CameraOrientation
   ) -> CGImagePropertyOrientation {

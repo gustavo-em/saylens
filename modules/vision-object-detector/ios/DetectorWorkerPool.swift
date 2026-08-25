@@ -8,9 +8,11 @@
 /// last result rather than the one for the frame just handed over.
 ///
 
+import CoreGraphics
 import CoreVideo
 import Foundation
 import ImageIO
+import MediaPipeTasksVision
 import os
 
 /// What is known about a frame at the moment it is handed to a worker.
@@ -21,6 +23,9 @@ struct PendingFrame {
   let width: Int
   let height: Int
   let orientation: CGImagePropertyOrientation
+  /// Clockwise degrees that stand the frame up, which is what the JavaScript
+  /// side applies to the boxes, exactly as it does for Android.
+  let rotationDegrees: Int
   let startedAt: DispatchTime
 }
 
@@ -42,6 +47,9 @@ final class DetectorWorkerPool {
 
   private var throughputWindowStartedAt: DispatchTime?
   private var throughputWindowCount = 0
+  /// What was published last, used to keep an object's name and place steady
+  /// across frames.
+  private var tracked: [RecognizedObject] = []
 
   private(set) var workerCount: Int
 
@@ -81,7 +89,8 @@ final class DetectorWorkerPool {
     pixelBuffer: CVPixelBuffer,
     width: Int,
     height: Int,
-    orientation: CGImagePropertyOrientation
+    orientation: CGImagePropertyOrientation,
+    rotationDegrees: Int
   ) -> NativeDetectionBatch? {
     let undelivered = takeLatestBatch()
     let workers = currentWorkers
@@ -96,6 +105,7 @@ final class DetectorWorkerPool {
       width: width,
       height: height,
       orientation: orientation,
+      rotationDegrees: rotationDegrees,
       startedAt: DispatchTime.now()
     )
     let startIndex = state.withLock { nextWorkerIndex }
@@ -121,6 +131,7 @@ final class DetectorWorkerPool {
       latestSequence = -1
       lastDeliveredSequence = -1
       nextWorkerIndex = 0
+      tracked = []
       return previous
     }
 
@@ -137,17 +148,110 @@ final class DetectorWorkerPool {
   }
 
   /// Results can finish out of order when several workers run at once, so an
-  /// older one never replaces a newer one already published.
-  private func publish(frame: PendingFrame, objects: [RecognizedObject]) {
-    let batch = DetectionMapper.batch(from: objects, frame: frame)
-    recordThroughput(inferenceTimeMs: batch.inferenceTimeMs)
+  /// older one never replaces a newer one already published, and a late result
+  /// never disturbs what is being tracked.
+  private func publish(
+    frame: PendingFrame,
+    result: ObjectDetectorResult,
+    processedSize: CGSize
+  ) {
+    let objects = DetectionMapper.objects(from: result)
+    let batch: NativeDetectionBatch? = state.withLock {
+      guard frame.sequence > latestSequence else { return nil }
 
-    state.withLock {
-      guard frame.sequence > latestSequence else { return }
-
+      let batch = DetectionMapper.batch(
+        from: stabilise(objects),
+        processedSize: processedSize,
+        frame: frame
+      )
       latestSequence = frame.sequence
       latestBatch = batch
+      return batch
     }
+
+    guard let batch else { return }
+    recordThroughput(inferenceTimeMs: batch.inferenceTimeMs)
+  }
+
+  /// Saliency recomputes the whole frame every time, so the same object comes
+  /// back with slightly different edges and, now and then, a different name.
+  /// Carrying the last reading forward is what turns a sequence of independent
+  /// guesses into an object that stays put.
+  ///
+  /// Called with the lock held.
+  private func stabilise(_ objects: [RecognizedObject]) -> [RecognizedObject] {
+    var unmatched = tracked
+    var stabilised: [RecognizedObject] = []
+
+    for object in objects {
+      guard
+        let index = unmatched.firstIndex(where: {
+          Self.overlap($0.boundingBox, object.boundingBox) >= DetectorConstants.trackingOverlap
+        })
+      else {
+        stabilised.append(object)
+        continue
+      }
+
+      let previous = unmatched.remove(at: index)
+      stabilised.append(
+        RecognizedObject(
+          label: Self.settledLabel(previous: previous, current: object),
+          score: Self.settledScore(previous: previous, current: object),
+          boundingBox: Self.blend(previous.boundingBox, towards: object.boundingBox)
+        )
+      )
+    }
+
+    // Anything that was not matched is gone from the scene: the tracked set is
+    // whatever was just published, nothing older.
+    tracked = stabilised
+    return stabilised
+  }
+
+  /// A name changes only when the classifier is clearly more sure than it was,
+  /// so one bad frame does not rename the object under the learner's card.
+  private static func settledLabel(
+    previous: RecognizedObject,
+    current: RecognizedObject
+  ) -> String {
+    if current.label == previous.label { return current.label }
+
+    return current.score >= previous.score + DetectorConstants.labelChangeMargin
+      ? current.label
+      : previous.label
+  }
+
+  private static func settledScore(
+    previous: RecognizedObject,
+    current: RecognizedObject
+  ) -> Float {
+    if current.label == previous.label { return current.score }
+
+    return current.score >= previous.score + DetectorConstants.labelChangeMargin
+      ? current.score
+      : previous.score
+  }
+
+  private static func overlap(_ first: CGRect, _ second: CGRect) -> CGFloat {
+    let intersection = first.intersection(second)
+    guard !intersection.isNull, !intersection.isEmpty else { return 0 }
+
+    let overlapArea = intersection.width * intersection.height
+    let union = first.width * first.height + second.width * second.height - overlapArea
+
+    return union <= 0 ? 0 : overlapArea / union
+  }
+
+  private static func blend(_ previous: CGRect, towards next: CGRect) -> CGRect {
+    let weight = DetectorConstants.trackingSmoothing
+
+    return CGRect(
+      x: previous.minX + (next.minX - previous.minX) * weight,
+      y: previous.minY + (next.minY - previous.minY) * weight,
+      width: previous.width + (next.width - previous.width) * weight,
+      height: previous.height + (next.height - previous.height) * weight
+    )
   }
 
   private func recordThroughput(inferenceTimeMs: Double) {
@@ -181,8 +285,9 @@ final class DetectorWorkerPool {
     let qualityOfService: DispatchQoS = isPowerSaving ? .utility : .userInitiated
 
     let created = (1...max(count, 1)).map { id in
-      DetectorWorker(id: id, qualityOfService: qualityOfService) { [weak self] frame, objects in
-        self?.publish(frame: frame, objects: objects)
+      DetectorWorker(id: id, qualityOfService: qualityOfService) {
+        [weak self] frame, result, processedSize in
+        self?.publish(frame: frame, result: result, processedSize: processedSize)
       }
     }
 

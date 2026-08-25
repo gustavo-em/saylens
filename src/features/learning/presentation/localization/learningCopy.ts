@@ -25,6 +25,7 @@ export interface LearningCopy {
     missed: (heard: string) => string;
     silence: string;
     unavailable: string;
+    languageUnavailable: string;
     permission: string;
     again: string;
     listen: string;
@@ -167,6 +168,8 @@ const copies: Record<
       missed: heard => `Ouvi “${heard}”`,
       silence: 'Não consegui ouvir. Tente de novo.',
       unavailable: 'Este aparelho não tem reconhecimento de fala.',
+      languageUnavailable:
+        'O reconhecimento de fala não tem este idioma instalado neste aparelho.',
       permission: 'Preciso da permissão do microfone para ouvir você.',
       again: 'Tentar de novo',
       listen: 'Ouvir a palavra',
@@ -282,6 +285,8 @@ const copies: Record<
       missed: heard => `I heard “${heard}”`,
       silence: 'I could not hear anything. Try again.',
       unavailable: 'This device has no speech recognition.',
+      languageUnavailable:
+        'Speech recognition does not have this language installed on this device.',
       permission: 'I need microphone permission to hear you.',
       again: 'Try again',
       listen: 'Hear the word',
@@ -396,6 +401,8 @@ const copies: Record<
       missed: heard => `Escuché “${heard}”`,
       silence: 'No pude escuchar nada. Inténtalo de nuevo.',
       unavailable: 'Este dispositivo no tiene reconocimiento de voz.',
+      languageUnavailable:
+        'El reconocimiento de voz no tiene este idioma instalado en este dispositivo.',
       permission: 'Necesito permiso del micrófono para escucharte.',
       again: 'Intentar de nuevo',
       listen: 'Escuchar la palabra',

@@ -28,6 +28,8 @@ class SpeechRecognitionModule(
   private val stateLock = Any()
   private var recognizer: SpeechRecognizer? = null
   private var pending: Promise? = null
+  private var languageTag = ""
+  private var hasRetriedOnline = false
 
   override fun getName(): String = NAME
 
@@ -73,7 +75,11 @@ class SpeechRecognitionModule(
       return
     }
 
-    reactContext.runOnUiQueueThread { startListening(languageTag) }
+    synchronized(stateLock) {
+      this.languageTag = languageTag
+      hasRetriedOnline = false
+    }
+    reactContext.runOnUiQueueThread { startListening(languageTag, true) }
   }
 
   @ReactMethod
@@ -102,7 +108,7 @@ class SpeechRecognitionModule(
     action(promise)
   }
 
-  private fun startListening(languageTag: String) {
+  private fun startListening(languageTag: String, preferOffline: Boolean) {
     recognizer?.destroy()
     val engine = SpeechRecognizer.createSpeechRecognizer(reactContext)
     recognizer = engine
@@ -116,7 +122,10 @@ class SpeechRecognitionModule(
       putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
       putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, MAX_RESULTS)
       putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-      putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+      putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, reactContext.packageName)
+      // Offline keeps the recording on the device, but a device without the
+      // language pack fails instantly, so the online service is the fallback.
+      putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline)
     }
 
     engine.startListening(intent)
@@ -132,11 +141,33 @@ class SpeechRecognitionModule(
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
 
     override fun onError(error: Int) {
-      val code = when (error) {
-        SpeechRecognizer.ERROR_NO_MATCH,
-        SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
-        -> ERROR_NO_SPEECH
-        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> ERROR_PERMISSION
+      val isLanguageError =
+        error == ERROR_CODE_LANGUAGE_UNAVAILABLE ||
+          error == ERROR_CODE_LANGUAGE_NOT_SUPPORTED
+
+      if (isLanguageError) {
+        val shouldRetry = synchronized(stateLock) {
+          if (hasRetriedOnline || pending == null) {
+            false
+          } else {
+            hasRetriedOnline = true
+            true
+          }
+        }
+
+        if (shouldRetry) {
+          val tag = synchronized(stateLock) { languageTag }
+          reactContext.runOnUiQueueThread { startListening(tag, false) }
+          return
+        }
+      }
+
+      val code = when {
+        isLanguageError -> ERROR_LANGUAGE
+        error == SpeechRecognizer.ERROR_NO_MATCH ||
+          error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> ERROR_NO_SPEECH
+        error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+          ERROR_PERMISSION
         else -> ERROR_RECOGNITION
       }
       settle { it.reject(code, "Speech recognition failed with code $error.") }
@@ -165,5 +196,8 @@ class SpeechRecognitionModule(
     private const val ERROR_PERMISSION = "E_SPEECH_PERMISSION"
     private const val ERROR_RECOGNITION = "E_SPEECH_RECOGNITION"
     private const val ERROR_UNAVAILABLE = "E_SPEECH_UNAVAILABLE"
+    private const val ERROR_LANGUAGE = "E_SPEECH_LANGUAGE"
+    private const val ERROR_CODE_LANGUAGE_UNAVAILABLE = 13
+    private const val ERROR_CODE_LANGUAGE_NOT_SUPPORTED = 12
   }
 }

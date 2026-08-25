@@ -79,13 +79,22 @@ export function SpeakScreen({
       );
       setAttempt(scoreAttempt(vocabulary.word, heard));
       setStatus('result');
-    } catch {
+    } catch (error) {
+      // A missing language pack is a dead end, not a bad attempt: retrying
+      // would fail identically, so it is reported instead of scored.
+      if ((error as { code?: string })?.code === 'E_SPEECH_LANGUAGE') {
+        setStatus('blocked');
+        setBlockedMessage(copy.speak.languageUnavailable);
+        return;
+      }
+
       // Silence and a failed recognition land in the same place: nothing was
       // scored, so the learner is simply asked to try again.
       setAttempt(scoreAttempt(vocabulary.word, []));
       setStatus('result');
     }
   }, [
+    copy.speak.languageUnavailable,
     copy.speak.permission,
     languageSettings.learningLanguage,
     speechRecognizer,

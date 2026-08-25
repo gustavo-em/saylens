@@ -13,6 +13,7 @@ consequences of choices that materially shape SayLens.
 - [ADR-0006: Bounded synchronous FrameOutput for the first detector](0006-bounded-synchronous-frame-output.md)
 - [ADR-0007: Parallel native inference workers](0007-parallel-native-inference-workers.md)
 - [ADR-0008: Live compact vocabulary overlays](0008-live-compact-vocabulary-overlays.md)
+- [ADR-0009: Apple Vision as the iOS detector](0009-ios-vision-detector.md)
 
 ## Lifecycle
 

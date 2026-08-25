@@ -12,6 +12,10 @@
       "android": {
         "language": "kotlin",
         "implementationClassName": "SayLensObjectDetector"
+      },
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "SayLensVisionDetector"
       }
     }
   },

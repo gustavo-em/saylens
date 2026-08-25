@@ -172,3 +172,24 @@ describe('detector label coverage', () => {
     });
   });
 });
+
+describe('labels outside the catalog', () => {
+  it('names the object and leaves the pronunciation empty', () => {
+    // Vision recognizes about 1300 labels on iOS and this catalog curates 80,
+    // so an uncurated label is a normal card rather than a broken one.
+    expect(
+      localVocabularyRepository.findByLabel('drinking glass', {
+        nativeLanguage: 'pt-BR',
+        learningLanguage: 'en-US',
+      }),
+    ).toEqual({
+      word: 'Drinking Glass',
+      pronunciation: '',
+      pronunciationHint: 'DRINKING GLASS',
+      definition: 'Objeto reconhecido pelo modelo visual.',
+      meaning: 'Objeto reconhecido pelo modelo visual.',
+      translations: [],
+      example: 'I can see a Drinking Glass.',
+    });
+  });
+});

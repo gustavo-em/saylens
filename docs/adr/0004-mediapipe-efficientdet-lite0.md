@@ -1,6 +1,7 @@
 # ADR-0004: MediaPipe EfficientDet-Lite0 for the first detector
 
-- Status: Accepted
+- Status: Accepted on Android; superseded on iOS by
+  [ADR-0009](0009-ios-vision-detector.md)
 - Date: 2026-08-20
 - Owners: project maintainers
 

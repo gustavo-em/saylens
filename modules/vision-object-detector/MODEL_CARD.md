@@ -1,7 +1,13 @@
 # EfficientDet-Lite0 int8 model card
 
+This card covers the Android detector. iOS bundles no model at all: it reads
+Apple's Vision framework, which ships with the operating system, so there is
+nothing to record here for it beyond that. See
+[ADR-0009](../../docs/adr/0009-ios-vision-detector.md) and
+[docs/IOS.md](../../docs/IOS.md).
+
 SayLens bundles Google's recommended pre-trained MediaPipe Object Detector
-model for its Android-first proof of concept.
+model for its Android build.
 
 - Model: EfficientDet-Lite0 int8
 - Input: 320 × 320 RGB

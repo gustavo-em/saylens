@@ -1598,10 +1598,14 @@ export const localVocabularyRepository: VocabularyRepository = {
       };
     }
 
+    // iOS recognizes far more labels than this catalog curates, so this path
+    // is ordinary rather than exceptional. The card shows the word and says
+    // plainly that there is nothing else yet; an invented transcription in the
+    // pronunciation slot would be worse than an empty one.
     const targetLabel = titleCase(normalizedLabel);
     return {
       word: targetLabel,
-      pronunciation: fallbackMeaning[native],
+      pronunciation: '',
       pronunciationHint: normalizedLabel.toUpperCase(),
       definition: fallbackMeaning[native],
       meaning: fallbackMeaning[native],

@@ -25,6 +25,7 @@ export interface NativeDetectionBatch {
 export interface SayLensObjectDetector
   extends HybridObject<{
     android: 'kotlin';
+    ios: 'swift';
   }> {
   getModelName(): string;
   getRecommendedPerformanceProfile(): string;

@@ -645,7 +645,11 @@ export function CameraView({
               <DiagnosticsRow>
                 <DiagnosticsLabel>{copy.diagnostics.workers}</DiagnosticsLabel>
                 <DiagnosticsValue>
-                  {`${diagnostics.cpuWorkers} CPU · ${diagnostics.gpuWorkers} GPU`}
+                  {/* iOS has no GPU delegate to count, and neither does the
+                      Android power-saving pool, so the zero is left out. */}
+                  {diagnostics.gpuWorkers > 0
+                    ? `${diagnostics.cpuWorkers} CPU · ${diagnostics.gpuWorkers} GPU`
+                    : `${diagnostics.cpuWorkers} CPU`}
                 </DiagnosticsValue>
               </DiagnosticsRow>
               <DiagnosticsRow>

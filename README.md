@@ -1,101 +1,187 @@
-# SayLens
-
-SayLens is a React Native side project that turns the camera into an
-interactive English-learning experience. Android is where it was proven on
-hardware; the iOS native layer has now been written and is described in
-[the iOS document](docs/IOS.md).
-
-Point the device at everyday objects and see a compact English-learning card
-anchored over each object with its meaning and pronunciation.
-
-> Status: the first on-device learning slice is operational. The Android app
-> streams camera frames to EfficientDet and maps detections into live vocabulary
-> overlays without sending images to a server.
+<h1 align="center">📸 SayLens</h1>
 
 <p align="center">
-  <img src="docs/assets/android-camera-settings.png" alt="SayLens camera settings running on a physical Samsung device" width="320" />
+  <b>Point your phone at anything. Learn what it is called.</b><br />
+  A React Native app that turns the camera into an English tutor — every object
+  it sees gets a card with the word, its meaning, and how to say it.
 </p>
 
-## Screens
+<p align="center">
+  <img alt="React Native 0.87" src="https://img.shields.io/badge/React_Native-0.87-61DAFB?logo=react&logoColor=white" />
+  <img alt="Android and iOS" src="https://img.shields.io/badge/Android_%7C_iOS-tested_on_device-3DDC84?logo=android&logoColor=white" />
+  <img alt="On device" src="https://img.shields.io/badge/inference-100%25_on--device-8B5CF6" />
+  <img alt="No backend" src="https://img.shields.io/badge/backend-none-64748B" />
+</p>
 
-Captured on a physical Samsung SM-M536B running Android 14.
+<p align="center">
+  <img src="docs/assets/android-camera-card.png" alt="A learning card standing beside a laptop detected in the camera" width="280" />
+</p>
 
-<table>
+<p align="center">
+  <sub>🔒 No image ever leaves the device. No account. No server. No network call to recognise anything.</sub>
+</p>
+
+---
+
+## ✨ What it does
+
+You open the camera and point it at your desk. SayLens finds the objects in
+frame and stands a small card beside each one — the English word, the
+translation, an example sentence, and the pronunciation. Tap **Listen** to hear
+it, tap **Practise** to say it back and find out whether you got it right.
+
+Everything you meet is remembered: words you have seen, words you have
+pronounced correctly, rooms you have completed, and a quiz that only asks about
+words you have actually met.
+
+---
+
+## 🎬 The screens
+
+<p align="center">
+  <img src="docs/assets/android-camera-card.png" alt="Camera" width="230" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/android-collection.png" alt="Collection" width="230" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/android-speak.png" alt="Speak" width="230" />
+</p>
+
+<table align="center">
   <tr>
-    <td align="center" width="20%">
-      <img src="docs/assets/android-camera-card.png" alt="Learning card anchored over a detected laptop" width="180" /><br />
-      <sub><b>Camera</b><br />A card per detected object, with the example sentence in the language being learned</sub>
+    <td align="center" width="33%">
+      <b>📷 Camera</b><br />
+      <sub>A card per detected object, standing beside it, sized by how near
+      it is</sub>
     </td>
-    <td align="center" width="20%">
-      <img src="docs/assets/android-collection.png" alt="Collection screen with rooms and progress" width="180" /><br />
-      <sub><b>Collection</b><br />Streak, level, and one room per set of objects to find</sub>
+    <td align="center" width="33%">
+      <b>🏆 Collection</b><br />
+      <sub>Streak, level, and one room per set of objects left to find</sub>
     </td>
-    <td align="center" width="20%">
-      <img src="docs/assets/android-history.png" alt="History coloured by pronunciation outcome" width="180" /><br />
-      <sub><b>History</b><br />Words coloured by pronunciation outcome, filtered by it</sub>
-    </td>
-    <td align="center" width="20%">
-      <img src="docs/assets/android-speak.png" alt="Speaking practice screen" width="180" /><br />
-      <sub><b>Speak</b><br />Say the word and compare it with the device recogniser</sub>
-    </td>
-    <td align="center" width="20%">
-      <img src="docs/assets/android-quiz.png" alt="Practice round asking a word by its definition" width="180" /><br />
-      <sub><b>Practice</b><br />A round of ten questions drawn from words already met</sub>
+    <td align="center" width="33%">
+      <b>🎤 Speak</b><br />
+      <sub>Say the word out loud and compare it with the device recogniser</sub>
     </td>
   </tr>
 </table>
 
-## Product journey
+<p align="center">
+  <img src="docs/assets/android-history.png" alt="History" width="230" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/android-quiz.png" alt="Practice" width="230" />
+</p>
 
-1. Detect common objects in the live camera preview.
-2. Render a stable learning card over each detected object.
-3. Show the English word, pronunciation, meaning, and confidence in real time.
-4. Preserve the object and learning context in the same camera view.
-5. Pronounce the word using the device speech service.
+<table align="center">
+  <tr>
+    <td align="center" width="33%">
+      <b>📚 History</b><br />
+      <sub>Every word you have met, coloured by how your pronunciation went</sub>
+    </td>
+    <td align="center" width="33%">
+      <b>🧩 Practice</b><br />
+      <sub>Ten questions a round, drawn only from words you have already seen</sub>
+    </td>
+  </tr>
+</table>
 
-The first experience is designed to work on-device and without a backend.
+<p align="center">
+  <sub>Captured on a physical Samsung SM-M536B running Android 14.</sub>
+</p>
 
-## Technical direction
+---
 
-- Android first, tested on physical devices, with iOS written against the same
-  ports.
-- React Native using a feature-first Clean Architecture.
-- MVVM inside the presentation layer, with views free of platform SDKs.
-- styled-components for the shared theme and declarative UI styling.
-- VisionCamera 5 for the camera session and frame output.
-- A local Nitro adapter for inference: Kotlin on Android, Swift on iOS.
-- MediaPipe Tasks with EfficientDet-Lite0 int8 on Android, bundled with the app.
-- Apple Vision on iOS, in two phases, with no model shipped and 1303 labels
-  instead of 80 ([ADR-0009](docs/adr/0009-ios-vision-detector.md)).
-- React Native learning overlays with metadata presentation bounded at 30 Hz.
-- A local vocabulary catalog for the first common-object labels.
-- Reanimated UI-thread interpolation for live detection geometry.
-- Stable object tracking, adaptive detector scheduling, and device
-  text-to-speech as the next product and performance steps.
+## 🧠 How it works, in three steps
 
-These are recorded decisions rather than hidden assumptions. Read the
-[architecture](docs/ARCHITECTURE.md) and the
-[Architecture Decision Records](docs/adr/README.md) for context and trade-offs.
+|                |                                                                                                                     |                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **1. See** 👁️  | A neural network reads every camera frame on the phone itself and returns a box around each object it recognises.   | 4.4 MB model, bundled       |
+| **2. Name** 🔤 | Each box is matched to a curated vocabulary entry: word, translation, meaning, example sentence, phonetic spelling. | 80 everyday objects         |
+| **3. Say** 🗣️  | The device speaks the word, listens to you repeat it, and records whether it matched.                               | System voice and recogniser |
 
-### Physical-device performance snapshot
+---
 
-The performance-first debug configuration was measured on a Samsung SM-M536B
-running Android 14. Four bounded native workers processed 29.8 to 30.2 detector
-frames per second while the camera preview remained at approximately 30 FPS.
-This intentionally favors modern hardware: the measured process cost was about
-324% to 339% CPU and 529 to 533 MB resident memory. Reproducible context and
-limitations are in [physical-device validation](docs/VALIDATION.md).
+## ⚡ Measured, not estimated
 
-### Performance engineering lab
+Every number here came off a physical phone, never a simulator.
 
-The next phase treats this workload as a mobile performance case study rather
-than optimizing for a single FPS number. It will compare worker counts,
-allocation pressure, result freshness, React and UI-thread cost, sustained
-thermals, startup, and release size using repeatable physical-device runs.
+| Device              | Detections per second          | Median inference |
+| ------------------- | ------------------------------ | ---------------- |
+| 📱 iPhone 13 (A15)  | **49.9**                       | **33 ms**        |
+| 📱 Samsung SM-M536B | **~30** (capped by the camera) | —                |
 
-See the [performance engineering strategy](docs/PERFORMANCE.md).
+The full record, including the design that was measured and then thrown away,
+is in [physical-device validation](docs/VALIDATION.md).
 
-## Repository layout
+---
+
+## 🚀 Run it
+
+You need Node 24.11.1 (pinned in `.nvmrc`), and then:
+
+```sh
+nvm use
+npm ci
+npm run validate
+```
+
+<details>
+<summary><b>📱 Android</b> — JDK 17, SDK Platform 37, a device with USB debugging</summary>
+
+<br />
+
+Start Metro in one terminal:
+
+```sh
+npm start
+```
+
+Then, in another, point Metro at the device and install:
+
+```sh
+adb devices -l
+adb -s <device-serial> reverse tcp:8081 tcp:8081
+npm run android -- --device <device-serial>
+```
+
+The first build downloads the Gradle distribution and may install the pinned
+SDK components. The model is packaged with the app, so nothing is downloaded at
+runtime.
+
+</details>
+
+<details>
+<summary><b>🍎 iOS</b> — Xcode 26 or newer, CocoaPods, a physical iPhone</summary>
+
+<br />
+
+```sh
+npm ci
+cd ios && pod install
+```
+
+Open `ios/SayLens.xcworkspace` — the workspace, not the project — or run:
+
+```sh
+npx react-native run-ios --device
+```
+
+The simulator builds and launches, but its camera is a static image, so there
+is nothing there for the detector to find. Use a real device.
+
+</details>
+
+---
+
+## 🏗️ Under the hood
+
+<details open>
+<summary><b>Architecture</b></summary>
+
+<br />
+
+Feature-first Clean Architecture, with MVVM inside the presentation layer.
+Views receive plain state and callbacks and never import a platform SDK; the
+camera, the detector, the voice, and storage all sit behind ports that the
+feature declares and the app composes.
 
 ```text
 src/
@@ -114,107 +200,91 @@ docs/
   assets/                 Visual evidence captured from physical devices
 ```
 
-The camera SDK is isolated in the learning infrastructure layer. Presentation
-Views receive plain state and callbacks from ViewModels, while `app` composes
-the concrete camera adapter, navigation, and theme.
+</details>
 
-## Run the Android app
+<details>
+<summary><b>The detector</b></summary>
 
-Requirements:
+<br />
 
-- Node.js 24.11.1 (pinned in `.nvmrc`) and npm 11.6.2;
-- JDK 17;
-- Android SDK Platform 37 and Build Tools 37.0.0;
-- an Android device with USB debugging enabled.
+Both platforms run MediaPipe Tasks with the same EfficientDet-Lite0 int8 model,
+read from one file in this repository, at the same score threshold and result
+ceiling — so a difference between the platforms is a difference in hardware
+rather than in what was asked of the model.
 
-Install dependencies and run the complete local quality gate:
+Native side, per platform, behind one Nitro boundary:
 
-```sh
-nvm use
-npm ci
-npm run validate
-```
+- a pool of workers, each holding its own detector;
+- frames copied on the camera queue, because the capture session recycles its
+  buffer the moment the callback returns;
+- a frame offered to the first idle worker and **dropped** if none is idle — a
+  queue would only make results older, and an old result is what makes a card
+  look detached from the object under it;
+- tracking that carries a box and its name from one frame to the next, so a
+  single bad frame cannot rename what the learner is looking at.
 
-Start Metro in one terminal:
+The iOS layer, and the three defects a physical iPhone found that no amount of
+code reading would have, are written up in
+[the iOS native layer](docs/IOS.md).
 
-```sh
-npm start
-```
+</details>
 
-List devices, forward Metro to the selected physical device, and run the app in
-another terminal:
+<details>
+<summary><b>Stack</b></summary>
 
-```sh
-adb devices -l
-adb -s <device-serial> reverse tcp:8081 tcp:8081
-npm run android -- --device <device-serial>
-```
+<br />
 
-The first launch requests camera permission. Switching to Settings pauses the
-native camera session; returning to Camera resumes it without remounting the
-feature screen.
+- **React Native 0.87** with the new architecture, TypeScript throughout.
+- **VisionCamera 5** for the camera session and frame output.
+- **Nitro Modules** for the detector boundary: Kotlin on Android, Swift on iOS.
+- **MediaPipe Tasks**, EfficientDet-Lite0 int8, bundled — no download, no
+  backend, no network permission needed to recognise anything.
+- **Reanimated** interpolation on the UI thread, so the overlay stays smooth
+  between detections instead of stepping with them.
+- **styled-components** for the shared theme.
 
-Object detection runs locally. The first Android build packages the pinned
-EfficientDet model, so no model download or backend is required at runtime.
-The model source, limitations, and checksum are recorded in the
-[model card](modules/vision-object-detector/MODEL_CARD.md).
+</details>
 
-The first build may install the pinned Android SDK components and download the
-Gradle distribution. See the reproducible baseline record in
-[physical-device validation](docs/VALIDATION.md).
+<details>
+<summary><b>Decisions, and the ones that were reversed</b></summary>
 
-## Run the iOS app
+<br />
 
-Requirements:
+Every architectural choice is recorded as an ADR with its context, its
+trade-offs, and — where it happened — the evidence that later overturned it.
+[ADR-0009](docs/adr/0009-ios-vision-detector.md) chose Apple's Vision framework
+for iOS on a solid argument;
+[ADR-0010](docs/adr/0010-ios-shares-the-android-detector.md) took it apart with
+what a physical iPhone showed. Both are kept.
 
-- the same Node toolchain as the Android app;
-- Xcode 26 or newer and CocoaPods;
-- a physical iPhone for the camera, microphone, and speech recognition.
+Read the [full index](docs/adr/README.md).
 
-```sh
-npm ci
-cd ios && pod install
-```
+</details>
 
-Open `ios/SayLens.xcworkspace` — the workspace, not the project — or start
-Metro and run:
+---
 
-```sh
-npx react-native run-ios --device
-```
+## 📚 Documentation
 
-Recognition on iOS uses the operating system's own Vision framework, so no
-model is downloaded or bundled. The simulator builds and launches; its camera
-is a static image, so there is nothing there for the detector to recognise.
+|                                                               |                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------- |
+| 🏛️ [Architecture and dependency rules](docs/ARCHITECTURE.md)  | How the layers are allowed to depend on each other        |
+| 🍎 [The iOS native layer](docs/IOS.md)                        | Swift detector, voice modules, and what the device proved |
+| 🧾 [Architecture Decision Records](docs/adr/README.md)        | Every decision, including the reversed ones               |
+| 📊 [Physical-device validation](docs/VALIDATION.md)           | Numbers, methods, and limits                              |
+| 🏎️ [Performance engineering strategy](docs/PERFORMANCE.md)    | Treating this workload as a case study                    |
+| 🗺️ [Roadmap](docs/ROADMAP.md)                                 | Milestones and acceptance criteria                        |
+| 🤝 [Contribution workflow](CONTRIBUTING.md)                   | Before you open a change                                  |
+| 🧠 [Model card](modules/vision-object-detector/MODEL_CARD.md) | Source, licence, limitations, checksum                    |
 
-The iOS layer, its two-phase recognition, its scheduling, and what has and has
-not been measured are documented in [the iOS native layer](docs/IOS.md).
+---
 
-## Roadmap
+## 🤝 Contributing
 
-The work is split into evidence-producing milestones: repository foundation,
-Android baseline, camera pipeline, native detection, interactive overlay,
-learning experience, performance engineering, and public release.
+The project is open to technical discussion. Before opening a change, read
+[CONTRIBUTING.md](CONTRIBUTING.md), preserve the dependency rule, and keep
+commits small and semantic.
 
-See the [roadmap and acceptance criteria](docs/ROADMAP.md).
-
-## Documentation
-
-- [Architecture and dependency rules](docs/ARCHITECTURE.md)
-- [The iOS native layer](docs/IOS.md)
-- [Architecture Decision Records](docs/adr/README.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Physical-device validation](docs/VALIDATION.md)
-- [Performance engineering strategy](docs/PERFORMANCE.md)
-- [Contribution workflow](CONTRIBUTING.md)
-
-## Contributing
-
-The project will be public and welcomes technical discussion. Before opening a
-change, read [CONTRIBUTING.md](CONTRIBUTING.md), preserve the dependency rule,
-and keep commits small and semantic.
-
-## License
+## 📄 License
 
 A license will be selected before the first public release. Until then, no
 permission to copy, modify, or redistribute the code is granted by default.

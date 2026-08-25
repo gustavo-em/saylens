@@ -44,6 +44,9 @@ export function useAppViewModel(
   const [viewedObjects, setViewedObjects] = useState<ViewedObject[]>([]);
   const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
   const [speakLabel, setSpeakLabel] = useState<string | null>(null);
+  // Practising can start from the camera or from history, and closing has to
+  // land back where the learner came from.
+  const [speakReturnTab, setSpeakReturnTab] = useState<AppTab>('history');
   const cameraAccess = useVisionCameraAccess();
 
   useEffect(() => {
@@ -162,10 +165,14 @@ export function useAppViewModel(
     setActiveTab(tab);
   }, []);
 
-  const practiseSpeaking = useCallback((label: string) => {
-    setSpeakLabel(label);
-    setActiveTab('speak');
-  }, []);
+  const practiseSpeaking = useCallback(
+    (label: string, returnTab: AppTab = 'history') => {
+      setSpeakLabel(label);
+      setSpeakReturnTab(returnTab);
+      setActiveTab('speak');
+    },
+    [],
+  );
 
   const changeNativeLanguage = useCallback(
     (language: LearningLanguage) =>
@@ -219,6 +226,7 @@ export function useAppViewModel(
     practiseSpeaking,
     showDiagnostics: preferences.showDiagnostics,
     speakLabel,
+    speakReturnTab,
     toggleFavoriteLabel,
     toggleDiagnostics,
     viewedObjects,

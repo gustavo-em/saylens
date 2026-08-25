@@ -60,6 +60,9 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         copy={viewModel.copy}
         onObjectsSeen={viewModel.recordViewedLabels}
         onOpenHistory={() => viewModel.selectTab('history')}
+        onPractiseSpeaking={label =>
+          viewModel.practiseSpeaking(label, 'camera')
+        }
         onOpenSettings={() => viewModel.selectTab('settings')}
         diagnostics={{
           cpuWorkers: workerSettings.cpuWorkerCount,
@@ -83,7 +86,9 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           pronunciationPlayer={systemPronunciationPlayer}
           favorites={viewModel.favorites}
           onOpenQuiz={() => viewModel.selectTab('quiz')}
-          onPractiseSpeaking={viewModel.practiseSpeaking}
+          onPractiseSpeaking={label =>
+            viewModel.practiseSpeaking(label, 'history')
+          }
           onToggleFavorite={viewModel.toggleFavoriteLabel}
           viewedObjects={viewModel.viewedObjects}
           vocabularyRepository={localVocabularyRepository}
@@ -95,7 +100,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           copy={viewModel.copy}
           label={viewModel.speakLabel}
           languageSettings={viewModel.languageSettings}
-          onClose={() => viewModel.selectTab('history')}
+          onClose={() => viewModel.selectTab(viewModel.speakReturnTab)}
           pronunciationPlayer={systemPronunciationPlayer}
           speechRecognizer={systemSpeechRecognizer}
           vocabularyRepository={localVocabularyRepository}

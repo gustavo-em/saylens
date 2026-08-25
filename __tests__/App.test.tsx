@@ -37,6 +37,27 @@ const mockPronunciationPlayer = jest.requireMock(
   stop: jest.Mock;
 };
 
+jest.mock(
+  '../src/features/learning/infrastructure/speech/systemSpeechRecognizer',
+  () => ({
+    systemSpeechRecognizer: {
+      isAvailable: jest.fn(async () => true),
+      hasPermission: jest.fn(async () => true),
+      listen: jest.fn(async () => ['Bottle']),
+      cancel: jest.fn(async () => undefined),
+    },
+  }),
+);
+
+const mockSpeechRecognizer = jest.requireMock(
+  '../src/features/learning/infrastructure/speech/systemSpeechRecognizer',
+).systemSpeechRecognizer as {
+  isAvailable: jest.Mock;
+  hasPermission: jest.Mock;
+  listen: jest.Mock;
+  cancel: jest.Mock;
+};
+
 jest.mock('react-native-vision-camera', () => {
   const ReactModule = require('react');
   const { View: MockView } = jest.requireActual('react-native');
@@ -106,6 +127,27 @@ jest.mock(
   },
 );
 
+function pressableWithTestID(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  testID: string,
+) {
+  const pressable = renderer.root
+    .findAllByProps({ testID })
+    .find(node => typeof node.props.onPress === 'function');
+
+  if (pressable == null) throw new Error(`No pressable for ${testID}`);
+
+  return pressable;
+}
+
+async function layOutCamera(renderer: ReactTestRenderer.ReactTestRenderer) {
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ testID: 'camera-container' }).props.onLayout({
+      nativeEvent: { layout: { width: 360, height: 640 } },
+    });
+  });
+}
+
 async function pressCameraMenuItem(
   renderer: ReactTestRenderer.ReactTestRenderer,
   testID: string,
@@ -122,6 +164,10 @@ describe('App', () => {
   beforeEach(() => {
     mockPronunciationPlayer.speak.mockReset().mockResolvedValue(undefined);
     mockPronunciationPlayer.stop.mockReset().mockResolvedValue(undefined);
+    mockSpeechRecognizer.isAvailable.mockReset().mockResolvedValue(true);
+    mockSpeechRecognizer.hasPermission.mockReset().mockResolvedValue(true);
+    mockSpeechRecognizer.listen.mockReset().mockResolvedValue(['Bottle']);
+    mockSpeechRecognizer.cancel.mockReset().mockResolvedValue(undefined);
   });
 
   it('opens on the camera screen with a settings control', async () => {
@@ -355,47 +401,30 @@ describe('App', () => {
     expect(renderedTree).toContain('BÓ-tl');
     expect(renderedTree).toContain('Garrafa');
     expect(renderedTree).toContain('Botella');
-    expect(renderedTree).toContain('Toque para ouvir a pronúncia.');
+    // The sentence on the card is written in the language being learned.
+    expect(renderedTree).toContain('This is my water bottle.');
+    expect(renderedTree).not.toContain('Esta é minha garrafa de água.');
     expect(renderedTree).toContain('PT');
     expect(
       renderer!.root.findAllByProps({ testID: 'close-word-modal' }),
     ).toHaveLength(0);
   });
 
-  it('pronounces a detected word in the selected learning language', async () => {
+  it('leaves the frame around the object silent when it is touched', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
       renderer = ReactTestRenderer.create(<App />);
     });
+    await layOutCamera(renderer!);
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-container' })
-        .props.onLayout({
-          nativeEvent: { layout: { width: 360, height: 640 } },
-        });
-    });
-
-    const detectedObjects = renderer!.root.findAllByProps({
+    const frames = renderer!.root.findAllByProps({
       testID: 'detected-object-bottle-1',
     });
-    const detectedObjectButton = detectedObjects.find(
-      object =>
-        object.props.accessibilityRole === 'button' &&
-        typeof object.props.onPress === 'function',
-    );
 
-    expect(detectedObjectButton!.props.accessibilityRole).toBe('button');
-    await ReactTestRenderer.act(async () => {
-      detectedObjectButton!.props.onPress();
-      await Promise.resolve();
-    });
-
-    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith(
-      'Bottle',
-      'en-US',
-    );
+    expect(frames.length).toBeGreaterThan(0);
+    frames.forEach(frame => expect(frame.props.onPress).toBeUndefined());
+    expect(mockPronunciationPlayer.speak).not.toHaveBeenCalled();
   });
 
   it('updates the interface and vocabulary when language preferences change', async () => {
@@ -446,19 +475,59 @@ describe('App', () => {
     expect(renderedTree).toContain('ES');
     expect(renderedTree).not.toContain('Explore spanish around you');
 
-    const spanishObjectButton = renderer!.root
-      .findAllByProps({ testID: 'detected-object-bottle-1' })
-      .find(
-        object =>
-          object.props.accessibilityRole === 'button' &&
-          typeof object.props.onPress === 'function',
-      );
-
     await ReactTestRenderer.act(async () => {
-      spanishObjectButton!.props.onPress();
+      pressableWithTestID(renderer!, 'hear-object-bottle-1').props.onPress();
       await Promise.resolve();
     });
 
     expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Botella', 'es');
   });
+
+  it('practises a detected word and comes back to the camera', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(
+        renderer!,
+        'practise-object-bottle-1',
+      ).props.onPress();
+    });
+
+    renderer!.root.findByProps({ testID: 'speak-listen' });
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Bottle');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'speak-close').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(true);
+  });
+
+  it('hears a detected word from the button on its card', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+
+    await ReactTestRenderer.act(async () => {
+      pressableWithTestID(renderer!, 'hear-object-bottle-1').props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith(
+      'Bottle',
+      'en-US',
+    );
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Treinar');
+  });
+
 });

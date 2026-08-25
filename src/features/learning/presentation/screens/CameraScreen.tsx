@@ -16,6 +16,7 @@ interface CameraScreenProps {
   copy: LearningCopy;
   onOpenHistory: () => void;
   onOpenSettings: () => void;
+  onPractiseSpeaking: (label: string) => void;
   showDiagnostics: boolean;
   diagnostics: {
     cpuWorkers: number;
@@ -38,6 +39,7 @@ export function CameraScreen({
   copy,
   onOpenHistory,
   onOpenSettings,
+  onPractiseSpeaking,
   showDiagnostics,
   diagnostics,
   onObjectsSeen,
@@ -70,6 +72,7 @@ export function CameraScreen({
       copy={copy}
       onOpenHistory={onOpenHistory}
       onOpenSettings={onOpenSettings}
+      onPractiseSpeaking={onPractiseSpeaking}
       showDiagnostics={showDiagnostics}
       diagnostics={diagnostics}
       isActive={isActive}

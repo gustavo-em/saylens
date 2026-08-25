@@ -71,7 +71,9 @@ export interface LearningCopy {
     objectsDetected: (count: number) => string;
     meaningLabel: string;
     pronunciationLabel: string;
-    tapToHearPronunciation: string;
+    practiseSpeaking: string;
+    hear: string;
+    practise: string;
     tapToChangeLanguages: string;
     menu: string;
     pause: string;
@@ -232,7 +234,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONÚNCIA',
-      tapToHearPronunciation: 'Toque para ouvir a pronúncia.',
+      practiseSpeaking: 'Praticar a fala',
+      hear: 'Ouvir',
+      practise: 'Treinar',
       tapToChangeLanguages: 'Toque para escolher os idiomas.',
       menu: 'Opções',
       pause: 'Pausar',
@@ -350,7 +354,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJECT${count === 1 ? '' : 'S'}`,
       meaningLabel: 'MEANING',
       pronunciationLabel: 'PRONUNCIATION',
-      tapToHearPronunciation: 'Tap to hear the pronunciation.',
+      practiseSpeaking: 'Practise speaking',
+      hear: 'Hear',
+      practise: 'Practise',
       tapToChangeLanguages: 'Tap to choose the languages.',
       menu: 'Options',
       pause: 'Pause',
@@ -470,7 +476,9 @@ const copies: Record<
       objectsDetected: count => `${count} OBJETO${count === 1 ? '' : 'S'}`,
       meaningLabel: 'SIGNIFICADO',
       pronunciationLabel: 'PRONUNCIACIÓN',
-      tapToHearPronunciation: 'Toca para escuchar la pronunciación.',
+      practiseSpeaking: 'Practicar el habla',
+      hear: 'Escuchar',
+      practise: 'Hablar',
       tapToChangeLanguages: 'Toca para elegir los idiomas.',
       menu: 'Opciones',
       pause: 'Pausar',

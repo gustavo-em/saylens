@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Pressable, View, type LayoutChangeEvent } from 'react-native';
+import {
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   Easing,
+  type AnimatedStyle,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
@@ -16,12 +22,14 @@ import { languageCodes, languageFlags } from '../../domain/LearningLanguage';
 import type { DetectedObject } from '../../domain/DetectedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
+import { getObjectCardScale } from '../animation/objectCardScale';
 import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
 interface CameraViewProps {
   copy: LearningCopy;
   isActive: boolean;
   onOpenHistory: () => void;
+  onPractiseSpeaking: (label: string) => void;
   onOpenSettings: () => void;
   showDiagnostics: boolean;
   diagnostics: {
@@ -47,7 +55,6 @@ const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
 const OBJECT_CARD_TOP_SAFE_INSET = 92;
 const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const TARGET_CORNERS = [
   'topLeft',
   'topRight',
@@ -140,14 +147,32 @@ function SettingsIcon({ color }: { color: string }) {
   );
 }
 
-function SpeakerIcon() {
+function SpeakerIcon({ size = 14 }: { size?: number }) {
   return (
-    <Svg height={18} viewBox="0 0 24 24" width={18}>
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
       <Path d="M4 9v6h4l5 4V5L8 9H4Z" fill="#111827" />
       <Path
         d="M16 8.2a5 5 0 0 1 0 7.6M18.7 5.5a9 9 0 0 1 0 13"
         fill="none"
         stroke="#111827"
+        strokeLinecap="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
+  );
+}
+
+function MicIcon({ color = '#111827' }: { color?: string }) {
+  return (
+    <Svg height={14} viewBox="0 0 24 24" width={14}>
+      <Path
+        d="M12 4.5a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-5 0V7A2.5 2.5 0 0 1 12 4.5Z"
+        fill={color}
+      />
+      <Path
+        d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5V20"
+        fill="none"
+        stroke={color}
         strokeLinecap="round"
         strokeWidth={1.8}
       />
@@ -181,52 +206,66 @@ function getObjectStyle(
 function getObjectCardStyle(
   targetStyle: ReturnType<typeof getObjectStyle>,
   viewport: ViewportSize,
+  scale: number,
 ) {
+  const width = OBJECT_CARD_WIDTH * scale;
+  const height = OBJECT_CARD_ESTIMATED_HEIGHT * scale;
   const minimumLeft = OBJECT_CARD_EDGE_INSET - targetStyle.left;
   const rightSafeInset =
     viewport.width > viewport.height ? 166 : OBJECT_CARD_EDGE_INSET;
   const maximumLeft =
-    viewport.width - targetStyle.left - OBJECT_CARD_WIDTH - rightSafeInset;
+    viewport.width - targetStyle.left - width - rightSafeInset;
   const preferredAbsoluteTop =
-    targetStyle.top - OBJECT_CARD_ESTIMATED_HEIGHT - OBJECT_CARD_EDGE_INSET;
+    targetStyle.top - height - OBJECT_CARD_EDGE_INSET;
   const maximumAbsoluteTop =
-    viewport.height -
-    OBJECT_CARD_BOTTOM_SAFE_INSET -
-    OBJECT_CARD_ESTIMATED_HEIGHT;
+    viewport.height - OBJECT_CARD_BOTTOM_SAFE_INSET - height;
   const absoluteTop = Math.max(
     OBJECT_CARD_TOP_SAFE_INSET,
     Math.min(preferredAbsoluteTop, maximumAbsoluteTop),
   );
+  const visibleLeft = Math.max(minimumLeft, Math.min(-2, maximumLeft));
 
   return {
-    left: Math.max(minimumLeft, Math.min(-2, maximumLeft)),
+    // The card is scaled around its top centre, so the laid-out box has to be
+    // shifted back by half of what the scaling takes off its width.
+    left: visibleLeft - (OBJECT_CARD_WIDTH - width) / 2,
     top: absoluteTop - targetStyle.top,
+    transformOrigin: ['50%', 0, 0] as [string, number, number],
   };
 }
 
 interface InterpolatedObjectTargetProps {
-  accessibilityHint: string;
   accessibilityLabel: string;
-  children: ReactNode;
+  /** Receives the style of the card, which is sized by how close the object is. */
+  children: (cardStyle: StyleProp<AnimatedStyle<ViewStyle>>) => ReactNode;
   durationMs: number;
-  onPress: () => void;
+  hearLabel: string;
+  onHear: () => void;
+  onPractise: () => void;
+  practiseLabel: string;
   targetStyle: ReturnType<typeof getObjectStyle>;
   testID: string;
+  viewport: ViewportSize;
 }
 
 function InterpolatedObjectTarget({
-  accessibilityHint,
   accessibilityLabel,
   children,
   durationMs,
-  onPress,
+  hearLabel,
+  onHear,
+  onPractise,
+  practiseLabel,
   targetStyle,
   testID,
+  viewport,
 }: InterpolatedObjectTargetProps) {
   const left = useSharedValue(targetStyle.left);
   const top = useSharedValue(targetStyle.top);
   const width = useSharedValue(targetStyle.width);
   const height = useSharedValue(targetStyle.height);
+  const cardScale = getObjectCardScale(targetStyle, viewport);
+  const scale = useSharedValue(cardScale);
 
   useEffect(() => {
     const animation = {
@@ -239,10 +278,13 @@ function InterpolatedObjectTarget({
     top.value = withTiming(targetStyle.top, animation);
     width.value = withTiming(targetStyle.width, animation);
     height.value = withTiming(targetStyle.height, animation);
+    scale.value = withTiming(cardScale, animation);
   }, [
+    cardScale,
     durationMs,
     height,
     left,
+    scale,
     targetStyle.height,
     targetStyle.left,
     targetStyle.top,
@@ -258,22 +300,35 @@ function InterpolatedObjectTarget({
     width: width.value,
   }));
 
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
     <ObjectTarget
-      accessibilityHint={accessibilityHint}
+      // The frame itself does nothing when touched: hearing and practising are
+      // the two named buttons on the card. Screen readers reach them here,
+      // where the whole target is a single accessible element.
+      accessibilityActions={[
+        { name: 'hear', label: hearLabel },
+        { name: 'practise', label: practiseLabel },
+      ]}
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
       accessible
-      android_ripple={{ color: 'rgba(139, 190, 255, 0.28)' }}
-      hitSlop={8}
-      onPress={onPress}
+      onAccessibilityAction={event => {
+        if (event.nativeEvent.actionName === 'hear') onHear();
+        if (event.nativeEvent.actionName === 'practise') onPractise();
+      }}
       style={animatedStyle}
       testID={testID}
     >
       {TARGET_CORNERS.map(corner => (
         <TargetCorner key={corner} $corner={corner} pointerEvents="none" />
       ))}
-      {children}
+      {children([
+        getObjectCardStyle(targetStyle, viewport, cardScale),
+        animatedCardStyle,
+      ])}
     </ObjectTarget>
   );
 }
@@ -282,6 +337,7 @@ export function CameraView({
   copy,
   isActive,
   onOpenHistory,
+  onPractiseSpeaking,
   onOpenSettings,
   showDiagnostics,
   diagnostics,
@@ -362,38 +418,78 @@ export function CameraView({
 
             return (
               <InterpolatedObjectTarget
-                accessibilityHint={copy.camera.tapToHearPronunciation}
                 accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${vocabulary.pronunciationHint}`}
                 durationMs={viewModel.detectionInterpolationDurationMs}
+                hearLabel={copy.camera.hear}
                 key={object.id}
-                onPress={() => viewModel.onObjectPress(vocabulary)}
+                onHear={() => viewModel.onObjectPress(vocabulary)}
+                onPractise={() => onPractiseSpeaking(object.label)}
+                practiseLabel={copy.camera.practiseSpeaking}
                 targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
+                viewport={viewport}
               >
-                <CardAnchor pointerEvents="none" />
-                <ObjectCard style={getObjectCardStyle(targetStyle, viewport)}>
-                  <ObjectWord numberOfLines={1}>{vocabulary.word}</ObjectWord>
-                  <TranslationRow>
-                    {vocabulary.translations.map((translation, index) => (
-                      <React.Fragment key={translation}>
-                        {index > 0 ? <TranslationDot>•</TranslationDot> : null}
-                        <Translation numberOfLines={1} $secondary={index > 0}>
-                          {translation}
-                        </Translation>
-                      </React.Fragment>
-                    ))}
-                  </TranslationRow>
-                  <ObjectDefinition numberOfLines={3}>
-                    {vocabulary.definition}
-                  </ObjectDefinition>
-                  <ObjectRule />
-                  <ObjectPronunciation>
-                    <SpeakerIcon />
-                    <PronunciationText numberOfLines={1}>
-                      {vocabulary.pronunciation}
-                    </PronunciationText>
-                  </ObjectPronunciation>
-                </ObjectCard>
+                {cardStyle => (
+                  <>
+                    <CardAnchor pointerEvents="none" />
+                    <ObjectCard style={cardStyle}>
+                      <ObjectWord numberOfLines={1}>
+                        {vocabulary.word}
+                      </ObjectWord>
+                      <TranslationRow>
+                        {vocabulary.translations.map((translation, index) => (
+                          <React.Fragment key={translation}>
+                            {index > 0 ? (
+                              <TranslationDot>•</TranslationDot>
+                            ) : null}
+                            <Translation
+                              numberOfLines={1}
+                              $secondary={index > 0}
+                            >
+                              {translation}
+                            </Translation>
+                          </React.Fragment>
+                        ))}
+                      </TranslationRow>
+                      <ObjectExample numberOfLines={2}>
+                        {vocabulary.example}
+                      </ObjectExample>
+                      <ObjectRule />
+                      <ObjectPronunciation>
+                        <PronunciationText numberOfLines={1}>
+                          {vocabulary.pronunciation}
+                        </PronunciationText>
+                      </ObjectPronunciation>
+                      <ObjectActions>
+                        <ActionButton
+                          accessibilityLabel={copy.camera.hear}
+                          accessibilityRole="button"
+                          hitSlop={6}
+                          onPress={() => viewModel.onObjectPress(vocabulary)}
+                          testID={`hear-object-${object.id}`}
+                        >
+                          <SpeakerIcon />
+                          <ActionLabel numberOfLines={1}>
+                            {copy.camera.hear}
+                          </ActionLabel>
+                        </ActionButton>
+                        <ActionButton
+                          accessibilityLabel={copy.camera.practiseSpeaking}
+                          accessibilityRole="button"
+                          hitSlop={6}
+                          onPress={() => onPractiseSpeaking(object.label)}
+                          testID={`practise-object-${object.id}`}
+                          $primary
+                        >
+                          <MicIcon color="#ffffff" />
+                          <ActionLabel numberOfLines={1} $primary>
+                            {copy.camera.practise}
+                          </ActionLabel>
+                        </ActionButton>
+                      </ObjectActions>
+                    </ObjectCard>
+                  </>
+                )}
               </InterpolatedObjectTarget>
             );
           })}
@@ -585,7 +681,7 @@ const DetectionLayer = styled.View`
   z-index: 1;
 `;
 
-const ObjectTarget = styled(AnimatedPressable)`
+const ObjectTarget = styled(Animated.View)`
   position: absolute;
   min-width: 42px;
   min-height: 42px;
@@ -611,7 +707,7 @@ const TargetCorner = styled.View<{
       : 'bottom: 0px; right: 0px; border-bottom-width: 2.5px; border-right-width: 2.5px; border-bottom-right-radius: 8px;'}
 `;
 
-const ObjectCard = styled.View`
+const ObjectCard = styled(Animated.View)`
   position: absolute;
   width: 208px;
   padding: 16px;
@@ -662,11 +758,14 @@ const TranslationDot = styled.Text`
   line-height: 22px;
 `;
 
-const ObjectDefinition = styled.Text`
+/** The sentence is what the learner is here for, so it is written in the
+ * language being learned. The native meaning is already in the row above. */
+const ObjectExample = styled.Text`
   margin-top: 10px;
   color: ${({ theme }) => theme.colors.overlayInk};
   font-size: 14px;
   line-height: 20px;
+  font-style: italic;
 `;
 
 const ObjectRule = styled.View`
@@ -686,6 +785,37 @@ const PronunciationText = styled.Text`
   color: ${({ theme }) => theme.colors.overlayMuted};
   font-size: 12px;
   line-height: 16px;
+`;
+
+/** Hearing the word and saying it back are the two things to do with a card,
+ * so both are named rather than left to a tap the learner has to guess. */
+const ObjectActions = styled.View`
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const ActionButton = styled.Pressable<{ $primary?: boolean }>`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 6px;
+  border: 1px solid
+    ${({ theme, $primary }) =>
+      $primary ? theme.colors.accent : theme.colors.overlayRule};
+  border-radius: 999px;
+  background-color: ${({ theme, $primary }) =>
+    $primary ? theme.colors.accent : 'transparent'};
+`;
+
+const ActionLabel = styled.Text<{ $primary?: boolean }>`
+  color: ${({ theme, $primary }) =>
+    $primary ? '#ffffff' : theme.colors.overlayInk};
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 800;
 `;
 
 const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`

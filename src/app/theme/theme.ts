@@ -17,6 +17,14 @@ interface ThemeColors {
   muted: string;
   mutedStrong: string;
   text: string;
+  /** Camera overlay palette. Identical in both themes: these sit on the video
+   * feed, not on the app background. */
+  overlayCard: string;
+  overlayInk: string;
+  overlayMuted: string;
+  overlayRule: string;
+  translationPrimary: string;
+  translationSecondary: string;
 }
 
 export interface AppTheme {
@@ -69,6 +77,12 @@ export const darkTheme: AppTheme = {
     muted: '#91A9C9',
     mutedStrong: '#B4C8E4',
     text: '#F4F8FF',
+    overlayCard: '#FFFFFF',
+    overlayInk: '#111827',
+    overlayMuted: '#6B7280',
+    overlayRule: '#E5E7EB',
+    translationPrimary: '#2563EB',
+    translationSecondary: '#EF4444',
   },
 };
 
@@ -90,6 +104,12 @@ export const lightTheme: AppTheme = {
     muted: '#607A9B',
     mutedStrong: '#3E5D83',
     text: '#0A1A30',
+    overlayCard: '#FFFFFF',
+    overlayInk: '#111827',
+    overlayMuted: '#6B7280',
+    overlayRule: '#E5E7EB',
+    translationPrimary: '#2563EB',
+    translationSecondary: '#EF4444',
   },
 };
 

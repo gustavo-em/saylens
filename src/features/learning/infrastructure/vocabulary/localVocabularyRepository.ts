@@ -1,5 +1,9 @@
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
-import type { LearningLanguage } from '../../domain/LearningLanguage';
+import {
+  languageBase,
+  learningLanguages,
+  type LanguageBase,
+} from '../../domain/LearningLanguage';
 import type { VocabularyEntry } from '../../domain/VocabularyEntry';
 
 type LocalizedWord = Pick<
@@ -7,7 +11,7 @@ type LocalizedWord = Pick<
   'word' | 'pronunciation' | 'pronunciationHint' | 'example'
 >;
 
-type VocabularyRecord = Record<LearningLanguage, LocalizedWord>;
+type VocabularyRecord = Record<LanguageBase, LocalizedWord>;
 
 function word(
   value: string,
@@ -1146,13 +1150,13 @@ const entries: Record<string, VocabularyRecord> = {
   },
 };
 
-const fallbackMeaning: Record<LearningLanguage, string> = {
+const fallbackMeaning: Record<LanguageBase, string> = {
   'pt-BR': 'Objeto reconhecido pelo modelo visual.',
   en: 'Object recognized by the visual model.',
   es: 'Objeto reconocido por el modelo visual.',
 };
 
-const fallbackExamples: Record<LearningLanguage, (label: string) => string> = {
+const fallbackExamples: Record<LanguageBase, (label: string) => string> = {
   'pt-BR': label => `Consigo ver: ${label}.`,
   en: label => `I can see a ${label}.`,
   es: label => `Puedo ver: ${label}.`,
@@ -1167,20 +1171,32 @@ export const localVocabularyRepository: VocabularyRepository = {
     const normalizedLabel = label.trim().toLowerCase();
     const entry = entries[normalizedLabel];
 
+    const learning = languageBase(languageSettings.learningLanguage);
+    const native = languageBase(languageSettings.nativeLanguage);
+
     if (entry != null) {
+      const otherBases = learningLanguages
+        .map(languageBase)
+        .filter(
+          (base, index, bases) =>
+            base !== learning && bases.indexOf(base) === index,
+        );
+
       return {
-        ...entry[languageSettings.learningLanguage],
-        meaning: entry[languageSettings.nativeLanguage].word,
+        ...entry[learning],
+        meaning: entry[native].word,
+        translations: otherBases.map(base => entry[base].word),
       };
     }
 
     const targetLabel = titleCase(normalizedLabel);
     return {
       word: targetLabel,
-      pronunciation: fallbackMeaning[languageSettings.nativeLanguage],
+      pronunciation: fallbackMeaning[native],
       pronunciationHint: normalizedLabel.toUpperCase(),
-      meaning: fallbackMeaning[languageSettings.nativeLanguage],
-      example: fallbackExamples[languageSettings.learningLanguage](targetLabel),
+      meaning: fallbackMeaning[native],
+      translations: [],
+      example: fallbackExamples[learning](targetLabel),
     };
   },
 };

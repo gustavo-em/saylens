@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
+import Svg, { Circle, Path } from 'react-native-svg';
+import styled, { useTheme } from 'styled-components/native';
 
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { SpeechRecognizer } from '../../application/ports/SpeechRecognizer';
@@ -28,6 +29,80 @@ interface SpeakScreenProps {
 
 type Status = 'idle' | 'listening' | 'result' | 'blocked';
 
+/** How long a spoken word is expected to take. The recogniser stops on its own
+ * when the learner goes quiet, so this only paces the countdown on screen. */
+const LISTEN_SECONDS = 5;
+const RING_RADIUS = 24;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+function MicIcon({ color, size = 26 }: { color: string; size?: number }) {
+  return (
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
+      <Path
+        d="M12 3.5A2.75 2.75 0 0 1 14.75 6.25v4.5a2.75 2.75 0 0 1-5.5 0v-4.5A2.75 2.75 0 0 1 12 3.5Z"
+        fill={color}
+      />
+      <Path
+        d="M6 10.75a6 6 0 0 0 12 0M12 16.75V20.5M8.5 20.5h7"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={1.9}
+      />
+    </Svg>
+  );
+}
+
+function SpeakerIcon({ color }: { color: string }) {
+  return (
+    <Svg height={16} viewBox="0 0 24 24" width={16}>
+      <Path d="M4 9v6h4l5 4V5L8 9H4Z" fill={color} />
+      <Path
+        d="M16 8.2a5 5 0 0 1 0 7.6M18.7 5.5a9 9 0 0 1 0 13"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
+  );
+}
+
+/** Ring that empties as the listening window runs out, so the learner can see
+ * how much time is left without reading a label. */
+function CountdownRing({ secondsLeft }: { secondsLeft: number }) {
+  const progress = Math.max(Math.min(secondsLeft / LISTEN_SECONDS, 1), 0);
+
+  return (
+    <RingWrapper>
+      <Svg height={58} viewBox="0 0 58 58" width={58}>
+        <Circle
+          cx={29}
+          cy={29}
+          fill="none"
+          r={RING_RADIUS}
+          stroke="rgba(255, 255, 255, 0.28)"
+          strokeWidth={4}
+        />
+        <Circle
+          cx={29}
+          cy={29}
+          fill="none"
+          origin="29, 29"
+          r={RING_RADIUS}
+          rotation={-90}
+          stroke="#ffffff"
+          strokeDasharray={`${RING_LENGTH}`}
+          strokeDashoffset={RING_LENGTH * (1 - progress)}
+          strokeLinecap="round"
+          strokeWidth={4}
+        />
+      </Svg>
+      <RingValue>{secondsLeft > 0 ? secondsLeft : '…'}</RingValue>
+    </RingWrapper>
+  );
+}
+
 export function SpeakScreen({
   copy,
   label,
@@ -42,6 +117,21 @@ export function SpeakScreen({
   const [status, setStatus] = useState<Status>('idle');
   const [attempt, setAttempt] = useState<PronunciationAttempt | null>(null);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(LISTEN_SECONDS);
+  const theme = useTheme();
+
+  useEffect(() => {
+    if (status !== 'listening') return;
+
+    setSecondsLeft(LISTEN_SECONDS);
+    const startedAtMs = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
+      setSecondsLeft(Math.max(LISTEN_SECONDS - elapsed, 0));
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [status]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -150,6 +240,7 @@ export function SpeakScreen({
             onPress={handleHear}
             testID="speak-hear"
           >
+            <SpeakerIcon color={theme.colors.accent} />
             <HearText>{copy.speak.listen}</HearText>
           </HearButton>
         </WordCard>
@@ -175,7 +266,9 @@ export function SpeakScreen({
             {status === 'blocked'
               ? blockedMessage
               : status === 'listening'
-              ? copy.speak.listening
+              ? secondsLeft > 0
+                ? copy.speak.countdown(secondsLeft)
+                : copy.speak.listening
               : copy.speak.idle}
           </Status>
         )}
@@ -188,18 +281,25 @@ export function SpeakScreen({
           testID="speak-listen"
           $listening={status === 'listening'}
         >
-          <MicGlyph>{status === 'listening' ? '■' : '●'}</MicGlyph>
+          {status === 'listening' ? (
+            <CountdownRing secondsLeft={secondsLeft} />
+          ) : (
+            <MicBadge>
+              <MicIcon color="#ffffff" />
+            </MicBadge>
+          )}
           <MicLabel>
-            {status === 'result' ? copy.speak.again : copy.speak.title}
+            {status === 'listening'
+              ? copy.speak.listening
+              : status === 'result'
+              ? copy.speak.again
+              : copy.speak.title}
           </MicLabel>
         </MicButton>
       </SpeakSafeArea>
     </Container>
   );
 }
-
-const MATCHED = '#2FAE6B';
-const MISSED = '#EF4444';
 
 const Container = styled.View`
   position: absolute;
@@ -291,6 +391,9 @@ const Ipa = styled.Text`
 `;
 
 const HearButton = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   margin-top: 18px;
   padding: 10px 18px;
   border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
@@ -314,14 +417,17 @@ const Status = styled.Text`
 const Feedback = styled.View<{ $matched: boolean }>`
   margin-top: 22px;
   padding: 16px 18px;
-  border: 1px solid ${({ $matched }) => ($matched ? MATCHED : MISSED)};
+  border: 1px solid
+    ${({ theme, $matched }) =>
+      $matched ? theme.colors.success : theme.colors.danger};
   border-radius: 16px;
   background-color: ${({ $matched }) =>
     $matched ? 'rgba(47, 174, 107, 0.12)' : 'rgba(239, 68, 68, 0.10)'};
 `;
 
 const FeedbackTitle = styled.Text<{ $matched: boolean }>`
-  color: ${({ $matched }) => ($matched ? MATCHED : MISSED)};
+  color: ${({ theme, $matched }) =>
+    $matched ? theme.colors.success : theme.colors.danger};
   font-size: 16px;
   font-weight: 800;
 `;
@@ -344,27 +450,49 @@ const ScoreTrack = styled.View`
 const ScoreFill = styled.View<{ $matched: boolean; $percentage: number }>`
   width: ${({ $percentage }) => `${Math.max($percentage, 2)}%`};
   height: 6px;
-  background-color: ${({ $matched }) => ($matched ? MATCHED : MISSED)};
+  background-color: ${({ theme, $matched }) =>
+    $matched ? theme.colors.success : theme.colors.danger};
 `;
 
+/** The one action of this screen, so it is the loudest thing on it. */
 const MicButton = styled.Pressable<{ $listening: boolean }>`
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   margin-top: auto;
   padding: 20px;
-  border-radius: 999px;
+  border-radius: 28px;
   background-color: ${({ theme, $listening }) =>
-    $listening ? MISSED : theme.colors.accent};
+    $listening ? theme.colors.danger : theme.colors.accent};
+  elevation: 8;
 `;
 
-const MicGlyph = styled.Text`
+const MicBadge = styled.View`
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 29px;
+  background-color: rgba(255, 255, 255, 0.18);
+`;
+
+const RingWrapper = styled.View`
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+`;
+
+const RingValue = styled.Text`
+  position: absolute;
   color: #ffffff;
-  font-size: 18px;
-  line-height: 22px;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 800;
 `;
 
 const MicLabel = styled.Text`
   color: #ffffff;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
+  letter-spacing: 0.3px;
 `;

@@ -29,6 +29,7 @@ export interface LearningCopy {
     permission: string;
     again: string;
     listen: string;
+    countdown: (seconds: number) => string;
   };
   quiz: {
     title: string;
@@ -188,6 +189,7 @@ const copies: Record<
       permission: 'Preciso da permissão do microfone para ouvir você.',
       again: 'Tentar de novo',
       listen: 'Ouvir a palavra',
+      countdown: seconds => `Ouvindo… ${seconds}s`,
     },
     quiz: {
       title: 'Praticar',
@@ -320,6 +322,7 @@ const copies: Record<
       permission: 'I need microphone permission to hear you.',
       again: 'Try again',
       listen: 'Hear the word',
+      countdown: seconds => `Listening… ${seconds}s`,
     },
     quiz: {
       title: 'Practise',
@@ -451,6 +454,7 @@ const copies: Record<
       permission: 'Necesito permiso del micrófono para escucharte.',
       again: 'Intentar de nuevo',
       listen: 'Escuchar la palabra',
+      countdown: seconds => `Escuchando… ${seconds}s`,
     },
     quiz: {
       title: 'Practicar',

@@ -1,3 +1,4 @@
+import type { CollectionId } from '../../domain/Collection';
 import {
   languageBase,
   type LanguageBase,
@@ -62,6 +63,19 @@ export interface LearningCopy {
     minutesAgo: (minutes: number) => string;
     hoursAgo: (hours: number) => string;
     daysAgo: (days: number) => string;
+  };
+  collection: {
+    title: string;
+    subtitle: string;
+    streak: (days: number) => string;
+    level: (level: number) => string;
+    foundTotal: (count: number) => string;
+    objects: (found: number, total: number) => string;
+    complete: string;
+    foundHere: string;
+    missingHere: string;
+    empty: string;
+    names: Record<CollectionId, string>;
   };
   languageName: (language: LearningLanguage) => string;
   languageShortName: (language: LearningLanguage) => string;
@@ -235,6 +249,28 @@ const copies: Record<
       hoursAgo: hours => `há ${hours} h`,
       daysAgo: days => (days === 1 ? 'ontem' : `há ${days} dias`),
     },
+    collection: {
+      title: 'Coleção',
+      subtitle: 'O que está à sua volta é o conteúdo.',
+      streak: days => `${days} ${days === 1 ? 'dia' : 'dias'}`,
+      level: level => `Nível ${level}`,
+      foundTotal: count =>
+        `${count} ${count === 1 ? 'objeto encontrado' : 'objetos encontrados'}`,
+      objects: (found, total) => `${found}/${total} objetos`,
+      complete: 'Completa',
+      foundHere: 'Encontrados',
+      missingHere: 'Ainda faltam',
+      empty: 'Aponte a câmera para um objeto para começar a coleção.',
+      names: {
+        kitchen: 'Cozinha',
+        'living-room': 'Sala',
+        bedroom: 'Quarto',
+        bathroom: 'Banheiro',
+        street: 'Rua',
+        animals: 'Animais',
+        sports: 'Esportes',
+      },
+    },
     camera: {
       caption: language =>
         `Explore ${languageNames['pt-BR'][
@@ -368,6 +404,28 @@ const copies: Record<
       hoursAgo: hours => `${hours} h ago`,
       daysAgo: days => (days === 1 ? 'yesterday' : `${days} days ago`),
     },
+    collection: {
+      title: 'Collection',
+      subtitle: 'Whatever is around you is the content.',
+      streak: days => `${days} ${days === 1 ? 'day' : 'days'}`,
+      level: level => `Level ${level}`,
+      foundTotal: count =>
+        `${count} ${count === 1 ? 'object found' : 'objects found'}`,
+      objects: (found, total) => `${found}/${total} objects`,
+      complete: 'Complete',
+      foundHere: 'Found',
+      missingHere: 'Still missing',
+      empty: 'Point the camera at an object to start your collection.',
+      names: {
+        kitchen: 'Kitchen',
+        'living-room': 'Living room',
+        bedroom: 'Bedroom',
+        bathroom: 'Bathroom',
+        street: 'Street',
+        animals: 'Animals',
+        sports: 'Sports',
+      },
+    },
     camera: {
       caption: language =>
         `Explore ${languageNames.en[language].toLowerCase()} around you`,
@@ -499,6 +557,28 @@ const copies: Record<
       minutesAgo: minutes => `hace ${minutes} min`,
       hoursAgo: hours => `hace ${hours} h`,
       daysAgo: days => (days === 1 ? 'ayer' : `hace ${days} días`),
+    },
+    collection: {
+      title: 'Colección',
+      subtitle: 'Lo que te rodea es el contenido.',
+      streak: days => `${days} ${days === 1 ? 'día' : 'días'}`,
+      level: level => `Nivel ${level}`,
+      foundTotal: count =>
+        `${count} ${count === 1 ? 'objeto encontrado' : 'objetos encontrados'}`,
+      objects: (found, total) => `${found}/${total} objetos`,
+      complete: 'Completa',
+      foundHere: 'Encontrados',
+      missingHere: 'Todavía faltan',
+      empty: 'Apunta la cámara a un objeto para empezar tu colección.',
+      names: {
+        kitchen: 'Cocina',
+        'living-room': 'Salón',
+        bedroom: 'Dormitorio',
+        bathroom: 'Baño',
+        street: 'Calle',
+        animals: 'Animales',
+        sports: 'Deportes',
+      },
     },
     camera: {
       caption: language =>

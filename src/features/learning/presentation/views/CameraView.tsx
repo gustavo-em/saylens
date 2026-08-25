@@ -28,6 +28,7 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 interface CameraViewProps {
   copy: LearningCopy;
   isActive: boolean;
+  onOpenCollection: () => void;
   onOpenHistory: () => void;
   onPractiseSpeaking: (label: string) => void;
   onOpenSettings: () => void;
@@ -123,6 +124,27 @@ function PlayIcon({ color }: { color: string }) {
   return (
     <Svg height={20} viewBox="0 0 24 24" width={20}>
       <Path d="M8 5l11 7-11 7V5Z" fill={color} />
+    </Svg>
+  );
+}
+
+function CollectionIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M4 5h16v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V5Z"
+        fill="none"
+        stroke={color}
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+      />
+      <Path
+        d="M4 6.5H2.5v1a3 3 0 0 0 3 3M20 6.5h1.5v1a3 3 0 0 1-3 3M12 14v4M8.5 20h7"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={1.8}
+      />
     </Svg>
   );
 }
@@ -336,6 +358,7 @@ function InterpolatedObjectTarget({
 export function CameraView({
   copy,
   isActive,
+  onOpenCollection,
   onOpenHistory,
   onPractiseSpeaking,
   onOpenSettings,
@@ -550,6 +573,21 @@ export function CameraView({
                     <MenuItemLabel>{copy.history.title}</MenuItemLabel>
                     <RoundButton as={View}>
                       <ListIcon color={theme.colors.text} />
+                    </RoundButton>
+                  </MenuItem>
+
+                  <MenuItem
+                    accessibilityLabel={copy.collection.title}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      onOpenCollection();
+                    }}
+                    testID="camera-open-collection"
+                  >
+                    <MenuItemLabel>{copy.collection.title}</MenuItemLabel>
+                    <RoundButton as={View}>
+                      <CollectionIcon color={theme.colors.text} />
                     </RoundButton>
                   </MenuItem>
 

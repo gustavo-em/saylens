@@ -580,4 +580,40 @@ describe('App', () => {
     expect(JSON.stringify(renderer!.toJSON())).toContain('Treinar');
   });
 
+  it('collects a detected object into its rooms and counts a streak', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+
+    await pressCameraMenuItem(renderer!, 'camera-open-collection');
+
+    const collectionTree = JSON.stringify(renderer!.toJSON());
+    expect(collectionTree).toContain('Cozinha');
+    expect(collectionTree).toContain('1 objeto encontrado');
+    expect(collectionTree).toContain('1 dia');
+    expect(collectionTree).toContain('Nível 1');
+    expect(collectionTree).toContain('1/20 objetos');
+    expect(
+      renderer!.root.findAllByProps({ testID: 'collection-empty' }),
+    ).toHaveLength(0);
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'collection-kitchen').props.onPress();
+    });
+
+    const detailTree = JSON.stringify(renderer!.toJSON());
+    expect(detailTree).toContain('Bottle');
+    expect(detailTree).toContain('Copo');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'collection-close').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(true);
+  });
 });

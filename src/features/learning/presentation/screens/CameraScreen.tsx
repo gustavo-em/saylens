@@ -14,6 +14,7 @@ interface CameraScreenProps {
   isActive: boolean;
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
+  onOpenCollection: () => void;
   onOpenHistory: () => void;
   onOpenSettings: () => void;
   onPractiseSpeaking: (label: string) => void;
@@ -37,6 +38,7 @@ export function CameraScreen({
   isActive,
   languageSettings,
   copy,
+  onOpenCollection,
   onOpenHistory,
   onOpenSettings,
   onPractiseSpeaking,
@@ -70,6 +72,7 @@ export function CameraScreen({
     <CameraView
       renderCamera={renderCamera}
       copy={copy}
+      onOpenCollection={onOpenCollection}
       onOpenHistory={onOpenHistory}
       onOpenSettings={onOpenSettings}
       onPractiseSpeaking={onPractiseSpeaking}

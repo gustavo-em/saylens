@@ -9,8 +9,10 @@ import { localVocabularyRepository } from '../features/learning/infrastructure/v
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
 import { asyncStorageFavoriteWordStore } from '../features/learning/infrastructure/favorites/asyncStorageFavoriteWordStore';
 import { asyncStorageViewedObjectStore } from '../features/learning/infrastructure/history/asyncStorageViewedObjectStore';
+import { asyncStorageLearnerProgressStore } from '../features/learning/infrastructure/progress/asyncStorageLearnerProgressStore';
 import { asyncStoragePronunciationProgressStore } from '../features/learning/infrastructure/progress/asyncStoragePronunciationProgressStore';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
+import { CollectionScreen } from '../features/learning/presentation/screens/CollectionScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
@@ -60,11 +62,12 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         languageSettings={viewModel.languageSettings}
         copy={viewModel.copy}
         onObjectsSeen={viewModel.recordViewedLabels}
+        onOpenCollection={() => viewModel.selectTab('collection')}
         onOpenHistory={() => viewModel.selectTab('history')}
+        onOpenSettings={() => viewModel.selectTab('settings')}
         onPractiseSpeaking={label =>
           viewModel.practiseSpeaking(label, 'camera')
         }
-        onOpenSettings={() => viewModel.selectTab('settings')}
         diagnostics={{
           cpuWorkers: workerSettings.cpuWorkerCount,
           gpuWorkers: workerSettings.gpuWorkerCount,
@@ -93,6 +96,18 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           onToggleFavorite={viewModel.toggleFavoriteLabel}
           pronunciationProgress={viewModel.pronunciationProgress}
           viewedObjects={viewModel.viewedObjects}
+          vocabularyRepository={localVocabularyRepository}
+        />
+      ) : null}
+
+      {viewModel.activeTab === 'collection' ? (
+        <CollectionScreen
+          copy={viewModel.copy}
+          foundLabels={viewModel.foundLabels}
+          languageSettings={viewModel.languageSettings}
+          matchedPronunciations={viewModel.matchedPronunciations}
+          onClose={() => viewModel.selectTab('camera')}
+          streakDays={viewModel.streakDays}
           vocabularyRepository={localVocabularyRepository}
         />
       ) : null}
@@ -147,6 +162,7 @@ export default function App() {
     asyncStorageViewedObjectStore,
     asyncStorageFavoriteWordStore,
     asyncStoragePronunciationProgressStore,
+    asyncStorageLearnerProgressStore,
   );
 
   return (

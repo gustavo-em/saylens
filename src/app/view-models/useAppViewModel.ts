@@ -6,6 +6,7 @@ import { useVisionCameraAccess } from '../../features/learning/infrastructure/ca
 import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
 import type { FavoriteWordStore } from '../../features/learning/application/ports/FavoriteWordStore';
+import type { LearnerProgressStore } from '../../features/learning/application/ports/LearnerProgressStore';
 import type { PronunciationProgressStore } from '../../features/learning/application/ports/PronunciationProgressStore';
 import type { ViewedObjectStore } from '../../features/learning/application/ports/ViewedObjectStore';
 import {
@@ -13,6 +14,13 @@ import {
   toggleFavorite,
   type FavoriteWord,
 } from '../../features/learning/domain/FavoriteWord';
+import {
+  EMPTY_LEARNER_PROGRESS,
+  getStreakDays,
+  recordFoundLabels,
+  sanitizeLearnerProgress,
+  type LearnerProgress,
+} from '../../features/learning/domain/LearnerProgress';
 import {
   getPronunciationStatus,
   recordPronunciationAttempt,
@@ -38,6 +46,7 @@ export function useAppViewModel(
   viewedObjectStore: ViewedObjectStore,
   favoriteWordStore: FavoriteWordStore,
   pronunciationProgressStore: PronunciationProgressStore,
+  learnerProgressStore: LearnerProgressStore,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
@@ -54,6 +63,9 @@ export function useAppViewModel(
   const [pronunciationProgress, setPronunciationProgress] = useState<
     readonly PronunciationProgressEntry[]
   >([]);
+  const [learnerProgress, setLearnerProgress] = useState<LearnerProgress>(
+    EMPTY_LEARNER_PROGRESS,
+  );
   const [speakLabel, setSpeakLabel] = useState<string | null>(null);
   // Practising can start from the camera or from history, and closing has to
   // land back where the learner came from.
@@ -136,8 +148,31 @@ export function useAppViewModel(
     [favoriteWordStore],
   );
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    learnerProgressStore
+      .load()
+      .then(stored => {
+        if (isCurrent) setLearnerProgress(sanitizeLearnerProgress(stored));
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [learnerProgressStore]);
+
   const recordViewedLabels = useCallback(
     (labels: readonly string[]) => {
+      setLearnerProgress(current => {
+        const next = recordFoundLabels(current, labels, Date.now());
+        if (next === current) return current;
+
+        learnerProgressStore.save(next).catch(() => undefined);
+        return next;
+      });
+
       setViewedObjects(current => {
         const next = recordViewedObjects(current, labels, Date.now());
         if (
@@ -151,7 +186,7 @@ export function useAppViewModel(
         return next;
       });
     },
-    [viewedObjectStore],
+    [learnerProgressStore, viewedObjectStore],
   );
 
   useEffect(() => {
@@ -270,6 +305,11 @@ export function useAppViewModel(
       ]),
     ),
     practiseSpeaking,
+    foundLabels: learnerProgress.foundLabels,
+    streakDays: getStreakDays(learnerProgress, Date.now()),
+    matchedPronunciations: pronunciationProgress.filter(
+      entry => entry.status === 'matched',
+    ).length,
     pronunciationProgress,
     pronunciationStatusOf: (label: string) =>
       getPronunciationStatus(pronunciationProgress, label),

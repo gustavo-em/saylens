@@ -161,11 +161,26 @@ still required before a public performance claim beyond this device and build.
 
 ## iOS
 
-Nothing here yet. The iOS layer is written and compiles, and no number in this
-document describes it: the detector, the recognition taxonomy, and the two
-native modules have not been run on a physical iPhone. Android evidence does
-not carry over, because iOS recognises through a different framework with a
-different label set ([ADR-0009](adr/0009-ios-vision-detector.md)).
+The layer builds and runs. Nothing about recognition is measured yet.
+
+Observed on 2026-08-25, Debug build, iPhone 17 Pro simulator on iOS 26.1,
+Xcode 26.1.1:
+
+- the app builds from a clean `pod install`, launches, loads the bundle from
+  Metro, and renders;
+- the detector object is constructed on start-up and its pool opens six
+  workers, one per logical core the simulator reports;
+- every worker's warm-up fails with `Failed to create espresso context`, which
+  is the simulator's own limitation for these Vision requests, and each failure
+  is caught and logged against its worker instead of taking the app down;
+- the menu, the collection screen, and stored progress work.
+
+That is evidence about the plumbing, not about recognition. Vision's models do
+not run in the simulator, so everything that matters — latency for each phase,
+throughput, how stable the boxes are, and how often a label lands in the
+dictionary — still needs a physical iPhone. Android's numbers do not carry
+over: the two platforms recognise through different frameworks with different
+label sets ([ADR-0009](adr/0009-ios-vision-detector.md)).
 
 The first measurements to take are listed in
 [the iOS native layer](IOS.md#status).

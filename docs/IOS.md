@@ -221,10 +221,20 @@ xcodebuild -workspace ios/SayLens.xcworkspace -scheme SayLens \
 
 ## Status
 
-Written and compiling, not yet measured:
+Seen working on an iPhone 17 Pro simulator:
 
-- the detector's two phases, the worker pool, and the frame copy;
-- both native modules and their permission flows;
+- the app builds, launches, and renders, and navigation and storage work;
+- the detector is constructed on start-up and opens one worker per logical
+  core;
+- a worker that cannot run its Vision requests logs the failure and leaves the
+  rest of the pool alone. The simulator proves that path by accident: it
+  cannot create an Espresso context for these requests at all.
+
+Written and compiling, not yet exercised:
+
+- the two recognition phases, since Vision's models do not run in the
+  simulator;
+- both native modules and their permission flows, which need a real microphone;
 - the taxonomy table, whose 109 identifiers come from Vision's own list and
   cover 72 of the dictionary's 80 labels.
 

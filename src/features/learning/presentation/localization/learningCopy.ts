@@ -6,6 +6,15 @@ import {
 
 export interface LearningCopy {
   tabs: { camera: string; settings: string };
+  diagnostics: {
+    inferences: string;
+    latency: string;
+    latencyUnit: string;
+    workers: string;
+    buffer: string;
+    samples: string;
+    profile: string;
+  };
   history: {
     title: string;
     subtitle: string;
@@ -122,6 +131,15 @@ const copies: Record<
 > = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
+    diagnostics: {
+      inferences: 'Inferências',
+      latency: 'Latência por inferência',
+      latencyUnit: 'ms',
+      workers: 'Workers',
+      buffer: 'Buffer do detector',
+      samples: 'Amostras (5 s)',
+      profile: 'Perfil',
+    },
     history: {
       title: 'Vistos recentemente',
       subtitle: 'Os últimos 15 objetos que você reconheceu.',
@@ -199,6 +217,15 @@ const copies: Record<
   },
   en: {
     tabs: { camera: 'Camera', settings: 'Settings' },
+    diagnostics: {
+      inferences: 'Inferences',
+      latency: 'Latency per inference',
+      latencyUnit: 'ms',
+      workers: 'Workers',
+      buffer: 'Detector buffer',
+      samples: 'Samples (5 s)',
+      profile: 'Profile',
+    },
     history: {
       title: 'Recently seen',
       subtitle: 'The last 15 objects you recognised.',
@@ -275,6 +302,15 @@ const copies: Record<
   },
   es: {
     tabs: { camera: 'Cámara', settings: 'Configuración' },
+    diagnostics: {
+      inferences: 'Inferencias',
+      latency: 'Latencia por inferencia',
+      latencyUnit: 'ms',
+      workers: 'Workers',
+      buffer: 'Búfer del detector',
+      samples: 'Muestras (5 s)',
+      profile: 'Perfil',
+    },
     history: {
       title: 'Vistos recientemente',
       subtitle: 'Los últimos 15 objetos que reconociste.',

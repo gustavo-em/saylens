@@ -112,6 +112,38 @@ const detectorLabels = [
   'toothbrush',
 ] as const;
 
+describe('definitions', () => {
+  it('explains the object in the language the learner already speaks', () => {
+    expect(
+      localVocabularyRepository.findByLabel('chair', {
+        nativeLanguage: 'pt-BR',
+        learningLanguage: 'en-US',
+      }).definition,
+    ).toBe('Móvel com assento e encosto para uma pessoa.');
+  });
+
+  it('follows the native language, not the one being studied', () => {
+    expect(
+      localVocabularyRepository.findByLabel('chair', {
+        nativeLanguage: 'es',
+        learningLanguage: 'pt-BR',
+      }).definition,
+    ).toBe('Mueble con asiento y respaldo para una persona.');
+  });
+
+  it('defines every label the detector can emit', () => {
+    const undefined_ = detectorLabels.filter(
+      label =>
+        localVocabularyRepository.findByLabel(label, {
+          nativeLanguage: 'pt-BR',
+          learningLanguage: 'en-US',
+        }).definition.length === 0,
+    );
+
+    expect(undefined_).toEqual([]);
+  });
+});
+
 describe('detector label coverage', () => {
   it('curates learning content for every label the model can emit', () => {
     const uncurated = detectorLabels.filter(label => {

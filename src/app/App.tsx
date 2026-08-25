@@ -12,12 +12,17 @@ import { CameraScreen } from '../features/learning/presentation/screens/CameraSc
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
 import { asyncStoragePreferencesStore } from './infrastructure/preferences/asyncStoragePreferencesStore';
+import { getPerformanceProfileSettings } from '../features/learning/domain/PerformanceProfile';
 import { getAppTheme } from './theme/theme';
 import { useAppViewModel } from './view-models/useAppViewModel';
 
 type AppViewModel = ReturnType<typeof useAppViewModel>;
 
 function AppContent({ viewModel }: { viewModel: AppViewModel }) {
+  const workerSettings = getPerformanceProfileSettings(
+    viewModel.performanceProfile,
+    viewModel.performanceCapabilities,
+  );
   const renderCamera = useCallback(
     (callbacks: CameraViewportCallbacks, options: { isActive: boolean }) => (
       <VisionCameraViewport
@@ -52,6 +57,14 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         onObjectsSeen={viewModel.recordViewedLabels}
         onOpenHistory={() => viewModel.selectTab('history')}
         onOpenSettings={() => viewModel.selectTab('settings')}
+        diagnostics={{
+          cpuWorkers: workerSettings.cpuWorkerCount,
+          gpuWorkers: workerSettings.gpuWorkerCount,
+          profileLabel:
+            viewModel.performanceProfile === 'maximum-performance'
+              ? viewModel.copy.settings.maximumPerformanceTitle
+              : viewModel.copy.settings.powerSavingTitle,
+        }}
         showDiagnostics={viewModel.showDiagnostics}
         pronunciationPlayer={systemPronunciationPlayer}
         renderCamera={renderCamera}

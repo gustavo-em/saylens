@@ -1150,6 +1150,414 @@ const entries: Record<string, VocabularyRecord> = {
   },
 };
 
+/**
+ * What the object is, written in the language the learner already speaks.
+ * Kept apart from the word entries because a definition describes the object,
+ * not the word, so it does not change with the language being studied.
+ */
+const definitions: Record<string, Record<LanguageBase, string>> = {
+  person: {
+    'pt-BR': 'Ser humano, homem, mulher ou criança.',
+    en: 'A human being, man, woman or child.',
+    es: 'Ser humano, hombre, mujer o niño.',
+  },
+  bicycle: {
+    'pt-BR': 'Veículo de duas rodas movido a pedais.',
+    en: 'A two-wheeled vehicle moved by pedals.',
+    es: 'Vehículo de dos ruedas movido con pedales.',
+  },
+  car: {
+    'pt-BR': 'Veículo de quatro rodas para poucas pessoas.',
+    en: 'A four-wheeled vehicle for a few people.',
+    es: 'Vehículo de cuatro ruedas para pocas personas.',
+  },
+  motorcycle: {
+    'pt-BR': 'Veículo de duas rodas com motor.',
+    en: 'A two-wheeled vehicle with an engine.',
+    es: 'Vehículo de dos ruedas con motor.',
+  },
+  airplane: {
+    'pt-BR': 'Aeronave com asas que voa com motores.',
+    en: 'An aircraft with wings that flies using engines.',
+    es: 'Aeronave con alas que vuela con motores.',
+  },
+  bus: {
+    'pt-BR': 'Veículo grande que transporta muitos passageiros.',
+    en: 'A large vehicle that carries many passengers.',
+    es: 'Vehículo grande que transporta muchos pasajeros.',
+  },
+  train: {
+    'pt-BR': 'Composição de vagões que anda sobre trilhos.',
+    en: 'A line of carriages that runs on rails.',
+    es: 'Conjunto de vagones que circula sobre rieles.',
+  },
+  truck: {
+    'pt-BR': 'Veículo grande usado para transportar carga.',
+    en: 'A large vehicle used to carry cargo.',
+    es: 'Vehículo grande usado para transportar carga.',
+  },
+  boat: {
+    'pt-BR': 'Embarcação que se desloca sobre a água.',
+    en: 'A vessel that travels on water.',
+    es: 'Embarcación que se desplaza sobre el agua.',
+  },
+  'traffic light': {
+    'pt-BR': 'Sinal luminoso que controla o trânsito.',
+    en: 'A light signal that controls traffic.',
+    es: 'Señal luminosa que controla el tránsito.',
+  },
+  'fire hydrant': {
+    'pt-BR': 'Ponto de água na rua para combater incêndios.',
+    en: 'A street water outlet used to fight fires.',
+    es: 'Toma de agua en la calle para combatir incendios.',
+  },
+  'stop sign': {
+    'pt-BR': 'Placa que obriga o veículo a parar.',
+    en: 'A sign that requires a vehicle to stop.',
+    es: 'Señal que obliga al vehículo a detenerse.',
+  },
+  'parking meter': {
+    'pt-BR': 'Aparelho que cobra pelo tempo de estacionamento.',
+    en: 'A device that charges for parking time.',
+    es: 'Aparato que cobra por el tiempo de estacionamiento.',
+  },
+  bench: {
+    'pt-BR': 'Assento comprido para mais de uma pessoa.',
+    en: 'A long seat for more than one person.',
+    es: 'Asiento largo para más de una persona.',
+  },
+  bird: {
+    'pt-BR': 'Animal com penas, bico e asas.',
+    en: 'An animal with feathers, a beak and wings.',
+    es: 'Animal con plumas, pico y alas.',
+  },
+  cat: {
+    'pt-BR': 'Animal doméstico de pelo macio que mia.',
+    en: 'A soft-furred domestic animal that meows.',
+    es: 'Animal doméstico de pelo suave que maúlla.',
+  },
+  dog: {
+    'pt-BR': 'Animal doméstico que late e acompanha pessoas.',
+    en: 'A domestic animal that barks and keeps people company.',
+    es: 'Animal doméstico que ladra y acompaña a las personas.',
+  },
+  horse: {
+    'pt-BR': 'Animal grande de quatro patas usado para montar.',
+    en: 'A large four-legged animal used for riding.',
+    es: 'Animal grande de cuatro patas usado para montar.',
+  },
+  sheep: {
+    'pt-BR': 'Animal criado pela lã e pela carne.',
+    en: 'An animal raised for wool and meat.',
+    es: 'Animal criado por su lana y su carne.',
+  },
+  cow: {
+    'pt-BR': 'Animal de fazenda que fornece leite.',
+    en: 'A farm animal that gives milk.',
+    es: 'Animal de granja que da leche.',
+  },
+  elephant: {
+    'pt-BR': 'Animal enorme com tromba e orelhas grandes.',
+    en: 'A huge animal with a trunk and large ears.',
+    es: 'Animal enorme con trompa y orejas grandes.',
+  },
+  bear: {
+    'pt-BR': 'Animal grande e peludo que vive em florestas.',
+    en: 'A large furry animal that lives in forests.',
+    es: 'Animal grande y peludo que vive en bosques.',
+  },
+  zebra: {
+    'pt-BR': 'Animal africano com listras pretas e brancas.',
+    en: 'An African animal with black and white stripes.',
+    es: 'Animal africano con rayas negras y blancas.',
+  },
+  giraffe: {
+    'pt-BR': 'Animal africano de pescoço muito comprido.',
+    en: 'An African animal with a very long neck.',
+    es: 'Animal africano de cuello muy largo.',
+  },
+  backpack: {
+    'pt-BR': 'Bolsa levada nas costas por duas alças.',
+    en: 'A bag carried on the back by two straps.',
+    es: 'Bolsa que se lleva en la espalda con dos correas.',
+  },
+  umbrella: {
+    'pt-BR': 'Objeto aberto sobre a cabeça para proteger da chuva.',
+    en: 'An object opened overhead to keep off rain.',
+    es: 'Objeto que se abre sobre la cabeza para protegerse de la lluvia.',
+  },
+  handbag: {
+    'pt-BR': 'Bolsa de mão para objetos pessoais.',
+    en: 'A small bag carried by hand for personal items.',
+    es: 'Bolso de mano para objetos personales.',
+  },
+  tie: {
+    'pt-BR': 'Faixa de tecido usada no colarinho da camisa.',
+    en: 'A strip of cloth worn around a shirt collar.',
+    es: 'Tira de tela que se lleva en el cuello de la camisa.',
+  },
+  suitcase: {
+    'pt-BR': 'Mala rígida para levar roupas em viagens.',
+    en: 'A stiff case for carrying clothes when travelling.',
+    es: 'Maleta rígida para llevar ropa en los viajes.',
+  },
+  frisbee: {
+    'pt-BR': 'Disco de plástico lançado entre pessoas.',
+    en: 'A plastic disc thrown between people.',
+    es: 'Disco de plástico que se lanza entre personas.',
+  },
+  skis: {
+    'pt-BR': 'Par de pranchas finas para deslizar na neve.',
+    en: 'A pair of thin boards for sliding on snow.',
+    es: 'Par de tablas delgadas para deslizarse en la nieve.',
+  },
+  snowboard: {
+    'pt-BR': 'Prancha única para descer montanhas de neve.',
+    en: 'A single board for riding down snowy slopes.',
+    es: 'Tabla única para bajar laderas nevadas.',
+  },
+  'sports ball': {
+    'pt-BR': 'Bola usada em jogos e esportes.',
+    en: 'A ball used in games and sports.',
+    es: 'Pelota usada en juegos y deportes.',
+  },
+  kite: {
+    'pt-BR': 'Armação leve que voa presa por uma linha.',
+    en: 'A light frame flown at the end of a string.',
+    es: 'Armazón ligero que vuela sujeto a un hilo.',
+  },
+  'baseball bat': {
+    'pt-BR': 'Bastão usado para rebater a bola no beisebol.',
+    en: 'A club used to hit the ball in baseball.',
+    es: 'Palo usado para golpear la pelota en el béisbol.',
+  },
+  'baseball glove': {
+    'pt-BR': 'Luva de couro para pegar a bola no beisebol.',
+    en: 'A leather glove for catching the ball in baseball.',
+    es: 'Guante de cuero para atrapar la pelota en el béisbol.',
+  },
+  skateboard: {
+    'pt-BR': 'Prancha com rodas para deslizar em pé.',
+    en: 'A board on wheels ridden standing up.',
+    es: 'Tabla con ruedas para deslizarse de pie.',
+  },
+  surfboard: {
+    'pt-BR': 'Prancha usada para deslizar sobre as ondas.',
+    en: 'A board used to ride ocean waves.',
+    es: 'Tabla usada para deslizarse sobre las olas.',
+  },
+  'tennis racket': {
+    'pt-BR': 'Raquete com cordas para rebater a bola.',
+    en: 'A strung racket used to hit the ball.',
+    es: 'Raqueta con cuerdas para golpear la pelota.',
+  },
+  bottle: {
+    'pt-BR': 'Recipiente alto e estreito para líquidos.',
+    en: 'A tall narrow container for liquids.',
+    es: 'Recipiente alto y estrecho para líquidos.',
+  },
+  'wine glass': {
+    'pt-BR': 'Copo com haste usado para beber vinho.',
+    en: 'A stemmed glass used for drinking wine.',
+    es: 'Copa con tallo usada para beber vino.',
+  },
+  cup: {
+    'pt-BR': 'Recipiente pequeno para beber.',
+    en: 'A small container for drinking.',
+    es: 'Recipiente pequeño para beber.',
+  },
+  fork: {
+    'pt-BR': 'Talher de dentes usado para levar comida à boca.',
+    en: 'A pronged utensil used to lift food.',
+    es: 'Cubierto con púas usado para llevar comida a la boca.',
+  },
+  knife: {
+    'pt-BR': 'Utensílio de lâmina usado para cortar.',
+    en: 'A bladed utensil used for cutting.',
+    es: 'Utensilio con hoja usado para cortar.',
+  },
+  spoon: {
+    'pt-BR': 'Talher de concha para líquidos e sopas.',
+    en: 'A utensil with a shallow bowl for liquids.',
+    es: 'Cubierto con cuenco para líquidos y sopas.',
+  },
+  bowl: {
+    'pt-BR': 'Recipiente fundo e redondo para alimentos.',
+    en: 'A deep round container for food.',
+    es: 'Recipiente hondo y redondo para alimentos.',
+  },
+  banana: {
+    'pt-BR': 'Fruta alongada de casca amarela.',
+    en: 'A long fruit with a yellow skin.',
+    es: 'Fruta alargada de cáscara amarilla.',
+  },
+  apple: {
+    'pt-BR': 'Fruta redonda e firme, vermelha ou verde.',
+    en: 'A round firm fruit, red or green.',
+    es: 'Fruta redonda y firme, roja o verde.',
+  },
+  sandwich: {
+    'pt-BR': 'Recheio servido entre duas fatias de pão.',
+    en: 'A filling served between two slices of bread.',
+    es: 'Relleno servido entre dos rebanadas de pan.',
+  },
+  orange: {
+    'pt-BR': 'Fruta cítrica redonda de casca alaranjada.',
+    en: 'A round citrus fruit with an orange skin.',
+    es: 'Fruta cítrica redonda de cáscara anaranjada.',
+  },
+  broccoli: {
+    'pt-BR': 'Legume verde em forma de pequenas árvores.',
+    en: 'A green vegetable shaped like small trees.',
+    es: 'Verdura verde con forma de arbolitos.',
+  },
+  carrot: {
+    'pt-BR': 'Raiz alaranjada e alongada usada na comida.',
+    en: 'A long orange root eaten as a vegetable.',
+    es: 'Raíz anaranjada y alargada que se come.',
+  },
+  'hot dog': {
+    'pt-BR': 'Salsicha servida dentro de um pão comprido.',
+    en: 'A sausage served in a long bread roll.',
+    es: 'Salchicha servida dentro de un pan alargado.',
+  },
+  pizza: {
+    'pt-BR': 'Massa assada coberta com molho e queijo.',
+    en: 'Baked dough topped with sauce and cheese.',
+    es: 'Masa horneada cubierta con salsa y queso.',
+  },
+  donut: {
+    'pt-BR': 'Massa doce frita em formato de anel.',
+    en: 'A sweet fried dough ring.',
+    es: 'Masa dulce frita con forma de anillo.',
+  },
+  cake: {
+    'pt-BR': 'Massa doce assada servida em fatias.',
+    en: 'A sweet baked dish served in slices.',
+    es: 'Masa dulce horneada que se sirve en porciones.',
+  },
+  chair: {
+    'pt-BR': 'Móvel com assento e encosto para uma pessoa.',
+    en: 'A seat with a back for one person.',
+    es: 'Mueble con asiento y respaldo para una persona.',
+  },
+  couch: {
+    'pt-BR': 'Assento estofado e comprido para várias pessoas.',
+    en: 'A long padded seat for several people.',
+    es: 'Asiento acolchado y largo para varias personas.',
+  },
+  'potted plant': {
+    'pt-BR': 'Planta cultivada dentro de um vaso.',
+    en: 'A plant grown inside a pot.',
+    es: 'Planta cultivada dentro de una maceta.',
+  },
+  bed: {
+    'pt-BR': 'Móvel onde se dorme.',
+    en: 'A piece of furniture for sleeping.',
+    es: 'Mueble donde se duerme.',
+  },
+  'dining table': {
+    'pt-BR': 'Móvel de tampo plano onde se faz as refeições.',
+    en: 'A flat-topped piece of furniture used for meals.',
+    es: 'Mueble de superficie plana donde se come.',
+  },
+  toilet: {
+    'pt-BR': 'Peça sanitária usada no banheiro.',
+    en: 'A bathroom fixture used for waste.',
+    es: 'Pieza sanitaria usada en el baño.',
+  },
+  tv: {
+    'pt-BR': 'Aparelho que exibe imagens e som.',
+    en: 'A device that shows pictures and sound.',
+    es: 'Aparato que muestra imágenes y sonido.',
+  },
+  laptop: {
+    'pt-BR': 'Computador portátil com tela e teclado.',
+    en: 'A portable computer with a screen and keyboard.',
+    es: 'Computadora portátil con pantalla y teclado.',
+  },
+  mouse: {
+    'pt-BR': 'Dispositivo de mão que move o cursor.',
+    en: 'A hand-held device that moves the cursor.',
+    es: 'Dispositivo de mano que mueve el cursor.',
+  },
+  remote: {
+    'pt-BR': 'Aparelho que controla um dispositivo à distância.',
+    en: 'A device that controls another one from a distance.',
+    es: 'Aparato que controla otro dispositivo a distancia.',
+  },
+  keyboard: {
+    'pt-BR': 'Conjunto de teclas usado para digitar.',
+    en: 'A set of keys used for typing.',
+    es: 'Conjunto de teclas usado para escribir.',
+  },
+  'cell phone': {
+    'pt-BR': 'Telefone portátil que também acessa a internet.',
+    en: 'A portable phone that also reaches the internet.',
+    es: 'Teléfono portátil que también accede a internet.',
+  },
+  microwave: {
+    'pt-BR': 'Forno que aquece comida com ondas.',
+    en: 'An oven that heats food with waves.',
+    es: 'Horno que calienta comida con ondas.',
+  },
+  oven: {
+    'pt-BR': 'Compartimento fechado usado para assar.',
+    en: 'A closed compartment used for baking.',
+    es: 'Compartimento cerrado usado para hornear.',
+  },
+  toaster: {
+    'pt-BR': 'Aparelho que tosta fatias de pão.',
+    en: 'A device that toasts slices of bread.',
+    es: 'Aparato que tuesta rebanadas de pan.',
+  },
+  sink: {
+    'pt-BR': 'Bacia com torneira usada para lavar.',
+    en: 'A basin with a tap used for washing.',
+    es: 'Fregadero con grifo usado para lavar.',
+  },
+  refrigerator: {
+    'pt-BR': 'Aparelho que conserva alimentos no frio.',
+    en: 'An appliance that keeps food cold.',
+    es: 'Aparato que conserva alimentos en frío.',
+  },
+  book: {
+    'pt-BR': 'Conjunto de páginas com texto, lido para estudar ou se informar.',
+    en: 'A set of pages with text, read to study or learn.',
+    es: 'Conjunto de páginas con texto, leído para estudiar o informarse.',
+  },
+  clock: {
+    'pt-BR': 'Aparelho que mostra as horas.',
+    en: 'A device that shows the time.',
+    es: 'Aparato que muestra la hora.',
+  },
+  vase: {
+    'pt-BR': 'Recipiente usado para guardar flores.',
+    en: 'A container used to hold flowers.',
+    es: 'Recipiente usado para poner flores.',
+  },
+  scissors: {
+    'pt-BR': 'Ferramenta de duas lâminas usada para cortar.',
+    en: 'A two-bladed tool used for cutting.',
+    es: 'Herramienta de dos hojas usada para cortar.',
+  },
+  'teddy bear': {
+    'pt-BR': 'Urso de pelúcia usado como brinquedo.',
+    en: 'A soft toy bear.',
+    es: 'Oso de peluche usado como juguete.',
+  },
+  'hair drier': {
+    'pt-BR': 'Aparelho que seca o cabelo com ar quente.',
+    en: 'A device that dries hair with hot air.',
+    es: 'Aparato que seca el cabello con aire caliente.',
+  },
+  toothbrush: {
+    'pt-BR': 'Escova pequena usada para limpar os dentes.',
+    en: 'A small brush used to clean teeth.',
+    es: 'Cepillo pequeño usado para limpiar los dientes.',
+  },
+};
+
 const fallbackMeaning: Record<LanguageBase, string> = {
   'pt-BR': 'Objeto reconhecido pelo modelo visual.',
   en: 'Object recognized by the visual model.',
@@ -1184,6 +1592,7 @@ export const localVocabularyRepository: VocabularyRepository = {
 
       return {
         ...entry[learning],
+        definition: definitions[normalizedLabel]?.[native] ?? '',
         meaning: entry[native].word,
         translations: otherBases.map(base => entry[base].word),
       };
@@ -1194,6 +1603,7 @@ export const localVocabularyRepository: VocabularyRepository = {
       word: targetLabel,
       pronunciation: fallbackMeaning[native],
       pronunciationHint: normalizedLabel.toUpperCase(),
+      definition: fallbackMeaning[native],
       meaning: fallbackMeaning[native],
       translations: [],
       example: fallbackExamples[learning](targetLabel),

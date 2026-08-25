@@ -17,6 +17,11 @@ interface CameraScreenProps {
   onOpenHistory: () => void;
   onOpenSettings: () => void;
   showDiagnostics: boolean;
+  diagnostics: {
+    cpuWorkers: number;
+    gpuWorkers: number;
+    profileLabel: string;
+  };
   onObjectsSeen: (labels: readonly string[]) => void;
   pronunciationPlayer: PronunciationPlayer;
   renderCamera: (
@@ -34,6 +39,7 @@ export function CameraScreen({
   onOpenHistory,
   onOpenSettings,
   showDiagnostics,
+  diagnostics,
   onObjectsSeen,
   pronunciationPlayer,
   renderCamera,
@@ -65,6 +71,7 @@ export function CameraScreen({
       onOpenHistory={onOpenHistory}
       onOpenSettings={onOpenSettings}
       showDiagnostics={showDiagnostics}
+      diagnostics={diagnostics}
       isActive={isActive}
       viewModel={viewModel}
     />

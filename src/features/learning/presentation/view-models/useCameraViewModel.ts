@@ -99,6 +99,11 @@ export function useCameraViewModel({
 
   const handlePreviewStopped = useCallback(() => {
     setIsPreviewReady(false);
+
+    // Freezing stops the preview on purpose. Clearing the detections here
+    // would wipe the very cards the freeze exists to hold still.
+    if (frozenRef.current) return;
+
     detectionTracker.current.reset();
     lastDetectionUpdate.current = 0;
     setDetectionInterpolationDurationMs(DEFAULT_DETECTION_INTERPOLATION_MS);

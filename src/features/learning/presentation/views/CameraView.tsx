@@ -24,6 +24,11 @@ interface CameraViewProps {
   onOpenHistory: () => void;
   onOpenSettings: () => void;
   showDiagnostics: boolean;
+  diagnostics: {
+    cpuWorkers: number;
+    gpuWorkers: number;
+    profileLabel: string;
+  };
   renderCamera: (
     callbacks: CameraViewportCallbacks,
     options: { isActive: boolean },
@@ -214,6 +219,7 @@ export function CameraView({
   onOpenHistory,
   onOpenSettings,
   showDiagnostics,
+  diagnostics,
   renderCamera,
   viewModel,
 }: CameraViewProps) {
@@ -327,7 +333,7 @@ export function CameraView({
                     ))}
                   </TranslationRow>
                   <ObjectDefinition numberOfLines={3}>
-                    {vocabulary.example}
+                    {vocabulary.definition}
                   </ObjectDefinition>
                   <ObjectRule />
                   <ObjectPronunciation>
@@ -393,23 +399,48 @@ export function CameraView({
 
           {showDiagnostics ? (
             <DiagnosticsPanel accessible testID="camera-diagnostics">
-              <DiagnosticsLine>
-                {`${viewModel.detectorMetrics.framesPerSecond.toFixed(
-                  1,
-                )} fps  ·  ${viewModel.detectorMetrics.sampleCount} amostras`}
-              </DiagnosticsLine>
-              <DiagnosticsLine>
-                {`p50 ${Math.round(
-                  viewModel.detectorMetrics.latencyP50Ms,
-                )} ms  ·  p95 ${Math.round(
-                  viewModel.detectorMetrics.latencyP95Ms,
-                )} ms`}
-              </DiagnosticsLine>
-              <DiagnosticsLine>
-                {`${detectionFrame?.sourceWidth ?? 0}x${
-                  detectionFrame?.sourceHeight ?? 0
-                }`}
-              </DiagnosticsLine>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>
+                  {copy.diagnostics.inferences}
+                </DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {`${viewModel.detectorMetrics.framesPerSecond.toFixed(1)}/s`}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>{copy.diagnostics.latency}</DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {`p50 ${Math.round(
+                    viewModel.detectorMetrics.latencyP50Ms,
+                  )} · p95 ${Math.round(
+                    viewModel.detectorMetrics.latencyP95Ms,
+                  )} ${copy.diagnostics.latencyUnit}`}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>{copy.diagnostics.workers}</DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {`${diagnostics.cpuWorkers} CPU · ${diagnostics.gpuWorkers} GPU`}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>{copy.diagnostics.buffer}</DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {`${detectionFrame?.sourceWidth ?? 0}×${
+                    detectionFrame?.sourceHeight ?? 0
+                  }`}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>{copy.diagnostics.samples}</DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {String(viewModel.detectorMetrics.sampleCount)}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
+                <DiagnosticsLabel>{copy.diagnostics.profile}</DiagnosticsLabel>
+                <DiagnosticsValue>{diagnostics.profileLabel}</DiagnosticsValue>
+              </DiagnosticsRow>
             </DiagnosticsPanel>
           ) : null}
 
@@ -721,11 +752,24 @@ const DiagnosticsPanel = styled.View`
   background-color: rgba(5, 18, 37, 0.86);
 `;
 
-const DiagnosticsLine = styled.Text`
-  color: #d8e6ff;
+const DiagnosticsRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+`;
+
+const DiagnosticsLabel = styled.Text`
+  color: #8fb4e8;
+  font-size: 10px;
+  line-height: 16px;
+`;
+
+const DiagnosticsValue = styled.Text`
+  color: #eaf2ff;
   font-size: 11px;
   line-height: 16px;
-  font-variant: tabular-nums;
+  font-weight: 700;
 `;
 
 /** Sits under the detection layer, so tapping a card still speaks its word. */

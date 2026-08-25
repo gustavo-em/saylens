@@ -22,7 +22,10 @@ import { languageCodes, languageFlags } from '../../domain/LearningLanguage';
 import type { DetectedObject } from '../../domain/DetectedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
-import { getObjectCardScale } from '../animation/objectCardScale';
+import {
+  getObjectCardScale,
+  getObjectCardTilt,
+} from '../animation/objectCardScale';
 import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
 interface CameraViewProps {
@@ -52,9 +55,15 @@ interface ViewportSize {
 
 const OBJECT_CARD_WIDTH = 208;
 const OBJECT_CARD_EDGE_INSET = 8;
+/** Space between the object's box and the card standing next to it. */
+const OBJECT_CARD_GAP = 10;
 const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
 const OBJECT_CARD_TOP_SAFE_INSET = 92;
 const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
+const OBJECT_CARD_PERSPECTIVE = 900;
+/** A small lean back, so the card reads as standing on the scene rather than
+ * printed on the screen. */
+const OBJECT_CARD_PITCH_DEGREES = 5;
 const OBJECT_INTERPOLATION_EASING = Easing.out(Easing.cubic);
 const TARGET_CORNERS = [
   'topLeft',
@@ -225,34 +234,64 @@ function getObjectStyle(
   };
 }
 
-function getObjectCardStyle(
+type CardSide = 'left' | 'right';
+
+interface CardPlacement {
+  left: number;
+  top: number;
+  side: CardSide;
+  transformOrigin: [string, string, number];
+}
+
+/**
+ * Puts the card beside the object rather than over it, standing on the same
+ * line its base sits on, and says which side it ended up on so it can be
+ * hinged on the object itself.
+ *
+ * The side with more room wins, and the card falls back to floating above the
+ * object only when neither side can hold it.
+ */
+function getObjectCardPlacement(
   targetStyle: ReturnType<typeof getObjectStyle>,
   viewport: ViewportSize,
   scale: number,
-) {
+): CardPlacement {
   const width = OBJECT_CARD_WIDTH * scale;
   const height = OBJECT_CARD_ESTIMATED_HEIGHT * scale;
-  const minimumLeft = OBJECT_CARD_EDGE_INSET - targetStyle.left;
-  const rightSafeInset =
-    viewport.width > viewport.height ? 166 : OBJECT_CARD_EDGE_INSET;
-  const maximumLeft =
-    viewport.width - targetStyle.left - width - rightSafeInset;
-  const preferredAbsoluteTop =
-    targetStyle.top - height - OBJECT_CARD_EDGE_INSET;
-  const maximumAbsoluteTop =
-    viewport.height - OBJECT_CARD_BOTTOM_SAFE_INSET - height;
+  const roomOnTheLeft = targetStyle.left - OBJECT_CARD_EDGE_INSET;
+  const roomOnTheRight =
+    viewport.width -
+    (targetStyle.left + targetStyle.width) -
+    OBJECT_CARD_EDGE_INSET;
+  const side: CardSide =
+    roomOnTheRight >= width || roomOnTheRight >= roomOnTheLeft
+      ? 'right'
+      : 'left';
+
+  // Relative to the target, which is the box drawn around the object.
+  const left =
+    side === 'right'
+      ? targetStyle.width + OBJECT_CARD_GAP
+      : -(width + OBJECT_CARD_GAP);
+
+  // The card's base lines up with the object's, so both read as standing on
+  // the same surface.
+  const preferredAbsoluteTop = targetStyle.top + targetStyle.height - height;
   const absoluteTop = Math.max(
     OBJECT_CARD_TOP_SAFE_INSET,
-    Math.min(preferredAbsoluteTop, maximumAbsoluteTop),
+    Math.min(
+      preferredAbsoluteTop,
+      viewport.height - OBJECT_CARD_BOTTOM_SAFE_INSET - height,
+    ),
   );
-  const visibleLeft = Math.max(minimumLeft, Math.min(-2, maximumLeft));
 
   return {
-    // The card is scaled around its top centre, so the laid-out box has to be
-    // shifted back by half of what the scaling takes off its width.
-    left: visibleLeft - (OBJECT_CARD_WIDTH - width) / 2,
+    left,
     top: absoluteTop - targetStyle.top,
-    transformOrigin: ['50%', 0, 0] as [string, number, number],
+    side,
+    // The hinge is the edge facing the object, so the card opens away from it
+    // like a panel standing against it rather than turning around itself.
+    transformOrigin: side === 'right' ? ['0%', '100%', 0] : ['100%', '100%', 0],
   };
 }
 
@@ -287,7 +326,15 @@ function InterpolatedObjectTarget({
   const width = useSharedValue(targetStyle.width);
   const height = useSharedValue(targetStyle.height);
   const cardScale = getObjectCardScale(targetStyle, viewport);
+  const placement = getObjectCardPlacement(targetStyle, viewport, cardScale);
+  // Hinged on the edge facing the object, the card's far edge is the one that
+  // goes back: to the right of the object it opens rightwards, to the left it
+  // opens leftwards.
+  const cardTilt =
+    getObjectCardTilt(targetStyle, viewport) *
+    (placement.side === 'right' ? 1 : -1);
   const scale = useSharedValue(cardScale);
+  const tilt = useSharedValue(cardTilt);
 
   useEffect(() => {
     const animation = {
@@ -301,8 +348,11 @@ function InterpolatedObjectTarget({
     width.value = withTiming(targetStyle.width, animation);
     height.value = withTiming(targetStyle.height, animation);
     scale.value = withTiming(cardScale, animation);
+    tilt.value = withTiming(cardTilt, animation);
   }, [
     cardScale,
+    cardTilt,
+    tilt,
     durationMs,
     height,
     left,
@@ -322,8 +372,16 @@ function InterpolatedObjectTarget({
     width: width.value,
   }));
 
+  // The card is a panel standing beside the object rather than a sticker on
+  // the glass: it keeps a little perspective, leans back, and turns to face
+  // the middle of the screen by as much as the object is off to one side.
   const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [
+      { perspective: OBJECT_CARD_PERSPECTIVE },
+      { rotateY: `${tilt.value}deg` },
+      { rotateX: `${OBJECT_CARD_PITCH_DEGREES}deg` },
+      { scale: scale.value },
+    ],
   }));
 
   return (
@@ -348,7 +406,11 @@ function InterpolatedObjectTarget({
         <TargetCorner key={corner} $corner={corner} pointerEvents="none" />
       ))}
       {children([
-        getObjectCardStyle(targetStyle, viewport, cardScale),
+        {
+          left: placement.left,
+          top: placement.top,
+          transformOrigin: placement.transformOrigin,
+        },
         animatedCardStyle,
       ])}
     </ObjectTarget>
@@ -754,8 +816,15 @@ const ObjectCard = styled(Animated.View)`
   width: 208px;
   padding: 16px;
   border-radius: 20px;
-  background-color: ${({ theme }) => theme.colors.overlayCard};
+  border: 1px solid ${({ theme }) => theme.colors.overlayCardBorder};
+  background-color: ${({ theme }) => theme.colors.overlayCardTranslucent};
   elevation: 14;
+  /* The shadow falls down and to the side, which is what tells the eye the
+     card is standing a little in front of the object rather than on it. */
+  shadow-color: #000000;
+  shadow-opacity: 0.32;
+  shadow-radius: 18px;
+  shadow-offset: 6px 12px;
 `;
 
 /** Short leader line and dot tying the card back to the object it describes. */

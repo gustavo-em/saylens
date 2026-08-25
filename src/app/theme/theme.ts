@@ -23,6 +23,10 @@ interface ThemeColors {
   /** Camera overlay palette. Identical in both themes: these sit on the video
    * feed, not on the app background. */
   overlayCard: string;
+  /** The card standing beside an object lets the scene through, so it reads as
+   * a panel in the room rather than a sticker on the screen. */
+  overlayCardTranslucent: string;
+  overlayCardBorder: string;
   overlayInk: string;
   overlayMuted: string;
   overlayRule: string;
@@ -83,6 +87,8 @@ export const darkTheme: AppTheme = {
     success: '#3FCB86',
     danger: '#F87171',
     overlayCard: '#FFFFFF',
+    overlayCardTranslucent: 'rgba(255, 255, 255, 0.82)',
+    overlayCardBorder: 'rgba(255, 255, 255, 0.55)',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',
     overlayRule: '#E5E7EB',
@@ -112,6 +118,8 @@ export const lightTheme: AppTheme = {
     success: '#178A52',
     danger: '#D22C2C',
     overlayCard: '#FFFFFF',
+    overlayCardTranslucent: 'rgba(255, 255, 255, 0.82)',
+    overlayCardBorder: 'rgba(255, 255, 255, 0.55)',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',
     overlayRule: '#E5E7EB',

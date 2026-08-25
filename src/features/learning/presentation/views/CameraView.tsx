@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Pressable, type LayoutChangeEvent } from 'react-native';
+import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   ReduceMotion,
@@ -54,6 +54,71 @@ const TARGET_CORNERS = [
   'bottomLeft',
   'bottomRight',
 ] as const;
+
+function MenuIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M4 7h16M4 12h16M4 17h16"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={2}
+      />
+    </Svg>
+  );
+}
+
+function CloseIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M6 6l12 12M18 6L6 18"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={2}
+      />
+    </Svg>
+  );
+}
+
+function ListIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M9 6h11M9 12h11M9 18h11"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={2}
+      />
+      <Path
+        d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={2.6}
+      />
+    </Svg>
+  );
+}
+
+function PauseIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path d="M8 5h3v14H8zM13 5h3v14h-3z" fill={color} />
+    </Svg>
+  );
+}
+
+function PlayIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path d="M8 5l11 7-11 7V5Z" fill={color} />
+    </Svg>
+  );
+}
 
 function SettingsIcon({ color }: { color: string }) {
   return (
@@ -224,6 +289,7 @@ export function CameraView({
   viewModel,
 }: CameraViewProps) {
   const theme = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { learningLanguage, nativeLanguage } = viewModel.languageSettings;
   const nativeCode = languageCodes[nativeLanguage];
   const learningCode = languageCodes[learningLanguage];
@@ -282,21 +348,6 @@ export function CameraView({
         isActive: isActive && !viewModel.isFrozen,
       })}
 
-      {isActive ? (
-        <FreezeSurface
-          accessibilityHint={
-            viewModel.isFrozen
-              ? copy.camera.tapToResume
-              : copy.camera.tapToFreeze
-          }
-          accessibilityLabel={
-            viewModel.isFrozen ? copy.camera.frozen : copy.camera.live
-          }
-          accessibilityRole="button"
-          onPress={viewModel.toggleFrozen}
-          testID="camera-freeze-surface"
-        />
-      ) : null}
       {isActive ? <Scrim pointerEvents="none" /> : null}
 
       {isActive && detectionFrame != null && viewport.width > 0 ? (
@@ -356,23 +407,85 @@ export function CameraView({
           $landscape={isLandscape}
         >
           <Header>
-            <HeaderMark
-              accessibilityHint={copy.history.title}
-              accessibilityLabel="SayLens"
-              accessibilityRole="button"
-              onPress={onOpenHistory}
-              testID="camera-open-history"
-            >
-              <AppMark height={42} testID="camera-brand-logo" width={42} />
+            <HeaderMark accessibilityLabel="SayLens" accessible>
+              <AppMark height={46} testID="camera-brand-logo" width={46} />
             </HeaderMark>
-            <SettingsButton
-              accessibilityLabel={copy.tabs.settings}
-              accessibilityRole="button"
-              onPress={onOpenSettings}
-              testID="camera-open-settings"
-            >
-              <SettingsIcon color={theme.colors.text} />
-            </SettingsButton>
+            <MenuColumn>
+              <RoundButton
+                accessibilityLabel={copy.camera.menu}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isMenuOpen }}
+                onPress={() => setIsMenuOpen(open => !open)}
+                testID="camera-menu"
+              >
+                {isMenuOpen ? (
+                  <CloseIcon color={theme.colors.text} />
+                ) : (
+                  <MenuIcon color={theme.colors.text} />
+                )}
+              </RoundButton>
+
+              {isMenuOpen ? (
+                <MenuItems>
+                  <MenuItem
+                    accessibilityLabel={copy.tabs.settings}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      onOpenSettings();
+                    }}
+                    testID="camera-open-settings"
+                  >
+                    <MenuItemLabel>{copy.tabs.settings}</MenuItemLabel>
+                    <RoundButton as={View}>
+                      <SettingsIcon color={theme.colors.text} />
+                    </RoundButton>
+                  </MenuItem>
+
+                  <MenuItem
+                    accessibilityLabel={copy.history.title}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      onOpenHistory();
+                    }}
+                    testID="camera-open-history"
+                  >
+                    <MenuItemLabel>{copy.history.title}</MenuItemLabel>
+                    <RoundButton as={View}>
+                      <ListIcon color={theme.colors.text} />
+                    </RoundButton>
+                  </MenuItem>
+
+                  <MenuItem
+                    accessibilityLabel={
+                      viewModel.isFrozen
+                        ? copy.camera.resume
+                        : copy.camera.pause
+                    }
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      viewModel.toggleFrozen();
+                    }}
+                    testID="camera-toggle-freeze"
+                  >
+                    <MenuItemLabel>
+                      {viewModel.isFrozen
+                        ? copy.camera.resume
+                        : copy.camera.pause}
+                    </MenuItemLabel>
+                    <RoundButton as={View} $accent={viewModel.isFrozen}>
+                      {viewModel.isFrozen ? (
+                        <PlayIcon color={theme.colors.text} />
+                      ) : (
+                        <PauseIcon color={theme.colors.text} />
+                      )}
+                    </RoundButton>
+                  </MenuItem>
+                </MenuItems>
+              ) : null}
+            </MenuColumn>
           </Header>
 
           {showDiagnostics ? (
@@ -582,18 +695,24 @@ const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
   z-index: 2;
 `;
 
+/** Top aligned: the menu column grows downwards when it expands, and centring
+ * would drag the brand mark down with it. */
 const Header = styled.View`
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin: 10px 12px 0px;
 `;
 
-const HeaderMark = styled.Pressable`
+/** Same 42dp box as the menu button so the two line up. The artwork carries
+ * transparent margin, so it is drawn slightly larger and clipped to fill. */
+const HeaderMark = styled.View`
   width: 42px;
   height: 42px;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
   elevation: 8;
 `;
 
@@ -732,15 +851,44 @@ const LanguageCheck = styled.Text`
   text-align: center;
 `;
 
-const SettingsButton = styled.Pressable`
+const MenuColumn = styled.View`
+  align-items: flex-end;
+  gap: 10px;
+`;
+
+const RoundButton = styled.Pressable<{ $accent?: boolean }>`
   width: 42px;
   height: 42px;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
+  border: 1px solid
+    ${({ theme, $accent }) =>
+      $accent ? theme.colors.accent : theme.colors.glassBorder};
   border-radius: 21px;
-  background-color: ${({ theme }) => theme.colors.glassStrong};
+  background-color: ${({ theme, $accent }) =>
+    $accent ? theme.colors.glassBlue : theme.colors.glassStrong};
   elevation: 6;
+`;
+
+const MenuItems = styled.View`
+  align-items: flex-end;
+  gap: 10px;
+`;
+
+const MenuItem = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+`;
+
+const MenuItemLabel = styled.Text`
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.glassStrong};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
 `;
 
 const DiagnosticsPanel = styled.View`
@@ -770,12 +918,6 @@ const DiagnosticsValue = styled.Text`
   font-size: 11px;
   line-height: 16px;
   font-weight: 700;
-`;
-
-/** Sits under the detection layer, so tapping a card still speaks its word. */
-const FreezeSurface = styled.Pressable`
-  position: absolute;
-  inset: 0px;
 `;
 
 const FrozenBadge = styled.View`

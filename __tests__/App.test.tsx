@@ -106,6 +106,18 @@ jest.mock(
   },
 );
 
+async function pressCameraMenuItem(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  testID: string,
+) {
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ testID: 'camera-menu' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ testID }).props.onPress();
+  });
+}
+
 describe('App', () => {
   beforeEach(() => {
     mockPronunciationPlayer.speak.mockReset().mockResolvedValue(undefined);
@@ -130,7 +142,7 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
     expect(renderedTree).toContain('SayLens');
-    expect(renderedTree).toContain('camera-open-settings');
+    expect(renderedTree).toContain('camera-menu');
     expect(renderedTree).toContain('camera-language-pair');
     expect(renderedTree).toContain('camera-preview');
     expect(renderedTree).toContain('Bottle');
@@ -148,16 +160,7 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(true);
 
-    const settingsControls = renderer!.root.findAllByProps({
-      testID: 'camera-open-settings',
-    });
-    const pressableSettingsTab = settingsControls.find(
-      control => typeof control.props.onPress === 'function',
-    );
-
-    await ReactTestRenderer.act(() => {
-      pressableSettingsTab!.props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
@@ -186,11 +189,7 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
       renderer!.root.findByProps({
@@ -210,11 +209,7 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
       renderer!.root.findByProps({ testID: 'appearance-dark' }).props
@@ -241,11 +236,7 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     await ReactTestRenderer.act(() => {
       renderer!.root
@@ -277,11 +268,7 @@ describe('App', () => {
         .performanceProfile,
     ).toBe('power-saving');
 
-    await ReactTestRenderer.act(() => {
-      relaunched!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(relaunched!, 'camera-open-settings');
 
     expect(
       relaunched!.root.findByProps({ testID: 'appearance-light' }).props
@@ -305,11 +292,7 @@ describe('App', () => {
         .performanceProfile,
     ).toBe('maximum-performance');
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     await ReactTestRenderer.act(() => {
       renderer!.root
@@ -335,11 +318,7 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
       renderer!.root.findByProps({
@@ -426,11 +405,7 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
-    await ReactTestRenderer.act(() => {
-      renderer!.root
-        .findByProps({ testID: 'camera-open-settings' })
-        .props.onPress();
-    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     await ReactTestRenderer.act(() => {
       renderer!.root

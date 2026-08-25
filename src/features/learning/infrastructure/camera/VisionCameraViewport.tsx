@@ -99,8 +99,13 @@ export const VisionCameraViewport = memo(function CameraViewport({
       ? POWER_SAVING_DETECTION_RESOLUTION
       : MAXIMUM_DETECTION_RESOLUTION;
 
+  const isMaximumPerformance = performanceProfile !== 'power-saving';
+
   const frameOutput = useFrameOutput({
     dropFramesWhileBusy: true,
+    // Frames must share the preview's buffers: decoupling them stopped frame
+    // delivery entirely on the test device, and bought no measurable gain in
+    // preview sharpness.
     enablePreviewSizedOutputBuffers: true,
     pixelFormat: 'rgb',
     targetResolution: detectionResolution,
@@ -137,8 +142,14 @@ export const VisionCameraViewport = memo(function CameraViewport({
       : maximumCameraFPS;
   }, [device, performanceProfile]);
   const constraints = useMemo<Constraint[]>(
-    () => [{ fps: targetCameraFPS }, { binned: true }],
-    [targetCameraFPS],
+    () => [
+      // Binning trades fine detail for bandwidth and low-light sensitivity.
+      // Power saving wants that trade; maximum performance does not, so this
+      // outranks the frame rate: sharpness first, then speed.
+      { binned: !isMaximumPerformance },
+      { fps: targetCameraFPS },
+    ],
+    [isMaximumPerformance, targetCameraFPS],
   );
 
   const handleSessionConfigSelected = useCallback(
@@ -146,7 +157,11 @@ export const VisionCameraViewport = memo(function CameraViewport({
       console.info(
         `[SayLens camera] requested=${targetCameraFPS}fps selected=${
           config.selectedFPS ?? 'auto'
-        }fps native=${config.nativePixelFormat} binned=${config.isBinned}`,
+        }fps native=${config.nativePixelFormat} binned=${
+          config.isBinned
+        } preview-stabilization=${
+          config.selectedPreviewStabilizationMode ?? 'none'
+        }`,
       );
     },
     [targetCameraFPS],

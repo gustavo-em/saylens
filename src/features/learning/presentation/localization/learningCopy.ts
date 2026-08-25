@@ -73,6 +73,9 @@ export interface LearningCopy {
     pronunciationLabel: string;
     tapToHearPronunciation: string;
     tapToChangeLanguages: string;
+    menu: string;
+    pause: string;
+    resume: string;
     tapToFreeze: string;
     tapToResume: string;
     frozen: string;
@@ -231,6 +234,9 @@ const copies: Record<
       pronunciationLabel: 'PRONÚNCIA',
       tapToHearPronunciation: 'Toque para ouvir a pronúncia.',
       tapToChangeLanguages: 'Toque para escolher os idiomas.',
+      menu: 'Opções',
+      pause: 'Pausar',
+      resume: 'Retomar',
       tapToFreeze: 'Toque para congelar a cena.',
       tapToResume: 'Toque para voltar ao tempo real.',
       frozen: 'CONGELADO',
@@ -346,6 +352,9 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIATION',
       tapToHearPronunciation: 'Tap to hear the pronunciation.',
       tapToChangeLanguages: 'Tap to choose the languages.',
+      menu: 'Options',
+      pause: 'Pause',
+      resume: 'Resume',
       tapToFreeze: 'Tap to freeze the scene.',
       tapToResume: 'Tap to go back to live.',
       frozen: 'FROZEN',
@@ -463,6 +472,9 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIACIÓN',
       tapToHearPronunciation: 'Toca para escuchar la pronunciación.',
       tapToChangeLanguages: 'Toca para elegir los idiomas.',
+      menu: 'Opciones',
+      pause: 'Pausar',
+      resume: 'Reanudar',
       tapToFreeze: 'Toca para congelar la escena.',
       tapToResume: 'Toca para volver al tiempo real.',
       frozen: 'CONGELADO',

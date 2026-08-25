@@ -15,6 +15,20 @@ export interface LearningCopy {
     samples: string;
     profile: string;
   };
+  speak: {
+    title: string;
+    subtitle: string;
+    idle: string;
+    listening: string;
+    matched: string;
+    close: (score: number) => string;
+    missed: (heard: string) => string;
+    silence: string;
+    unavailable: string;
+    permission: string;
+    again: string;
+    listen: string;
+  };
   quiz: {
     title: string;
     subtitle: string;
@@ -143,6 +157,20 @@ const copies: Record<
 > = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
+    speak: {
+      title: 'Falar',
+      subtitle: 'Diga a palavra e compare com a pronúncia.',
+      idle: 'Toque no microfone e diga a palavra.',
+      listening: 'Ouvindo…',
+      matched: 'Muito bem!',
+      close: score => `Quase lá · ${score}% de semelhança`,
+      missed: heard => `Ouvi “${heard}”`,
+      silence: 'Não consegui ouvir. Tente de novo.',
+      unavailable: 'Este aparelho não tem reconhecimento de fala.',
+      permission: 'Preciso da permissão do microfone para ouvir você.',
+      again: 'Tentar de novo',
+      listen: 'Ouvir a palavra',
+    },
     quiz: {
       title: 'Praticar',
       subtitle: 'Reconheça a palavra pela definição.',
@@ -244,6 +272,20 @@ const copies: Record<
   },
   en: {
     tabs: { camera: 'Camera', settings: 'Settings' },
+    speak: {
+      title: 'Speak',
+      subtitle: 'Say the word and compare it with the pronunciation.',
+      idle: 'Tap the microphone and say the word.',
+      listening: 'Listening…',
+      matched: 'Well done!',
+      close: score => `Close · ${score}% match`,
+      missed: heard => `I heard “${heard}”`,
+      silence: 'I could not hear anything. Try again.',
+      unavailable: 'This device has no speech recognition.',
+      permission: 'I need microphone permission to hear you.',
+      again: 'Try again',
+      listen: 'Hear the word',
+    },
     quiz: {
       title: 'Practise',
       subtitle: 'Match the word to its definition.',
@@ -344,6 +386,20 @@ const copies: Record<
   },
   es: {
     tabs: { camera: 'Cámara', settings: 'Configuración' },
+    speak: {
+      title: 'Hablar',
+      subtitle: 'Di la palabra y compárala con la pronunciación.',
+      idle: 'Toca el micrófono y di la palabra.',
+      listening: 'Escuchando…',
+      matched: '¡Muy bien!',
+      close: score => `Casi · ${score}% de parecido`,
+      missed: heard => `Escuché “${heard}”`,
+      silence: 'No pude escuchar nada. Inténtalo de nuevo.',
+      unavailable: 'Este dispositivo no tiene reconocimiento de voz.',
+      permission: 'Necesito permiso del micrófono para escucharte.',
+      again: 'Intentar de nuevo',
+      listen: 'Escuchar la palabra',
+    },
     quiz: {
       title: 'Practicar',
       subtitle: 'Reconoce la palabra por su definición.',

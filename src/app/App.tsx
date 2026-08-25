@@ -12,6 +12,8 @@ import { asyncStorageViewedObjectStore } from '../features/learning/infrastructu
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
+import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
+import { systemSpeechRecognizer } from '../features/learning/infrastructure/speech/systemSpeechRecognizer';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
 import { asyncStoragePreferencesStore } from './infrastructure/preferences/asyncStoragePreferencesStore';
 import { getPerformanceProfileSettings } from '../features/learning/domain/PerformanceProfile';
@@ -81,8 +83,21 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           pronunciationPlayer={systemPronunciationPlayer}
           favorites={viewModel.favorites}
           onOpenQuiz={() => viewModel.selectTab('quiz')}
+          onPractiseSpeaking={viewModel.practiseSpeaking}
           onToggleFavorite={viewModel.toggleFavoriteLabel}
           viewedObjects={viewModel.viewedObjects}
+          vocabularyRepository={localVocabularyRepository}
+        />
+      ) : null}
+
+      {viewModel.activeTab === 'speak' && viewModel.speakLabel != null ? (
+        <SpeakScreen
+          copy={viewModel.copy}
+          label={viewModel.speakLabel}
+          languageSettings={viewModel.languageSettings}
+          onClose={() => viewModel.selectTab('history')}
+          pronunciationPlayer={systemPronunciationPlayer}
+          speechRecognizer={systemSpeechRecognizer}
           vocabularyRepository={localVocabularyRepository}
         />
       ) : null}

@@ -43,6 +43,7 @@ export function useAppViewModel(
   const [isRestored, setIsRestored] = useState(false);
   const [viewedObjects, setViewedObjects] = useState<ViewedObject[]>([]);
   const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
+  const [speakLabel, setSpeakLabel] = useState<string | null>(null);
   const cameraAccess = useVisionCameraAccess();
 
   useEffect(() => {
@@ -161,6 +162,11 @@ export function useAppViewModel(
     setActiveTab(tab);
   }, []);
 
+  const practiseSpeaking = useCallback((label: string) => {
+    setSpeakLabel(label);
+    setActiveTab('speak');
+  }, []);
+
   const changeNativeLanguage = useCallback(
     (language: LearningLanguage) =>
       updatePreference('nativeLanguage', language),
@@ -210,7 +216,9 @@ export function useAppViewModel(
         ...favorites.map(entry => entry.label),
       ]),
     ),
+    practiseSpeaking,
     showDiagnostics: preferences.showDiagnostics,
+    speakLabel,
     toggleFavoriteLabel,
     toggleDiagnostics,
     viewedObjects,

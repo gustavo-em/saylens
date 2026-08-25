@@ -17,6 +17,7 @@ interface HistoryScreenProps {
   favorites: readonly FavoriteWord[];
   onClose: () => void;
   onOpenQuiz: () => void;
+  onPractiseSpeaking: (label: string) => void;
   onToggleFavorite: (label: string) => void;
   pronunciationPlayer: PronunciationPlayer;
   viewedObjects: readonly ViewedObject[];
@@ -47,6 +48,7 @@ export function HistoryScreen({
   favorites,
   onClose,
   onOpenQuiz,
+  onPractiseSpeaking,
   onToggleFavorite,
   pronunciationPlayer,
   viewedObjects,
@@ -141,7 +143,15 @@ export function HistoryScreen({
                     <PronunciationHint numberOfLines={1}>
                       {vocabulary.pronunciationHint}
                     </PronunciationHint>
-                    <Ipa numberOfLines={1}>{vocabulary.pronunciation}</Ipa>
+                    <SpeakButton
+                      accessibilityLabel={copy.speak.title}
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => onPractiseSpeaking(entry.label)}
+                      testID={`history-speak-${entry.label}`}
+                    >
+                      <SpeakButtonText>{copy.speak.title}</SpeakButtonText>
+                    </SpeakButton>
                   </RowFooter>
                 </Row>
               );
@@ -266,12 +276,6 @@ const PronunciationHint = styled.Text`
   font-weight: 700;
 `;
 
-const Ipa = styled.Text`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12px;
-  line-height: 16px;
-`;
-
 const HeaderText = styled.View`
   flex: 1;
   min-width: 0px;
@@ -317,5 +321,17 @@ const PractiseButton = styled.Pressable`
 const PractiseText = styled.Text`
   color: #ffffff;
   font-size: 13px;
+  font-weight: 800;
+`;
+
+const SpeakButton = styled.Pressable`
+  padding: 6px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: 999px;
+`;
+
+const SpeakButtonText = styled.Text`
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 12px;
   font-weight: 800;
 `;

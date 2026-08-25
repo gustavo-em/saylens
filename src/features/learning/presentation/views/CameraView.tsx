@@ -375,28 +375,6 @@ export function CameraView({
             </SettingsButton>
           </Header>
 
-          <LanguagePill
-            accessibilityHint={copy.camera.tapToChangeLanguages}
-            accessibilityLabel={languagePairLabel}
-            accessibilityRole="button"
-            onPress={onOpenSettings}
-            testID="camera-language-pair"
-          >
-            <LanguageFlag>{languageFlags[nativeLanguage]}</LanguageFlag>
-            <LanguageCode>{nativeCode}</LanguageCode>
-            <LanguageArrow>→</LanguageArrow>
-            <LanguageFlag>{languageFlags[learningLanguage]}</LanguageFlag>
-            <LanguageCode>{learningCode}</LanguageCode>
-            <LanguageCheck>✓</LanguageCheck>
-          </LanguagePill>
-
-          {viewModel.isFrozen ? (
-            <FrozenBadge testID="camera-frozen-badge">
-              <FrozenDot />
-              <FrozenText>{copy.camera.frozen}</FrozenText>
-            </FrozenBadge>
-          ) : null}
-
           {showDiagnostics ? (
             <DiagnosticsPanel accessible testID="camera-diagnostics">
               <DiagnosticsRow>
@@ -442,6 +420,28 @@ export function CameraView({
                 <DiagnosticsValue>{diagnostics.profileLabel}</DiagnosticsValue>
               </DiagnosticsRow>
             </DiagnosticsPanel>
+          ) : null}
+
+          <LanguagePill
+            accessibilityHint={copy.camera.tapToChangeLanguages}
+            accessibilityLabel={languagePairLabel}
+            accessibilityRole="button"
+            onPress={onOpenSettings}
+            testID="camera-language-pair"
+          >
+            <LanguageFlag>{languageFlags[nativeLanguage]}</LanguageFlag>
+            <LanguageCode>{nativeCode}</LanguageCode>
+            <LanguageArrow>→</LanguageArrow>
+            <LanguageFlag>{languageFlags[learningLanguage]}</LanguageFlag>
+            <LanguageCode>{learningCode}</LanguageCode>
+            <LanguageCheck>✓</LanguageCheck>
+          </LanguagePill>
+
+          {viewModel.isFrozen ? (
+            <FrozenBadge testID="camera-frozen-badge">
+              <FrozenDot />
+              <FrozenText>{copy.camera.frozen}</FrozenText>
+            </FrozenBadge>
           ) : null}
 
           {displayedError != null ? (
@@ -745,7 +745,7 @@ const SettingsButton = styled.Pressable`
 
 const DiagnosticsPanel = styled.View`
   align-self: flex-start;
-  margin: 12px;
+  margin: 10px 12px 0px;
   padding: 10px 12px;
   border: 1px solid ${({ theme }) => theme.colors.glassBorder};
   border-radius: 12px;

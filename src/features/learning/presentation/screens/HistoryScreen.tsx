@@ -1,5 +1,7 @@
+import { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
+import Svg, { Path } from 'react-native-svg';
+import styled, { useTheme, type DefaultTheme } from 'styled-components/native';
 
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
@@ -8,6 +10,14 @@ import {
   languageFlags,
   type LearningLanguageSettings,
 } from '../../domain/LearningLanguage';
+import {
+  getPronunciationStatus,
+  matchesPronunciationFilter,
+  pronunciationFilters,
+  type PronunciationFilter,
+  type PronunciationProgressEntry,
+  type PronunciationStatus,
+} from '../../domain/PronunciationProgress';
 import type { ViewedObject } from '../../domain/ViewedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 
@@ -20,8 +30,27 @@ interface HistoryScreenProps {
   onPractiseSpeaking: (label: string) => void;
   onToggleFavorite: (label: string) => void;
   pronunciationPlayer: PronunciationPlayer;
+  pronunciationProgress: readonly PronunciationProgressEntry[];
   viewedObjects: readonly ViewedObject[];
   vocabularyRepository: VocabularyRepository;
+}
+
+function MicIcon({ color }: { color: string }) {
+  return (
+    <Svg height={16} viewBox="0 0 24 24" width={16}>
+      <Path
+        d="M12 4.5a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-5 0V7A2.5 2.5 0 0 1 12 4.5Z"
+        fill={color}
+      />
+      <Path
+        d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5V20"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
+  );
 }
 
 const MINUTE_MS = 60_000;
@@ -51,9 +80,48 @@ export function HistoryScreen({
   onPractiseSpeaking,
   onToggleFavorite,
   pronunciationPlayer,
+  pronunciationProgress,
   viewedObjects,
   vocabularyRepository,
 }: HistoryScreenProps) {
+  const theme = useTheme();
+  const [filter, setFilter] = useState<PronunciationFilter>('all');
+
+  const filterLabels: Record<PronunciationFilter, string> = {
+    all: copy.history.filterAll,
+    matched: copy.history.filterMatched,
+    untried: copy.history.filterUntried,
+    missed: copy.history.filterMissed,
+  };
+  const statusLabels: Record<PronunciationStatus, string> = {
+    matched: copy.history.statusMatched,
+    untried: copy.history.statusUntried,
+    missed: copy.history.statusMissed,
+  };
+
+  const entries = useMemo(
+    () =>
+      viewedObjects.map(entry => ({
+        entry,
+        status: getPronunciationStatus(pronunciationProgress, entry.label),
+      })),
+    [pronunciationProgress, viewedObjects],
+  );
+  const counts = useMemo(
+    () =>
+      entries.reduce(
+        (totals, { status }) => ({ ...totals, [status]: totals[status] + 1 }),
+        { all: entries.length, matched: 0, untried: 0, missed: 0 } as Record<
+          PronunciationFilter,
+          number
+        >,
+      ),
+    [entries],
+  );
+  const visibleEntries = entries.filter(({ status }) =>
+    matchesPronunciationFilter(filter, status),
+  );
+
   return (
     <Container>
       <HistorySafeArea edges={['top']}>
@@ -79,13 +147,40 @@ export function HistoryScreen({
           </PractiseButton>
         </Header>
 
+        {viewedObjects.length > 0 ? (
+          <Filters accessibilityLabel={copy.history.filters}>
+            {pronunciationFilters.map(option => (
+              <FilterChip
+                accessibilityLabel={`${filterLabels[option]}, ${counts[option]}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: filter === option }}
+                key={option}
+                onPress={() => setFilter(option)}
+                testID={`history-filter-${option}`}
+                $active={filter === option}
+              >
+                <FilterText $active={filter === option}>
+                  {filterLabels[option]}
+                </FilterText>
+                <FilterCount $active={filter === option}>
+                  {counts[option]}
+                </FilterCount>
+              </FilterChip>
+            ))}
+          </Filters>
+        ) : null}
+
         {viewedObjects.length === 0 ? (
           <EmptyState testID="history-empty">
             <EmptyText>{copy.history.empty}</EmptyText>
           </EmptyState>
+        ) : visibleEntries.length === 0 ? (
+          <EmptyState testID="history-filter-empty">
+            <EmptyText>{copy.history.noneForFilter}</EmptyText>
+          </EmptyState>
         ) : (
           <List showsVerticalScrollIndicator={false}>
-            {viewedObjects.map(entry => {
+            {visibleEntries.map(({ entry, status }) => {
               const vocabulary = vocabularyRepository.findByLabel(
                 entry.label,
                 languageSettings,
@@ -94,7 +189,7 @@ export function HistoryScreen({
               return (
                 <Row
                   accessibilityHint={copy.history.tapToHear}
-                  accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}`}
+                  accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${statusLabels[status]}`}
                   accessibilityRole="button"
                   key={entry.label}
                   onPress={() =>
@@ -103,12 +198,20 @@ export function HistoryScreen({
                       .catch(() => undefined)
                   }
                   testID={`history-${entry.label}`}
+                  $status={status}
                 >
                   <RowHeader>
                     <Flag>
                       {languageFlags[languageSettings.learningLanguage]}
                     </Flag>
-                    <Word numberOfLines={1}>{vocabulary.word}</Word>
+                    <Word numberOfLines={1} $status={status}>
+                      {vocabulary.word}
+                    </Word>
+                    {status === 'untried' ? null : (
+                      <StatusMark $status={status}>
+                        {status === 'matched' ? '✓' : '✕'}
+                      </StatusMark>
+                    )}
                     <SeenAt>{formatSeenAt(copy, entry.seenAtMs)}</SeenAt>
                     <FavoriteButton
                       accessibilityLabel={copy.history.favorite}
@@ -144,13 +247,14 @@ export function HistoryScreen({
                       {vocabulary.pronunciationHint}
                     </PronunciationHint>
                     <SpeakButton
-                      accessibilityLabel={copy.speak.title}
+                      accessibilityLabel={copy.history.practise}
                       accessibilityRole="button"
                       hitSlop={8}
                       onPress={() => onPractiseSpeaking(entry.label)}
                       testID={`history-speak-${entry.label}`}
                     >
-                      <SpeakButtonText>{copy.speak.title}</SpeakButtonText>
+                      <MicIcon color={theme.colors.accent} />
+                      <SpeakButtonText>{copy.history.practise}</SpeakButtonText>
                     </SpeakButton>
                   </RowFooter>
                 </Row>
@@ -209,10 +313,21 @@ const List = styled.ScrollView`
   flex: 1;
 `;
 
-const Row = styled.Pressable`
+const statusColor = (theme: DefaultTheme, status: PronunciationStatus) =>
+  status === 'matched'
+    ? theme.colors.success
+    : status === 'missed'
+    ? theme.colors.danger
+    : theme.colors.text;
+
+const Row = styled.Pressable<{ $status: PronunciationStatus }>`
   padding: 14px 16px;
   margin-bottom: 8px;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border: 1px solid
+    ${({ theme, $status }) =>
+      $status === 'untried'
+        ? theme.colors.borderSubtle
+        : statusColor(theme, $status)};
   border-radius: 16px;
   background-color: ${({ theme }) => theme.colors.card};
 `;
@@ -228,13 +343,22 @@ const Flag = styled.Text`
   line-height: 22px;
 `;
 
-const Word = styled.Text`
+const Word = styled.Text<{ $status: PronunciationStatus }>`
   flex: 1;
   min-width: 0px;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme, $status }) => statusColor(theme, $status)};
   font-size: 18px;
   line-height: 24px;
   font-weight: 700;
+`;
+
+/** Colour alone would not survive colour blindness, so the outcome is marked
+ * with a glyph as well. */
+const StatusMark = styled.Text<{ $status: PronunciationStatus }>`
+  color: ${({ theme, $status }) => statusColor(theme, $status)};
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 800;
 `;
 
 const SeenAt = styled.Text`
@@ -325,9 +449,47 @@ const PractiseText = styled.Text`
 `;
 
 const SpeakButton = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
   border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
   border-radius: 999px;
+`;
+
+const Filters = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+`;
+
+const FilterChip = styled.Pressable<{ $active: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid
+    ${({ theme, $active }) =>
+      $active ? theme.colors.accent : theme.colors.borderSubtle};
+  border-radius: 999px;
+  background-color: ${({ theme, $active }) =>
+    $active ? theme.colors.accent : theme.colors.card};
+`;
+
+const FilterText = styled.Text<{ $active: boolean }>`
+  color: ${({ theme, $active }) => ($active ? '#ffffff' : theme.colors.muted)};
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+`;
+
+const FilterCount = styled.Text<{ $active: boolean }>`
+  color: ${({ theme, $active }) =>
+    $active ? 'rgba(255, 255, 255, 0.82)' : theme.colors.mutedStrong};
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 800;
 `;
 
 const SpeakButtonText = styled.Text`

@@ -47,6 +47,16 @@ export interface LearningCopy {
     empty: string;
     tapToHear: string;
     favorite: string;
+    practise: string;
+    filters: string;
+    filterAll: string;
+    filterMatched: string;
+    filterUntried: string;
+    filterMissed: string;
+    noneForFilter: string;
+    statusMatched: string;
+    statusUntried: string;
+    statusMissed: string;
     justNow: string;
     minutesAgo: (minutes: number) => string;
     hoursAgo: (hours: number) => string;
@@ -208,6 +218,16 @@ const copies: Record<
       empty: 'Aponte a câmera para um objeto para começar seu histórico.',
       tapToHear: 'Toque para ouvir de novo.',
       favorite: 'Favoritar',
+      practise: 'Treinar pronúncia',
+      filters: 'Filtrar por pronúncia',
+      filterAll: 'Todas',
+      filterMatched: 'Acertei',
+      filterUntried: 'Não tentei',
+      filterMissed: 'Errei',
+      noneForFilter: 'Nenhuma palavra neste filtro por enquanto.',
+      statusMatched: 'pronúncia certa',
+      statusUntried: 'pronúncia ainda não testada',
+      statusMissed: 'pronúncia errada',
       justNow: 'agora há pouco',
       minutesAgo: minutes => `há ${minutes} min`,
       hoursAgo: hours => `há ${hours} h`,
@@ -330,6 +350,16 @@ const copies: Record<
       empty: 'Point the camera at an object to start your history.',
       tapToHear: 'Tap to hear it again.',
       favorite: 'Favourite',
+      practise: 'Practise pronunciation',
+      filters: 'Filter by pronunciation',
+      filterAll: 'All',
+      filterMatched: 'Got it',
+      filterUntried: 'Not tried',
+      filterMissed: 'Missed',
+      noneForFilter: 'No words in this filter yet.',
+      statusMatched: 'pronunciation right',
+      statusUntried: 'pronunciation not tried yet',
+      statusMissed: 'pronunciation missed',
       justNow: 'just now',
       minutesAgo: minutes => `${minutes} min ago`,
       hoursAgo: hours => `${hours} h ago`,
@@ -451,6 +481,16 @@ const copies: Record<
       empty: 'Apunta la cámara a un objeto para empezar tu historial.',
       tapToHear: 'Toca para escucharlo de nuevo.',
       favorite: 'Favorito',
+      practise: 'Practicar pronunciación',
+      filters: 'Filtrar por pronunciación',
+      filterAll: 'Todas',
+      filterMatched: 'Acerté',
+      filterUntried: 'Sin intentar',
+      filterMissed: 'Fallé',
+      noneForFilter: 'Todavía no hay palabras en este filtro.',
+      statusMatched: 'pronunciación correcta',
+      statusUntried: 'pronunciación sin intentar',
+      statusMissed: 'pronunciación fallada',
       justNow: 'hace un momento',
       minutesAgo: minutes => `hace ${minutes} min`,
       hoursAgo: hours => `hace ${hours} h`,

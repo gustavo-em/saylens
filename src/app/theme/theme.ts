@@ -17,6 +17,9 @@ interface ThemeColors {
   muted: string;
   mutedStrong: string;
   text: string;
+  /** Pronunciation outcome: a word already said right, and one still missed. */
+  success: string;
+  danger: string;
   /** Camera overlay palette. Identical in both themes: these sit on the video
    * feed, not on the app background. */
   overlayCard: string;
@@ -77,6 +80,8 @@ export const darkTheme: AppTheme = {
     muted: '#91A9C9',
     mutedStrong: '#B4C8E4',
     text: '#F4F8FF',
+    success: '#3FCB86',
+    danger: '#F87171',
     overlayCard: '#FFFFFF',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',
@@ -104,6 +109,8 @@ export const lightTheme: AppTheme = {
     muted: '#607A9B',
     mutedStrong: '#3E5D83',
     text: '#0A1A30',
+    success: '#178A52',
+    danger: '#D22C2C',
     overlayCard: '#FFFFFF',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',

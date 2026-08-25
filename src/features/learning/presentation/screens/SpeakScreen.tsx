@@ -19,6 +19,7 @@ interface SpeakScreenProps {
   copy: LearningCopy;
   label: string;
   languageSettings: LearningLanguageSettings;
+  onAttempt: (label: string, matched: boolean) => void;
   onClose: () => void;
   pronunciationPlayer: PronunciationPlayer;
   speechRecognizer: SpeechRecognizer;
@@ -31,6 +32,7 @@ export function SpeakScreen({
   copy,
   label,
   languageSettings,
+  onAttempt,
   onClose,
   pronunciationPlayer,
   speechRecognizer,
@@ -77,8 +79,13 @@ export function SpeakScreen({
       const heard = await speechRecognizer.listen(
         languageSettings.learningLanguage,
       );
-      setAttempt(scoreAttempt(vocabulary.word, heard));
+      const scored = scoreAttempt(vocabulary.word, heard);
+      setAttempt(scored);
       setStatus('result');
+
+      // Only a real attempt counts. Hearing nothing says nothing about the
+      // pronunciation, so it is never recorded as a miss.
+      if (heard.length > 0) onAttempt(label, scored.matched);
     } catch (error) {
       // A missing language pack is a dead end, not a bad attempt: retrying
       // would fail identically, so it is reported instead of scored.
@@ -96,7 +103,9 @@ export function SpeakScreen({
   }, [
     copy.speak.languageUnavailable,
     copy.speak.permission,
+    label,
     languageSettings.learningLanguage,
+    onAttempt,
     speechRecognizer,
     status,
     vocabulary.word,

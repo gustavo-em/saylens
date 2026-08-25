@@ -9,6 +9,7 @@ import { localVocabularyRepository } from '../features/learning/infrastructure/v
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
 import { asyncStorageFavoriteWordStore } from '../features/learning/infrastructure/favorites/asyncStorageFavoriteWordStore';
 import { asyncStorageViewedObjectStore } from '../features/learning/infrastructure/history/asyncStorageViewedObjectStore';
+import { asyncStoragePronunciationProgressStore } from '../features/learning/infrastructure/progress/asyncStoragePronunciationProgressStore';
 import { CameraScreen } from '../features/learning/presentation/screens/CameraScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
@@ -90,6 +91,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
             viewModel.practiseSpeaking(label, 'history')
           }
           onToggleFavorite={viewModel.toggleFavoriteLabel}
+          pronunciationProgress={viewModel.pronunciationProgress}
           viewedObjects={viewModel.viewedObjects}
           vocabularyRepository={localVocabularyRepository}
         />
@@ -100,6 +102,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           copy={viewModel.copy}
           label={viewModel.speakLabel}
           languageSettings={viewModel.languageSettings}
+          onAttempt={viewModel.recordPronunciationResult}
           onClose={() => viewModel.selectTab(viewModel.speakReturnTab)}
           pronunciationPlayer={systemPronunciationPlayer}
           speechRecognizer={systemSpeechRecognizer}
@@ -143,6 +146,7 @@ export default function App() {
     asyncStoragePreferencesStore,
     asyncStorageViewedObjectStore,
     asyncStorageFavoriteWordStore,
+    asyncStoragePronunciationProgressStore,
   );
 
   return (

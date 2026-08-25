@@ -510,6 +510,56 @@ describe('App', () => {
     ).toBe(true);
   });
 
+  it('marks the outcome of a pronunciation in history and filters by it', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+
+    await pressCameraMenuItem(renderer!, 'camera-open-history');
+
+    expect(
+      renderer!.root.findByProps({ testID: 'history-filter-untried' }).props
+        .accessibilityLabel,
+    ).toBe('Não tentei, 1');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'history-speak-bottle').props.onPress();
+    });
+
+    await ReactTestRenderer.act(async () => {
+      pressableWithTestID(renderer!, 'speak-listen').props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockSpeechRecognizer.listen).toHaveBeenCalledWith('en-US');
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Muito bem!');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'speak-close').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: 'history-filter-matched' }).props
+        .accessibilityLabel,
+    ).toBe('Acertei, 1');
+    expect(JSON.stringify(renderer!.toJSON())).toContain('#3FCB86');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'history-filter-untried').props.onPress();
+    });
+
+    renderer!.root.findByProps({ testID: 'history-filter-empty' });
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'history-filter-matched').props.onPress();
+    });
+
+    renderer!.root.findByProps({ testID: 'history-bottle' });
+  });
+
   it('hears a detected word from the button on its card', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 

@@ -6,12 +6,19 @@ import { useVisionCameraAccess } from '../../features/learning/infrastructure/ca
 import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
 import { getLearningCopy } from '../../features/learning/presentation/localization/learningCopy';
 import type { FavoriteWordStore } from '../../features/learning/application/ports/FavoriteWordStore';
+import type { PronunciationProgressStore } from '../../features/learning/application/ports/PronunciationProgressStore';
 import type { ViewedObjectStore } from '../../features/learning/application/ports/ViewedObjectStore';
 import {
   sanitizeFavorites,
   toggleFavorite,
   type FavoriteWord,
 } from '../../features/learning/domain/FavoriteWord';
+import {
+  getPronunciationStatus,
+  recordPronunciationAttempt,
+  sanitizePronunciationProgress,
+  type PronunciationProgressEntry,
+} from '../../features/learning/domain/PronunciationProgress';
 import {
   recordViewedObjects,
   sanitizeViewedObjects,
@@ -30,6 +37,7 @@ export function useAppViewModel(
   preferencesStore: PreferencesStore,
   viewedObjectStore: ViewedObjectStore,
   favoriteWordStore: FavoriteWordStore,
+  pronunciationProgressStore: PronunciationProgressStore,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
@@ -43,6 +51,9 @@ export function useAppViewModel(
   const [isRestored, setIsRestored] = useState(false);
   const [viewedObjects, setViewedObjects] = useState<ViewedObject[]>([]);
   const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
+  const [pronunciationProgress, setPronunciationProgress] = useState<
+    readonly PronunciationProgressEntry[]
+  >([]);
   const [speakLabel, setSpeakLabel] = useState<string | null>(null);
   // Practising can start from the camera or from history, and closing has to
   // land back where the learner came from.
@@ -78,6 +89,41 @@ export function useAppViewModel(
       isCurrent = false;
     };
   }, [favoriteWordStore]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    pronunciationProgressStore
+      .load()
+      .then(stored => {
+        if (isCurrent) {
+          setPronunciationProgress(sanitizePronunciationProgress(stored));
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [pronunciationProgressStore]);
+
+  const recordPronunciationResult = useCallback(
+    (label: string, matched: boolean) => {
+      setPronunciationProgress(current => {
+        const next = recordPronunciationAttempt(
+          current,
+          label,
+          matched,
+          Date.now(),
+        );
+        if (next === current) return current;
+
+        pronunciationProgressStore.save(next).catch(() => undefined);
+        return next;
+      });
+    },
+    [pronunciationProgressStore],
+  );
 
   const toggleFavoriteLabel = useCallback(
     (label: string) => {
@@ -224,6 +270,10 @@ export function useAppViewModel(
       ]),
     ),
     practiseSpeaking,
+    pronunciationProgress,
+    pronunciationStatusOf: (label: string) =>
+      getPronunciationStatus(pronunciationProgress, label),
+    recordPronunciationResult,
     showDiagnostics: preferences.showDiagnostics,
     speakLabel,
     speakReturnTab,

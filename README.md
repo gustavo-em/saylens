@@ -14,6 +14,35 @@ anchored over each object with its meaning and pronunciation.
   <img src="docs/assets/android-camera-settings.png" alt="SayLens camera settings running on a physical Samsung device" width="320" />
 </p>
 
+## Screens
+
+Captured on a physical Samsung SM-M536B running Android 14.
+
+<table>
+  <tr>
+    <td align="center" width="20%">
+      <img src="docs/assets/android-camera-card.png" alt="Learning card anchored over a detected laptop" width="180" /><br />
+      <sub><b>Camera</b><br />A card per detected object, with the example sentence in the language being learned</sub>
+    </td>
+    <td align="center" width="20%">
+      <img src="docs/assets/android-collection.png" alt="Collection screen with rooms and progress" width="180" /><br />
+      <sub><b>Collection</b><br />Streak, level, and one room per set of objects to find</sub>
+    </td>
+    <td align="center" width="20%">
+      <img src="docs/assets/android-history.png" alt="History coloured by pronunciation outcome" width="180" /><br />
+      <sub><b>History</b><br />Words coloured by pronunciation outcome, filtered by it</sub>
+    </td>
+    <td align="center" width="20%">
+      <img src="docs/assets/android-speak.png" alt="Speaking practice screen" width="180" /><br />
+      <sub><b>Speak</b><br />Say the word and compare it with the device recogniser</sub>
+    </td>
+    <td align="center" width="20%">
+      <img src="docs/assets/android-quiz.png" alt="Practice round asking a word by its definition" width="180" /><br />
+      <sub><b>Practice</b><br />A round of ten questions drawn from words already met</sub>
+    </td>
+  </tr>
+</table>
+
 ## Product journey
 
 1. Detect common objects in the live camera preview.

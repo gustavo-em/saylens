@@ -158,3 +158,14 @@ The final run showed the app process alive, the camera surface stable at 30 FPS,
 all four detector workers initialized, repeated throughput windows near 30 FPS,
 and no fatal entry in the Android crash buffer. A longer thermal/battery run is
 still required before a public performance claim beyond this device and build.
+
+## iOS
+
+Nothing here yet. The iOS layer is written and compiles, and no number in this
+document describes it: the detector, the recognition taxonomy, and the two
+native modules have not been run on a physical iPhone. Android evidence does
+not carry over, because iOS recognises through a different framework with a
+different label set ([ADR-0009](adr/0009-ios-vision-detector.md)).
+
+The first measurements to take are listed in
+[the iOS native layer](IOS.md#status).

@@ -34,6 +34,10 @@ native module ──> infrastructure adapter contract
   into the feature. Its shell ViewModel owns app-level navigation and settings.
 - `shared` contains intentionally generic primitives. Feature-specific behavior
   must not be moved there for convenience.
+- Native code, Kotlin on Android and Swift on iOS, is infrastructure. It
+  answers a port and holds no product state, no navigation, and no view. The
+  ViewModels exist once, in TypeScript, so no state machine is implemented
+  twice. See [the iOS native layer](IOS.md).
 
 ## Repository map
 
@@ -53,7 +57,12 @@ src/
   shared/                           Small cross-feature primitives
 
 modules/
-  vision-object-detector/           Android Nitro/Kotlin detector boundary
+  vision-object-detector/           Nitro detector boundary
+    android/                        Kotlin, MediaPipe with a bundled model
+    ios/                            Swift, Apple Vision
+
+ios/                                iOS application and native modules
+android/                            Android application and native modules
 
 docs/
   adr/                              Architecture Decision Records

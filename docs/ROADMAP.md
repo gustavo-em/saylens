@@ -144,3 +144,30 @@ Acceptance criteria:
 - no secret, signing material, or personal local configuration is tracked;
 - README explains architecture, setup, trade-offs, and evidence;
 - release artifacts link back to reproducible source.
+
+## Milestone 8: iOS native layer
+
+Status: in progress
+
+- [x] create the iOS application project and its permission strings;
+- [x] implement the detector as a Swift Nitro adapter behind the existing
+      contract;
+- [x] choose and record the iOS recognition strategy
+      ([ADR-0009](adr/0009-ios-vision-detector.md));
+- [x] implement speech recognition and pronunciation as Swift modules with the
+      same contract and error codes as Android;
+- [x] document the layer, its scheduling, and its open questions
+      ([the iOS native layer](IOS.md));
+- [ ] run the app on a physical iPhone;
+- [ ] record detector latency percentiles, throughput, and thermals on iOS;
+- [ ] check the Vision taxonomy table against what the classifier returns in a
+      real room;
+- [ ] compare box count and stability against the Android detector on the same
+      scene.
+
+Acceptance criteria:
+
+- the critical journey works on a physical iPhone without a backend;
+- iOS evidence is recorded on its own rather than inherited from Android;
+- the vocabulary gap created by a 1303-label taxonomy is measured before the
+  catalogue is grown to close it.

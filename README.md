@@ -1,7 +1,9 @@
 # SayLens
 
-SayLens is an Android-first React Native side project that turns the camera
-into an interactive English-learning experience.
+SayLens is a React Native side project that turns the camera into an
+interactive English-learning experience. Android is where it was proven on
+hardware; the iOS native layer has now been written and is described in
+[the iOS document](docs/IOS.md).
 
 Point the device at everyday objects and see a compact English-learning card
 anchored over each object with its meaning and pronunciation.
@@ -55,13 +57,16 @@ The first experience is designed to work on-device and without a backend.
 
 ## Technical direction
 
-- Android first, tested on physical devices.
+- Android first, tested on physical devices, with iOS written against the same
+  ports.
 - React Native using a feature-first Clean Architecture.
 - MVVM inside the presentation layer, with views free of platform SDKs.
 - styled-components for the shared theme and declarative UI styling.
 - VisionCamera 5 for the camera session and frame output.
-- A local Android Nitro/Kotlin adapter for inference.
-- MediaPipe Tasks with EfficientDet-Lite0 int8 for the first detector.
+- A local Nitro adapter for inference: Kotlin on Android, Swift on iOS.
+- MediaPipe Tasks with EfficientDet-Lite0 int8 on Android, bundled with the app.
+- Apple Vision on iOS, in two phases, with no model shipped and 1303 labels
+  instead of 80 ([ADR-0009](docs/adr/0009-ios-vision-detector.md)).
 - React Native learning overlays with metadata presentation bounded at 30 Hz.
 - A local vocabulary catalog for the first common-object labels.
 - Reanimated UI-thread interpolation for live detection geometry.
@@ -98,10 +103,11 @@ src/
   features/learning/      Domain, use cases, adapters, Views, and ViewModels
   shared/                 Proven cross-feature primitives only
 
-android/                  Android application and native build configuration
+android/                  Android application and native modules
+ios/                      iOS application and native modules
 
 modules/
-  vision-object-detector/ Android Nitro/Kotlin boundary
+  vision-object-detector/ Nitro detector boundary, Kotlin and Swift
 
 docs/
   adr/                    Architecture Decision Records
@@ -157,6 +163,33 @@ The first build may install the pinned Android SDK components and download the
 Gradle distribution. See the reproducible baseline record in
 [physical-device validation](docs/VALIDATION.md).
 
+## Run the iOS app
+
+Requirements:
+
+- the same Node toolchain as the Android app;
+- Xcode 26 or newer and CocoaPods;
+- a physical iPhone for the camera, microphone, and speech recognition.
+
+```sh
+npm ci
+cd ios && pod install
+```
+
+Open `ios/SayLens.xcworkspace` — the workspace, not the project — or start
+Metro and run:
+
+```sh
+npx react-native run-ios --device
+```
+
+Recognition on iOS uses the operating system's own Vision framework, so no
+model is downloaded or bundled. The simulator builds and launches; its camera
+is a static image, so there is nothing there for the detector to recognise.
+
+The iOS layer, its two-phase recognition, its scheduling, and what has and has
+not been measured are documented in [the iOS native layer](docs/IOS.md).
+
 ## Roadmap
 
 The work is split into evidence-producing milestones: repository foundation,
@@ -168,6 +201,7 @@ See the [roadmap and acceptance criteria](docs/ROADMAP.md).
 ## Documentation
 
 - [Architecture and dependency rules](docs/ARCHITECTURE.md)
+- [The iOS native layer](docs/IOS.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Physical-device validation](docs/VALIDATION.md)

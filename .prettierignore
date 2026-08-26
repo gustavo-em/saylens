@@ -16,3 +16,6 @@ ios/**/Images.xcassets/
 
 coverage/
 reports/
+
+# Third-party animation data, kept exactly as exported.
+src/assets/successCelebration.json

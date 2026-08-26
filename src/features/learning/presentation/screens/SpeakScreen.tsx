@@ -1,20 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import styled, { useTheme } from 'styled-components/native';
 
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { SpeechRecognizer } from '../../application/ports/SpeechRecognizer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
+import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
 import {
-  languageFlags,
-  type LearningLanguageSettings,
-} from '../../domain/LearningLanguage';
+  isResting,
+  type PronunciationProgressEntry,
+} from '../../domain/PronunciationProgress';
 import {
+  describeDivergence,
   scoreAttempt,
   type PronunciationAttempt,
 } from '../../domain/PronunciationAttempt';
 import type { LearningCopy } from '../localization/learningCopy';
+import { PronunciationCelebration } from '../views/PronunciationCelebration';
 
 interface SpeakScreenProps {
   copy: LearningCopy;
@@ -22,6 +32,9 @@ interface SpeakScreenProps {
   languageSettings: LearningLanguageSettings;
   onAttempt: (label: string, matched: boolean) => void;
   onClose: () => void;
+  onOpenHistory: () => void;
+  onReturnToCamera: () => void;
+  pronunciationProgress: readonly PronunciationProgressEntry[];
   pronunciationPlayer: PronunciationPlayer;
   speechRecognizer: SpeechRecognizer;
   vocabularyRepository: VocabularyRepository;
@@ -32,8 +45,35 @@ type Status = 'idle' | 'listening' | 'result' | 'blocked';
 /** How long a spoken word is expected to take. The recogniser stops on its own
  * when the learner goes quiet, so this only paces the countdown on screen. */
 const LISTEN_SECONDS = 5;
-const RING_RADIUS = 24;
-const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+/** How long the celebration stays before the camera comes back on its own.
+ * Long enough to read it, short enough that a learner on a roll is not kept
+ * waiting for the next object. */
+const CELEBRATION_SECONDS = 5;
+/**
+ * Where each bar sits in the wave while the microphone is open, and how tall
+ * it rests once it closes.
+ *
+ * These are ornament, not measurement: the recogniser reports words, not
+ * levels, so a real waveform is not something this app can draw. What the bars
+ * say is true — the microphone is open, and then it was — and that is the
+ * doubt they exist to answer.
+ */
+const LISTENING_BARS = [
+  { phase: 0, weight: 0.42, rest: 10 },
+  { phase: 0.16, weight: 0.68, rest: 21 },
+  { phase: 0.32, weight: 0.94, rest: 30 },
+  { phase: 0.48, weight: 0.6, rest: 18 },
+  { phase: 0.64, weight: 1, rest: 33 },
+  { phase: 0.8, weight: 0.5, rest: 14 },
+  { phase: 0.96, weight: 0.82, rest: 25 },
+  { phase: 1.12, weight: 1, rest: 34 },
+  { phase: 1.28, weight: 0.64, rest: 20 },
+  { phase: 1.44, weight: 0.46, rest: 12 },
+  { phase: 1.6, weight: 0.76, rest: 23 },
+  { phase: 1.76, weight: 0.38, rest: 8 },
+];
+/** How often the level is read while the microphone is open. */
+const LEVEL_POLL_MS = 80;
 
 function MicIcon({ color, size = 26 }: { color: string; size?: number }) {
   return (
@@ -48,6 +88,26 @@ function MicIcon({ color, size = 26 }: { color: string; size?: number }) {
         stroke={color}
         strokeLinecap="round"
         strokeWidth={1.9}
+      />
+    </Svg>
+  );
+}
+
+function CameraIcon({ color }: { color: string }) {
+  return (
+    <Svg height={20} viewBox="0 0 24 24" width={20}>
+      <Path
+        d="M4 8.5h3l1.4-2h7.2l1.4 2H20a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"
+        fill="none"
+        stroke={color}
+        strokeLinejoin="round"
+        strokeWidth={1.7}
+      />
+      <Path
+        d="M12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.7}
       />
     </Svg>
   );
@@ -68,47 +128,134 @@ function SpeakerIcon({ color }: { color: string }) {
   );
 }
 
-/** Ring that empties as the listening window runs out, so the learner can see
- * how much time is left without reading a label. */
-function CountdownRing({ secondsLeft }: { secondsLeft: number }) {
-  const progress = Math.max(Math.min(secondsLeft / LISTEN_SECONDS, 1), 0);
+/**
+ * The microphone, which breathes while it is open.
+ *
+ * The movement is not driven by how loud the room is — the recogniser reports
+ * words, not levels — so it says only what is true: this is on, and tapping it
+ * again ends the recording.
+ */
+function ListeningMic({
+  accessibilityLabel,
+  disabled = false,
+  listening,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  disabled?: boolean;
+  listening: boolean;
+  onPress: () => void;
+}) {
+  const beat = useSharedValue(0);
+
+  useEffect(() => {
+    if (!listening) {
+      beat.value = withTiming(0, { duration: 200 });
+      return;
+    }
+
+    beat.value = withRepeat(
+      withTiming(1, { duration: 760, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+  }, [beat, listening]);
+
+  const buttonStyle = useAnimatedStyle(() => ({
+    // A resting word dims its microphone rather than hiding it: the learner
+    // should see that the word is still there, and why it cannot be tried.
+    opacity: disabled ? 0.4 : 1,
+    transform: [{ scale: 1 + beat.value * 0.07 }],
+  }));
+
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: 0.35 * beat.value,
+    transform: [{ scale: 1 + beat.value * 0.5 }],
+  }));
 
   return (
-    <RingWrapper>
-      <Svg height={58} viewBox="0 0 58 58" width={58}>
-        <Circle
-          cx={29}
-          cy={29}
-          fill="none"
-          r={RING_RADIUS}
-          stroke="rgba(255, 255, 255, 0.28)"
-          strokeWidth={4}
-        />
-        <Circle
-          cx={29}
-          cy={29}
-          fill="none"
-          origin="29, 29"
-          r={RING_RADIUS}
-          rotation={-90}
-          stroke="#ffffff"
-          strokeDasharray={`${RING_LENGTH}`}
-          strokeDashoffset={RING_LENGTH * (1 - progress)}
-          strokeLinecap="round"
-          strokeWidth={4}
-        />
-      </Svg>
-      <RingValue>{secondsLeft > 0 ? secondsLeft : '…'}</RingValue>
-    </RingWrapper>
+    <MicSlot>
+      <MicHalo pointerEvents="none" style={haloStyle} $listening={listening} />
+      <MicButton
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
+        onPress={disabled ? undefined : onPress}
+        style={buttonStyle}
+        testID="speak-listen"
+        $listening={listening}
+      >
+        <MicIcon color="#ffffff" />
+      </MicButton>
+    </MicSlot>
   );
 }
 
+/**
+ * The level meter, driven by how loud the microphone actually is.
+ *
+ * The level is measured where the audio is: the root mean square of each
+ * buffer on iOS, and Android's own reading of the same thing. The interface
+ * reads it a dozen times a second, which is often enough to look alive and
+ * rare enough to cost nothing.
+ */
+function ListeningBars({
+  level,
+  listening,
+}: {
+  level: { value: number };
+  listening: boolean;
+}) {
+  return (
+    <Bars pointerEvents="none">
+      {LISTENING_BARS.map(bar => (
+        <Bar
+          key={bar.phase}
+          level={level}
+          listening={listening}
+          resting={bar.rest}
+          weight={bar.weight}
+        />
+      ))}
+    </Bars>
+  );
+}
+
+function Bar({
+  level,
+  listening,
+  resting,
+  weight,
+}: {
+  level: { value: number };
+  listening: boolean;
+  resting: number;
+  weight: number;
+}) {
+  const style = useAnimatedStyle(() => {
+    // Once the microphone closes the bars hold the shape they had, which reads
+    // as a trace of what was said rather than a meter stuck at zero.
+    if (!listening) return { height: resting };
+
+    // Each bar answers to the same level with its own weight, so the row moves
+    // as one voice instead of a block.
+    return { height: 6 + level.value * 30 * weight };
+  });
+
+  return <BarShape style={style} />;
+}
+
+/** One task, one object: the word takes the middle of the screen and
+ * everything else sits under it. */
 export function SpeakScreen({
   copy,
   label,
   languageSettings,
   onAttempt,
   onClose,
+  onOpenHistory,
+  onReturnToCamera,
+  pronunciationProgress,
   pronunciationPlayer,
   speechRecognizer,
   vocabularyRepository,
@@ -118,10 +265,30 @@ export function SpeakScreen({
   const [attempt, setAttempt] = useState<PronunciationAttempt | null>(null);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(LISTEN_SECONDS);
+  const [returningIn, setReturningIn] = useState<number | null>(null);
+  /** How loud the microphone is, read from the recogniser while it is open. */
+  const level = useSharedValue(0);
   const theme = useTheme();
+  const isCelebrating = status === 'result' && attempt?.matched === true;
+  // Three misses in a row and the word is set aside until tomorrow. Repeating
+  // it now is what does not work; every other word is still there.
+  const resting = isResting(pronunciationProgress, label, Date.now());
 
   useEffect(() => {
     if (status !== 'listening') return;
+
+    const meter = setInterval(() => {
+      speechRecognizer
+        .level()
+        .then(value => {
+          // Rising fast and falling slowly is what makes a meter readable: a
+          // syllable should show, and the gap after it should not blink.
+          level.value = withTiming(value, {
+            duration: value > level.value ? 90 : 220,
+          });
+        })
+        .catch(() => undefined);
+    }, LEVEL_POLL_MS);
 
     setSecondsLeft(LISTEN_SECONDS);
     const startedAtMs = Date.now();
@@ -130,8 +297,35 @@ export function SpeakScreen({
       setSecondsLeft(Math.max(LISTEN_SECONDS - elapsed, 0));
     }, 250);
 
+    return () => {
+      clearInterval(timer);
+      clearInterval(meter);
+      level.value = withTiming(0, { duration: 220 });
+    };
+  }, [level, speechRecognizer, status]);
+
+  /** A correct word earns its moment, and then the camera comes back on its
+   * own. Trying again, or leaving by either button, stops the countdown. */
+  useEffect(() => {
+    if (!isCelebrating) {
+      setReturningIn(null);
+      return;
+    }
+
+    setReturningIn(CELEBRATION_SECONDS);
+    const startedAtMs = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
+      const left = Math.max(CELEBRATION_SECONDS - elapsed, 0);
+      setReturningIn(left);
+      if (left === 0) {
+        clearInterval(timer);
+        onReturnToCamera();
+      }
+    }, 250);
+
     return () => clearInterval(timer);
-  }, [status]);
+  }, [isCelebrating, onReturnToCamera]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -153,7 +347,14 @@ export function SpeakScreen({
   }, [copy.speak.unavailable, speechRecognizer]);
 
   const handleListen = useCallback(async () => {
-    if (status === 'listening') return;
+    if (resting) return;
+
+    if (status === 'listening') {
+      // The learner has finished the word. Waiting out a silence timer after
+      // that is time spent for nothing.
+      speechRecognizer.stop().catch(() => undefined);
+      return;
+    }
 
     setAttempt(null);
 
@@ -196,6 +397,7 @@ export function SpeakScreen({
     label,
     languageSettings.learningLanguage,
     onAttempt,
+    resting,
     speechRecognizer,
     status,
     vocabulary.word,
@@ -208,7 +410,12 @@ export function SpeakScreen({
   }, [languageSettings.learningLanguage, pronunciationPlayer, vocabulary.word]);
 
   const heardBest = attempt?.heard[0] ?? '';
-  const percentage = Math.round((attempt?.score ?? 0) * 100);
+  // Where the spoken word parted from the written one. A percentage says how
+  // wrong the attempt was; this says which part to say again.
+  const divergence =
+    heardBest.length > 0
+      ? describeDivergence(vocabulary.word, heardBest)
+      : null;
 
   return (
     <Container>
@@ -222,84 +429,230 @@ export function SpeakScreen({
           >
             <BackChevron>‹</BackChevron>
           </BackButton>
-          <HeaderText>
-            <Title accessibilityRole="header">{copy.speak.title}</Title>
-            <Subtitle>{copy.speak.subtitle}</Subtitle>
-          </HeaderText>
         </Header>
 
-        <WordCard>
-          <WordFlag>
-            {languageFlags[languageSettings.learningLanguage]}
-          </WordFlag>
-          <Word numberOfLines={1}>{vocabulary.word}</Word>
-          <Hint>{vocabulary.pronunciationHint}</Hint>
-          <Ipa>{vocabulary.pronunciation}</Ipa>
-          <HearButton
-            accessibilityRole="button"
-            onPress={handleHear}
-            testID="speak-hear"
-          >
-            <SpeakerIcon color={theme.colors.accent} />
-            <HearText>{copy.speak.listen}</HearText>
-          </HearButton>
-        </WordCard>
-
-        {status === 'result' && attempt != null ? (
-          <Feedback testID="speak-feedback" $matched={attempt.matched}>
-            <FeedbackTitle $matched={attempt.matched}>
-              {attempt.matched
-                ? copy.speak.matched
-                : heardBest.length === 0
-                ? copy.speak.silence
-                : copy.speak.close(percentage)}
-            </FeedbackTitle>
-            {!attempt.matched && heardBest.length > 0 ? (
-              <FeedbackDetail>{copy.speak.missed(heardBest)}</FeedbackDetail>
-            ) : null}
-            <ScoreTrack>
-              <ScoreFill $matched={attempt.matched} $percentage={percentage} />
-            </ScoreTrack>
-          </Feedback>
+        {isCelebrating ? (
+          <PronunciationCelebration
+            cameraLabel={copy.speak.backToCamera}
+            detail={copy.speak.celebrationDetail(vocabulary.word)}
+            historyLabel={copy.speak.seeInHistory}
+            onOpenHistory={onOpenHistory}
+            onReturnToCamera={onReturnToCamera}
+            returningLabel={copy.speak.returningIn(
+              returningIn ?? CELEBRATION_SECONDS,
+            )}
+            title={copy.speak.celebration}
+            word={vocabulary.word}
+          />
         ) : (
-          <Status testID="speak-status">
-            {status === 'blocked'
-              ? blockedMessage
-              : status === 'listening'
-              ? secondsLeft > 0
-                ? copy.speak.countdown(secondsLeft)
-                : copy.speak.listening
-              : copy.speak.idle}
-          </Status>
-        )}
+          <>
+            <Stage>
+              <Word numberOfLines={1}>
+                {divergence == null ? (
+                  vocabulary.word
+                ) : (
+                  <>
+                    {divergence.expected.before}
+                    <WordMissed>{divergence.expected.wrong}</WordMissed>
+                    {divergence.expected.after}
+                  </>
+                )}
+              </Word>
+              <Ipa>{vocabulary.pronunciation}</Ipa>
+              {vocabulary.pronunciationHint.length > 0 ? (
+                <SyllableChip>
+                  <SyllableText>{vocabulary.pronunciationHint}</SyllableText>
+                </SyllableChip>
+              ) : null}
+              <Meaning numberOfLines={1}>{vocabulary.meaning}</Meaning>
+              {/* The sentence is what turns a word into something a learner
+                  can use, and an empty middle into a page worth reading. */}
+              <Example numberOfLines={3}>{vocabulary.example}</Example>
 
-        <MicButton
-          accessibilityLabel={copy.speak.title}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: status === 'blocked' }}
-          onPress={handleListen}
-          testID="speak-listen"
-          $listening={status === 'listening'}
-        >
-          {status === 'listening' ? (
-            <CountdownRing secondsLeft={secondsLeft} />
-          ) : (
-            <MicBadge>
-              <MicIcon color="#ffffff" />
-            </MicBadge>
-          )}
-          <MicLabel>
-            {status === 'listening'
-              ? copy.speak.listening
-              : status === 'result'
-              ? copy.speak.again
-              : copy.speak.title}
-          </MicLabel>
-        </MicButton>
+              {status === 'result' && heardBest.length > 0 ? (
+                <HeardBox testID="speak-heard">
+                  <HeardLabel>{copy.speak.heardLabel}</HeardLabel>
+                  <HeardWord numberOfLines={1}>
+                    {divergence == null ? (
+                      heardBest
+                    ) : (
+                      <>
+                        {divergence.heard.before}
+                        <WordMissed>{divergence.heard.wrong}</WordMissed>
+                        {divergence.heard.after}
+                      </>
+                    )}
+                  </HeardWord>
+                  {/* The guide is the catalogue's own hint, not a phrase made
+                      up for the occasion. */}
+                  <HeardGuide>
+                    {copy.speak.guide(vocabulary.pronunciationHint)}
+                  </HeardGuide>
+                </HeardBox>
+              ) : null}
+
+              {status === 'listening' || status === 'result' ? (
+                <ListeningBars
+                  level={level}
+                  listening={status === 'listening'}
+                />
+              ) : null}
+            </Stage>
+
+            <Status testID="speak-status">
+              {resting
+                ? copy.speak.restingUntil
+                : status === 'blocked'
+                ? blockedMessage
+                : status === 'listening'
+                ? secondsLeft > 0
+                  ? copy.speak.countdown(secondsLeft)
+                  : copy.speak.listening
+                : status === 'result' && heardBest.length === 0
+                ? copy.speak.silence
+                : copy.speak.idle}
+            </Status>
+
+            <Actions>
+              <GhostButton
+                accessibilityLabel={copy.speak.listen}
+                accessibilityRole="button"
+                onPress={handleHear}
+                testID="speak-hear"
+              >
+                <SpeakerIcon color={theme.colors.text} />
+              </GhostButton>
+
+              <ListeningMic
+                accessibilityLabel={
+                  status === 'listening' ? copy.speak.stop : copy.speak.title
+                }
+                disabled={resting}
+                listening={status === 'listening'}
+                onPress={handleListen}
+              />
+
+              <GhostButton
+                accessibilityLabel={copy.speak.backToCamera}
+                accessibilityRole="button"
+                onPress={onReturnToCamera}
+                testID="speak-back-to-camera"
+              >
+                <CameraIcon color={theme.colors.text} />
+              </GhostButton>
+            </Actions>
+          </>
+        )}
       </SpeakSafeArea>
     </Container>
   );
 }
+
+const Stage = styled.View`
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0px 8px;
+`;
+
+const Word = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 46px;
+  line-height: 54px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  text-align: center;
+`;
+
+/** The stretch that came out differently, in the word and in what was heard,
+ * marked in the same colour so the eye pairs them. */
+const WordMissed = styled.Text`
+  color: ${({ theme }) => theme.colors.danger};
+`;
+
+const Bars = styled.View`
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 3px;
+  height: 34px;
+  margin-top: 26px;
+`;
+
+const BarShape = styled(Animated.View)`
+  width: 3px;
+  border-radius: 2px;
+  opacity: 0.85;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const Ipa = styled.Text`
+  margin-top: 2px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+  letter-spacing: 0.4px;
+`;
+
+/** The syllables spelled the way they sound, which is the guide a learner
+ * repeats from. */
+const SyllableChip = styled.View`
+  margin-top: 14px;
+  padding: 7px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const SyllableText = styled.Text`
+  color: ${({ theme }) => theme.colors.mutedStrong};
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+`;
+
+const Example = styled.Text`
+  margin-top: 6px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+  line-height: 21px;
+  font-style: italic;
+  text-align: center;
+`;
+
+const Meaning = styled.Text`
+  margin-top: 10px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+`;
+
+const HeardBox = styled.View`
+  align-self: stretch;
+  margin-top: 26px;
+  padding: 12px 16px;
+  align-items: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 14px;
+`;
+
+const HeardLabel = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11px;
+`;
+
+const HeardWord = styled.Text`
+  margin-top: 3px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 17px;
+  font-weight: 700;
+`;
+
+const HeardGuide = styled.Text`
+  margin-top: 7px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12px;
+  line-height: 17px;
+  text-align: center;
+`;
 
 const Container = styled.View`
   position: absolute;
@@ -309,190 +662,85 @@ const Container = styled.View`
 
 const SpeakSafeArea = styled(SafeAreaView)`
   flex: 1;
-  padding: 0px 20px 20px;
+  padding: 0px 20px;
 `;
 
 const Header = styled.View`
   flex-direction: row;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 2px 2px 20px;
-`;
-
-const HeaderText = styled.View`
-  flex: 1;
-  min-width: 0px;
+  align-items: center;
+  padding: 2px 0px 0px;
 `;
 
 const BackButton = styled.Pressable`
   width: 34px;
   height: 34px;
+  margin-left: -6px;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-  border-radius: 17px;
-  background-color: ${({ theme }) => theme.colors.card};
 `;
 
 const BackChevron = styled.Text`
-  margin-top: -3px;
   color: ${({ theme }) => theme.colors.text};
-  font-size: 24px;
-  line-height: 26px;
+  font-size: 30px;
+  line-height: 34px;
 `;
 
-const Title = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 24px;
-  line-height: 30px;
-  font-weight: 700;
-`;
-
-const Subtitle = styled.Text`
-  margin-top: 2px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  line-height: 18px;
-`;
-
-const WordCard = styled.View`
-  align-items: center;
-  padding: 28px 22px;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-  border-radius: 22px;
-  background-color: ${({ theme }) => theme.colors.card};
-`;
-
-const WordFlag = styled.Text`
-  font-size: 22px;
-  line-height: 26px;
-`;
-
-const Word = styled.Text`
-  margin-top: 10px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 34px;
-  line-height: 42px;
-  font-weight: 800;
-`;
-
-const Hint = styled.Text`
-  margin-top: 6px;
-  color: ${({ theme }) => theme.colors.mutedStrong};
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-`;
-
-const Ipa = styled.Text`
-  margin-top: 2px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-`;
-
-const HearButton = styled.Pressable`
+const Actions = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-  padding: 10px 18px;
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-  border-radius: 999px;
+  justify-content: center;
+  gap: 18px;
+  padding-bottom: 26px;
 `;
 
-const HearText = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 13px;
-  font-weight: 800;
+/** Icon only. Beside a filled microphone, two labelled pills read as three
+ * choices; two quiet circles read as one choice with its two neighbours. */
+const GhostButton = styled.Pressable`
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 26px;
 `;
 
 const Status = styled.Text`
-  margin-top: 22px;
+  margin-bottom: 18px;
   color: ${({ theme }) => theme.colors.muted};
   font-size: 14px;
-  line-height: 20px;
   text-align: center;
 `;
 
-const Feedback = styled.View<{ $matched: boolean }>`
-  margin-top: 22px;
-  padding: 16px 18px;
-  border: 1px solid
-    ${({ theme, $matched }) =>
-      $matched ? theme.colors.success : theme.colors.danger};
-  border-radius: 16px;
-  background-color: ${({ $matched }) =>
-    $matched ? 'rgba(47, 174, 107, 0.12)' : 'rgba(239, 68, 68, 0.10)'};
-`;
-
-const FeedbackTitle = styled.Text<{ $matched: boolean }>`
-  color: ${({ theme, $matched }) =>
-    $matched ? theme.colors.success : theme.colors.danger};
-  font-size: 16px;
-  font-weight: 800;
-`;
-
-const FeedbackDetail = styled.Text`
-  margin-top: 4px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  line-height: 18px;
-`;
-
-const ScoreTrack = styled.View`
-  height: 6px;
-  margin-top: 14px;
-  border-radius: 3px;
-  overflow: hidden;
-  background-color: ${({ theme }) => theme.colors.borderSubtle};
-`;
-
-const ScoreFill = styled.View<{ $matched: boolean; $percentage: number }>`
-  width: ${({ $percentage }) => `${Math.max($percentage, 2)}%`};
-  height: 6px;
-  background-color: ${({ theme, $matched }) =>
-    $matched ? theme.colors.success : theme.colors.danger};
-`;
-
-/** The one action of this screen, so it is the loudest thing on it. */
-const MicButton = styled.Pressable<{ $listening: boolean }>`
+/** A round microphone, the size of a thumb, and the only filled thing on the
+ * screen. It turns red while it is open, which is the one state worth
+ * signalling in colour. */
+const MicSlot = styled.View`
   align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  padding: 20px;
-  border-radius: 28px;
+  justify-content: center;
+`;
+
+const MicHalo = styled(Animated.View)<{ $listening: boolean }>`
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  border-radius: 37px;
   background-color: ${({ theme, $listening }) =>
     $listening ? theme.colors.danger : theme.colors.accent};
-  elevation: 8;
 `;
 
-const MicBadge = styled.View`
+const MicButton = styled(Animated.createAnimatedComponent(styled.Pressable``))<{
+  $listening: boolean;
+}>`
+  width: 74px;
+  height: 74px;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 29px;
-  background-color: rgba(255, 255, 255, 0.18);
-`;
-
-const RingWrapper = styled.View`
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-`;
-
-const RingValue = styled.Text`
-  position: absolute;
-  color: #ffffff;
-  font-size: 20px;
-  line-height: 24px;
-  font-weight: 800;
-`;
-
-const MicLabel = styled.Text`
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
+  border-radius: 37px;
+  background-color: ${({ theme, $listening }) =>
+    $listening ? theme.colors.danger : theme.colors.accent};
+  elevation: 10;
+  shadow-color: ${({ theme }) => theme.colors.accent};
+  shadow-opacity: 0.4;
+  shadow-radius: 14px;
+  shadow-offset: 0px 6px;
 `;

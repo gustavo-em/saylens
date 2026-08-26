@@ -6,6 +6,6 @@
     <path d="M30.5 137.5V153.5H46.5"/>
     <path d="M143.5 153.5H159.5V137.5"/>
   </g>
-  <path d="M64.58 91.3A35.5 35.5 0 0 1 128.84 61.34" stroke="#4153FB" stroke-width="14" stroke-linecap="round"/>
-  <path d="M123.17 100A35.5 35.5 0 0 1 59.37 131.12" stroke="#0C111A" stroke-width="14" stroke-linecap="round"/>
+  <path d="M64.19 84A31 31 0 0 1 124.3 68.96" stroke="#4153FB" stroke-width="14" stroke-linecap="round"/>
+  <path d="M124.81 108A31 31 0 0 1 64.7 123.04" stroke="#0C111A" stroke-width="14" stroke-linecap="round"/>
 </svg>

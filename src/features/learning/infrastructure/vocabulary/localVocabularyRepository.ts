@@ -1,9 +1,5 @@
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
-import {
-  languageBase,
-  learningLanguages,
-  type LanguageBase,
-} from '../../domain/LearningLanguage';
+import { languageBase, type LanguageBase } from '../../domain/LearningLanguage';
 import type { VocabularyEntry } from '../../domain/VocabularyEntry';
 
 type LocalizedWord = Pick<
@@ -1583,18 +1579,19 @@ export const localVocabularyRepository: VocabularyRepository = {
     const native = languageBase(languageSettings.nativeLanguage);
 
     if (entry != null) {
-      const otherBases = learningLanguages
-        .map(languageBase)
-        .filter(
-          (base, index, bases) =>
-            base !== learning && bases.indexOf(base) === index,
-        );
+      // Only the two languages the learner chose. A word in a third language
+      // they never asked for is noise on a card that has to be read at a
+      // glance, and it taught them nothing.
+      const otherBases = native === learning ? [] : [native];
 
       return {
         ...entry[learning],
         definition: definitions[normalizedLabel]?.[native] ?? '',
         meaning: entry[native].word,
-        translations: otherBases.map(base => entry[base].word),
+        translations: otherBases.map(base => ({
+          language: base,
+          word: entry[base].word,
+        })),
       };
     }
 

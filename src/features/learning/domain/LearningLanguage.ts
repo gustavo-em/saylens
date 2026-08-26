@@ -23,6 +23,15 @@ export const languageFlags: Record<LearningLanguage, string> = {
   es: '🇪🇸',
 };
 
+/** One flag per content language, for places that show a translation rather
+ * than a selected language. The two English variants share their vocabulary,
+ * so the pair is represented by one flag. */
+export const languageBaseFlags: Record<LanguageBase, string> = {
+  'pt-BR': '🇧🇷',
+  en: '🇺🇸',
+  es: '🇪🇸',
+};
+
 export const languageCodes: Record<LearningLanguage, string> = {
   'pt-BR': 'PT',
   'en-US': 'EN',

@@ -1,5 +1,7 @@
 import {
   getPronunciationStatus,
+  getRestingUntilMs,
+  isResting,
   matchesPronunciationFilter,
   recordPronunciationAttempt,
   sanitizePronunciationProgress,
@@ -59,5 +61,56 @@ describe('pronunciation progress', () => {
       { label: 'bottle', status: 'matched', attemptedAtMs: 10 },
     ]);
     expect(sanitizePronunciationProgress(null)).toEqual([]);
+  });
+});
+
+describe('resting a word after repeated misses', () => {
+  const NOW = 1_700_000_000_000;
+  const A_DAY = 24 * 60 * 60 * 1000;
+
+  function missTwice() {
+    let progress = recordPronunciationAttempt([], 'bottle', false, NOW - 2000);
+    progress = recordPronunciationAttempt(
+      progress,
+      'bottle',
+      false,
+      NOW - 1000,
+    );
+    return progress;
+  }
+
+  it('keeps a word available for the first two misses', () => {
+    expect(isResting(missTwice(), 'bottle', NOW)).toBe(false);
+  });
+
+  it('sets the word aside on the third miss in a row', () => {
+    const progress = recordPronunciationAttempt(
+      missTwice(),
+      'bottle',
+      false,
+      NOW,
+    );
+
+    expect(isResting(progress, 'bottle', NOW)).toBe(true);
+    expect(getRestingUntilMs(progress[0])).toBe(NOW + A_DAY);
+  });
+
+  it('brings the word back the next day', () => {
+    const progress = recordPronunciationAttempt(
+      missTwice(),
+      'bottle',
+      false,
+      NOW,
+    );
+
+    expect(isResting(progress, 'bottle', NOW + A_DAY + 1)).toBe(false);
+  });
+
+  it('forgets the misses as soon as the word is said right', () => {
+    let progress = missTwice();
+    progress = recordPronunciationAttempt(progress, 'bottle', true, NOW);
+    progress = recordPronunciationAttempt(progress, 'bottle', false, NOW + 10);
+
+    expect(isResting(progress, 'bottle', NOW + 20)).toBe(false);
   });
 });

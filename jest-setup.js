@@ -32,9 +32,32 @@ jest.mock('react-native-reanimated', () => {
     ReduceMotion: { System: 'system' },
     useAnimatedStyle: updater => updater(),
     useSharedValue: initialValue => ({ value: initialValue }),
+    // The animation helpers all resolve to the value they animate towards, so
+    // a test sees the finished state rather than a frame of the transition.
     withTiming: targetValue => targetValue,
+    withSpring: targetValue => targetValue,
+    withDelay: (_delay, animation) => animation,
+    withRepeat: animation => animation,
+    withSequence: (...animations) => animations[animations.length - 1],
+    // The suite reads finished values, so a colour interpolation resolves to
+    // the end of its range.
+    interpolateColor: (_value, _input, output) => output[output.length - 1],
   };
 });
+
+// The suite is not testing animation, and a count that rolls up would leave
+// state updates landing after each test's act block.
+jest.mock(
+  'react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo',
+  () => ({
+    __esModule: true,
+    default: {
+      isReduceMotionEnabled: jest.fn(async () => true),
+      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+      announceForAccessibility: jest.fn(),
+    },
+  }),
+);
 
 beforeEach(async () => {
   // Preferences now survive a reload, so each test starts from a clean store.

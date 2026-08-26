@@ -50,6 +50,11 @@ export function useAppViewModel(
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
+  /** Set when a round is opened for a particular set of words, such as the
+   * ones due for review, and cleared when practice is opened at large. */
+  const [reviewLabels, setReviewLabels] = useState<readonly string[] | null>(
+    null,
+  );
   const [preferences, setPreferences] = useState<AppPreferences>(() => ({
     ...DEFAULT_APP_PREFERENCES,
     performanceProfile: performanceCapabilities.recommendedProfile,
@@ -298,12 +303,19 @@ export function useAppViewModel(
     favorites,
     // Practice draws on everything the learner has met: what is still in
     // history plus everything kept as a favourite.
-    quizLabels: Array.from(
-      new Set([
-        ...viewedObjects.map(entry => entry.label),
-        ...favorites.map(entry => entry.label),
-      ]),
-    ),
+    quizLabels:
+      reviewLabels ??
+      Array.from(
+        new Set([
+          ...viewedObjects.map(entry => entry.label),
+          ...favorites.map(entry => entry.label),
+        ]),
+      ),
+    /** Opens a round. Given a set of words, the round asks only about those. */
+    openQuiz: (labels?: readonly string[]) => {
+      setReviewLabels(labels != null && labels.length > 0 ? labels : null);
+      setActiveTab('quiz');
+    },
     practiseSpeaking,
     foundLabels: learnerProgress.foundLabels,
     streakDays: getStreakDays(learnerProgress, Date.now()),

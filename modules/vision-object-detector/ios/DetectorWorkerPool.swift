@@ -48,8 +48,8 @@ final class DetectorWorkerPool {
   private var throughputWindowStartedAt: DispatchTime?
   private var throughputWindowCount = 0
   /// What was published last, used to keep an object's name and place steady
-  /// across frames.
-  private var tracked: [RecognizedObject] = []
+  /// across frames, along with the names this object has been given recently.
+  private var tracked: [TrackedObject] = []
 
   private(set) var workerCount: Int
 
@@ -181,24 +181,38 @@ final class DetectorWorkerPool {
   /// Called with the lock held.
   private func stabilise(_ objects: [RecognizedObject]) -> [RecognizedObject] {
     var unmatched = tracked
-    var stabilised: [RecognizedObject] = []
+    var stabilised: [TrackedObject] = []
 
     for object in objects {
       guard
         let index = unmatched.firstIndex(where: {
-          Self.overlap($0.boundingBox, object.boundingBox) >= DetectorConstants.trackingOverlap
+          Self.overlap($0.object.boundingBox, object.boundingBox)
+            >= DetectorConstants.trackingOverlap
         })
       else {
-        stabilised.append(object)
+        stabilised.append(TrackedObject(object: object, recentLabels: [object.label]))
         continue
       }
 
       let previous = unmatched.remove(at: index)
+      var recentLabels = previous.recentLabels
+      recentLabels.append(object.label)
+      if recentLabels.count > DetectorConstants.labelVoteWindow {
+        recentLabels.removeFirst(recentLabels.count - DetectorConstants.labelVoteWindow)
+      }
+
+      let label = Self.mostCommonLabel(in: recentLabels, fallingBackTo: object.label)
       stabilised.append(
-        RecognizedObject(
-          label: Self.settledLabel(previous: previous, current: object),
-          score: Self.settledScore(previous: previous, current: object),
-          boundingBox: Self.blend(previous.boundingBox, towards: object.boundingBox)
+        TrackedObject(
+          object: RecognizedObject(
+            label: label,
+            score: label == object.label ? object.score : previous.object.score,
+            boundingBox: Self.blend(
+              previous.object.boundingBox,
+              towards: object.boundingBox
+            )
+          ),
+          recentLabels: recentLabels
         )
       )
     }
@@ -206,31 +220,32 @@ final class DetectorWorkerPool {
     // Anything that was not matched is gone from the scene: the tracked set is
     // whatever was just published, nothing older.
     tracked = stabilised
-    return stabilised
+    return stabilised.map(\.object)
   }
 
-  /// A name changes only when the classifier is clearly more sure than it was,
-  /// so one bad frame does not rename the object under the learner's card.
-  private static func settledLabel(
-    previous: RecognizedObject,
-    current: RecognizedObject
+  /// The name shown is the one this object has been given most often in the
+  /// last few frames.
+  ///
+  /// A margin on confidence was tried first and it made names stick: once a
+  /// chair under a blanket had been called a person, no later reading of
+  /// `chair` was ever confident enough to take the name back. A vote is as
+  /// steady frame to frame and corrects itself as soon as the model does.
+  private static func mostCommonLabel(
+    in labels: [String],
+    fallingBackTo fallback: String
   ) -> String {
-    if current.label == previous.label { return current.label }
+    var counts: [String: Int] = [:]
+    for label in labels { counts[label, default: 0] += 1 }
 
-    return current.score >= previous.score + DetectorConstants.labelChangeMargin
-      ? current.label
-      : previous.label
-  }
+    guard let highest = counts.values.max() else { return fallback }
 
-  private static func settledScore(
-    previous: RecognizedObject,
-    current: RecognizedObject
-  ) -> Float {
-    if current.label == previous.label { return current.score }
+    // The newest reading breaks a tie, so a name that is taking over is not
+    // held back by the one it is replacing.
+    for label in labels.reversed() where counts[label] == highest {
+      return label
+    }
 
-    return current.score >= previous.score + DetectorConstants.labelChangeMargin
-      ? current.score
-      : previous.score
+    return fallback
   }
 
   private static func overlap(_ first: CGRect, _ second: CGRect) -> CGFloat {

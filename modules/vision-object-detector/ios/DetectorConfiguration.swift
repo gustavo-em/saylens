@@ -40,9 +40,8 @@ enum DetectorConstants {
   /// every frame from scratch, so the same still object comes back with edges
   /// a few pixels apart.
   static let trackingSmoothing: CGFloat = 0.5
-  /// How much more confident a new label has to be to replace the one already
-  /// shown for the same object.
-  static let labelChangeMargin: Float = 0.1
+  /// How many recent frames vote on the name shown for one object.
+  static let labelVoteWindow = 5
 
   static let performanceLogInterval: TimeInterval = 5
 }

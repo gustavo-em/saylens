@@ -15,6 +15,7 @@ export interface LearningCopy {
     buffer: string;
     samples: string;
     profile: string;
+    strongest: string;
   };
   speak: {
     title: string;
@@ -31,6 +32,17 @@ export interface LearningCopy {
     again: string;
     listen: string;
     countdown: (seconds: number) => string;
+    celebration: string;
+    celebrationDetail: (word: string) => string;
+    backToCamera: string;
+    seeInHistory: string;
+    returningIn: (seconds: number) => string;
+    /** What was heard, and how to say the part that missed. */
+    heardLabel: string;
+    guide: (hint: string) => string;
+    /** What the microphone does while it is already listening. */
+    stop: string;
+    restingUntil: string;
   };
   quiz: {
     title: string;
@@ -50,6 +62,17 @@ export interface LearningCopy {
   history: {
     title: string;
     subtitle: string;
+    /** The headline count, and the band that asks for a word again. */
+    countLabel: (count: number) => string;
+    dueTitle: (count: number) => string;
+    dueNote: string;
+    dueAction: string;
+    /** A word set aside after three misses in a row. */
+    resting: string;
+    restingUntil: string;
+    /** Names for the two numbers at the top, which carry their own value. */
+    levelLabel: string;
+    streakLabel: string;
     empty: string;
     tapToHear: string;
     favorite: string;
@@ -138,6 +161,9 @@ export interface LearningCopy {
     diagnosticsDescription: string;
     diagnosticsOn: string;
     diagnosticsOff: string;
+    /** What a setting costs the device, so an option is chosen by its price
+     * rather than by its name. */
+    coresNote: (cores: number) => string;
   };
 }
 
@@ -208,6 +234,16 @@ const copies: Record<
       again: 'Tentar de novo',
       listen: 'Ouvir a palavra',
       countdown: seconds => `Ouvindo… ${seconds}s`,
+      celebration: 'Parabéns!',
+      celebrationDetail: word => `Você pronunciou “${word}” corretamente.`,
+      backToCamera: 'Voltar para a câmera',
+      seeInHistory: 'Ver no histórico',
+      returningIn: seconds => `Voltando em ${seconds}s`,
+      heardLabel: 'Ouvi',
+      guide: hint => `Tente assim: ${hint}`,
+      stop: 'Terminei de falar',
+      restingUntil:
+        'Você errou três vezes seguidas. Esta palavra volta amanhã.',
     },
     quiz: {
       title: 'Praticar',
@@ -237,11 +273,22 @@ const copies: Record<
       workers: 'Workers',
       buffer: 'Buffer do detector',
       samples: 'Amostras (5 s)',
+      strongest: 'Mais forte',
       profile: 'Perfil',
     },
     history: {
-      title: 'Vistos recentemente',
+      title: 'Minhas palavras',
       subtitle: 'Os últimos 15 objetos que você reconheceu.',
+      countLabel: count =>
+        count === 1 ? 'palavra encontrada' : 'palavras encontradas',
+      dueTitle: count => `${count} para revisar hoje`,
+      dueNote: 'Palavras de um dia atrás, e as que você errou',
+      dueAction: 'Revisar',
+      resting: 'Descansando',
+      levelLabel: 'Nível',
+      streakLabel: 'Dias seguidos',
+      restingUntil:
+        'Você errou três vezes seguidas. Esta palavra volta amanhã.',
       empty: 'Aponte a câmera para um objeto para começar seu histórico.',
       tapToHear: 'Toque para ouvir de novo.',
       favorite: 'Favoritar',
@@ -324,18 +371,18 @@ const copies: Record<
     settings: {
       title: 'Configurações',
       subtitle: 'Ajuste a experiência sem sair do modo de aprendizagem.',
-      appearanceSection: 'APARÊNCIA',
+      appearanceSection: 'Aparência',
       appearanceTitle: 'Tema do aplicativo',
       appearanceDescription: 'Escolha como o SayLens aparece para você.',
       lightMode: 'Claro',
       darkMode: 'Escuro',
-      languagesSection: 'IDIOMAS',
+      languagesSection: 'Idiomas',
       nativeLanguageTitle: 'Seu idioma',
       nativeLanguageDescription: 'Idioma usado na interface e nas explicações.',
       learningLanguageTitle: 'Quero aprender',
       learningLanguageDescription:
         'Idioma das palavras, pronúncias e exemplos.',
-      performanceSection: 'PERFORMANCE',
+      performanceSection: 'Desempenho',
       performanceTitle: 'Perfil do dispositivo',
       performanceDescription:
         'Escolha entre toda a potência disponível ou o menor consumo possível.',
@@ -350,6 +397,7 @@ const copies: Record<
         'Mostra taxa do detector, latência e memória sobre a câmera.',
       diagnosticsOn: 'Ligado',
       diagnosticsOff: 'Desligado',
+      coresNote: cores => `${cores} núcleos do processador`,
     },
   },
   en: {
@@ -370,6 +418,15 @@ const copies: Record<
       again: 'Try again',
       listen: 'Hear the word',
       countdown: seconds => `Listening… ${seconds}s`,
+      celebration: 'Well done!',
+      celebrationDetail: word => `You pronounced “${word}” correctly.`,
+      backToCamera: 'Back to the camera',
+      seeInHistory: 'See it in history',
+      returningIn: seconds => `Going back in ${seconds}s`,
+      heardLabel: 'I heard',
+      guide: hint => `Try it like this: ${hint}`,
+      stop: 'Done speaking',
+      restingUntil: 'Three misses in a row. This word comes back tomorrow.',
     },
     quiz: {
       title: 'Practise',
@@ -399,11 +456,20 @@ const copies: Record<
       workers: 'Workers',
       buffer: 'Detector buffer',
       samples: 'Samples (5 s)',
+      strongest: 'Strongest',
       profile: 'Profile',
     },
     history: {
-      title: 'Recently seen',
+      title: 'My words',
       subtitle: 'The last 15 objects you recognised.',
+      countLabel: count => (count === 1 ? 'word found' : 'words found'),
+      dueTitle: count => `${count} to review today`,
+      dueNote: 'Words from a day ago, and the ones you missed',
+      dueAction: 'Review',
+      resting: 'Resting',
+      levelLabel: 'Level',
+      streakLabel: 'Days in a row',
+      restingUntil: 'Three misses in a row. This word comes back tomorrow.',
       empty: 'Point the camera at an object to start your history.',
       tapToHear: 'Tap to hear it again.',
       favorite: 'Favourite',
@@ -484,19 +550,19 @@ const copies: Record<
     settings: {
       title: 'Settings',
       subtitle: 'Tune the experience without leaving learning mode.',
-      appearanceSection: 'APPEARANCE',
+      appearanceSection: 'Appearance',
       appearanceTitle: 'App theme',
       appearanceDescription: 'Choose how SayLens looks for you.',
       lightMode: 'Light',
       darkMode: 'Dark',
-      languagesSection: 'LANGUAGES',
+      languagesSection: 'Languages',
       nativeLanguageTitle: 'Your language',
       nativeLanguageDescription:
         'Language used in the interface and explanations.',
       learningLanguageTitle: 'I want to learn',
       learningLanguageDescription:
         'Language used for words, pronunciations, and examples.',
-      performanceSection: 'PERFORMANCE',
+      performanceSection: 'Performance',
       performanceTitle: 'Device profile',
       performanceDescription:
         'Choose between all available power or the lowest possible usage.',
@@ -511,6 +577,7 @@ const copies: Record<
         'Shows detector rate, latency and memory over the camera.',
       diagnosticsOn: 'On',
       diagnosticsOff: 'Off',
+      coresNote: cores => `${cores} processor cores`,
     },
   },
   es: {
@@ -531,6 +598,15 @@ const copies: Record<
       again: 'Intentar de nuevo',
       listen: 'Escuchar la palabra',
       countdown: seconds => `Escuchando… ${seconds}s`,
+      celebration: '¡Felicidades!',
+      celebrationDetail: word => `Pronunciaste “${word}” correctamente.`,
+      backToCamera: 'Volver a la cámara',
+      seeInHistory: 'Ver en el historial',
+      returningIn: seconds => `Volviendo en ${seconds}s`,
+      heardLabel: 'Escuché',
+      guide: hint => `Inténtalo así: ${hint}`,
+      stop: 'Terminé de hablar',
+      restingUntil: 'Tres fallos seguidos. Esta palabra vuelve mañana.',
     },
     quiz: {
       title: 'Practicar',
@@ -560,11 +636,21 @@ const copies: Record<
       workers: 'Workers',
       buffer: 'Búfer del detector',
       samples: 'Muestras (5 s)',
+      strongest: 'Más fuerte',
       profile: 'Perfil',
     },
     history: {
-      title: 'Vistos recientemente',
+      title: 'Mis palabras',
       subtitle: 'Los últimos 15 objetos que reconociste.',
+      countLabel: count =>
+        count === 1 ? 'palabra encontrada' : 'palabras encontradas',
+      dueTitle: count => `${count} para repasar hoy`,
+      dueNote: 'Palabras de hace un día, y las que fallaste',
+      dueAction: 'Repasar',
+      resting: 'Descansando',
+      restingUntil: 'Tres fallos seguidos. Esta palabra vuelve mañana.',
+      levelLabel: 'Nivel',
+      streakLabel: 'Días seguidos',
       empty: 'Apunta la cámara a un objeto para empezar tu historial.',
       tapToHear: 'Toca para escucharlo de nuevo.',
       favorite: 'Favorito',
@@ -646,19 +732,19 @@ const copies: Record<
     settings: {
       title: 'Configuración',
       subtitle: 'Ajusta la experiencia sin salir del modo de aprendizaje.',
-      appearanceSection: 'APARIENCIA',
+      appearanceSection: 'Apariencia',
       appearanceTitle: 'Tema de la aplicación',
       appearanceDescription: 'Elige cómo se muestra SayLens.',
       lightMode: 'Claro',
       darkMode: 'Oscuro',
-      languagesSection: 'IDIOMAS',
+      languagesSection: 'Idiomas',
       nativeLanguageTitle: 'Tu idioma',
       nativeLanguageDescription:
         'Idioma usado en la interfaz y las explicaciones.',
       learningLanguageTitle: 'Quiero aprender',
       learningLanguageDescription:
         'Idioma de las palabras, pronunciaciones y ejemplos.',
-      performanceSection: 'RENDIMIENTO',
+      performanceSection: 'Rendimiento',
       performanceTitle: 'Perfil del dispositivo',
       performanceDescription:
         'Elige entre toda la potencia disponible o el menor consumo posible.',
@@ -673,6 +759,7 @@ const copies: Record<
         'Muestra tasa del detector, latencia y memoria sobre la cámara.',
       diagnosticsOn: 'Activado',
       diagnosticsOff: 'Desactivado',
+      coresNote: cores => `${cores} núcleos del procesador`,
     },
   },
 };

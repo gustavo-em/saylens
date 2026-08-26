@@ -5,7 +5,20 @@ export interface PronunciationProgressEntry {
   label: string;
   status: Exclude<PronunciationStatus, 'untried'>;
   attemptedAtMs: number;
+  /** Misses in a row. A match clears it, because the word was learned. */
+  consecutiveMisses?: number;
 }
+
+/**
+ * How many times in a row a word may be missed before it is set aside, and for
+ * how long.
+ *
+ * Saying the same word wrong a fourth time in a minute teaches nothing —
+ * distance is what fixes a pronunciation, not repetition. The word comes back
+ * the next day, and every other word stays available meanwhile.
+ */
+export const MISSES_BEFORE_RESTING = 3;
+export const RESTING_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Records how an attempt went. A match is kept for good: getting the word right
@@ -28,6 +41,7 @@ export function recordPronunciationAttempt(
     label: normalized,
     status: matched ? 'matched' : 'missed',
     attemptedAtMs,
+    consecutiveMisses: matched ? 0 : (existing?.consecutiveMisses ?? 0) + 1,
   };
 
   return [entry, ...progress.filter(item => item.label !== normalized)];
@@ -88,4 +102,39 @@ export function sanitizePronunciationProgress(
       seen.add(entry.label);
       return true;
     });
+}
+
+/**
+ * Whether a word is resting, and until when.
+ *
+ * A word rests after three misses in a row, for a day from the last of them.
+ * Nothing else is locked: the learner still has every other word they have
+ * met, which is the point — the block is on repetition, not on practising.
+ */
+export function getRestingUntilMs(
+  entry: PronunciationProgressEntry | undefined,
+): number | null {
+  if (entry == null || entry.status === 'matched') return null;
+  if ((entry.consecutiveMisses ?? 0) < MISSES_BEFORE_RESTING) return null;
+
+  return entry.attemptedAtMs + RESTING_MS;
+}
+
+export function isResting(
+  progress: readonly PronunciationProgressEntry[],
+  label: string,
+  nowMs: number,
+): boolean {
+  const until = getRestingUntilMs(findEntry(progress, label));
+
+  return until != null && nowMs < until;
+}
+
+function findEntry(
+  progress: readonly PronunciationProgressEntry[],
+  label: string,
+) {
+  const normalized = label.trim().toLowerCase();
+
+  return progress.find(entry => entry.label === normalized);
 }

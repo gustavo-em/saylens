@@ -1,15 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import styled, { useTheme, type DefaultTheme } from 'styled-components/native';
+import styled, { useTheme } from 'styled-components/native';
 
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import { isFavorite, type FavoriteWord } from '../../domain/FavoriteWord';
-import {
-  languageFlags,
-  type LearningLanguageSettings,
-} from '../../domain/LearningLanguage';
+import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
 import {
   getPronunciationStatus,
   matchesPronunciationFilter,
@@ -18,6 +16,10 @@ import {
   type PronunciationProgressEntry,
   type PronunciationStatus,
 } from '../../domain/PronunciationProgress';
+import { getExperience, getLevelProgress } from '../../domain/LearnerProgress';
+import { isResting } from '../../domain/PronunciationProgress';
+import { getWordsToReview } from '../../domain/ReviewQueue';
+import { getCountUpDurationMs, getCountUpValue } from '../animation/countUp';
 import type { ViewedObject } from '../../domain/ViewedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 
@@ -26,7 +28,14 @@ interface HistoryScreenProps {
   languageSettings: LearningLanguageSettings;
   favorites: readonly FavoriteWord[];
   onClose: () => void;
-  onOpenQuiz: () => void;
+  /** What the learner has built so far, shown at the top of their words. */
+  foundLabels: readonly string[];
+  matchedPronunciations: number;
+  streakDays: number;
+  onOpenCollection: () => void;
+  /** Opens a round. The review band passes the words that are due, so the
+   * round asks about those rather than about everything. */
+  onOpenQuiz: (labels?: readonly string[]) => void;
   onPractiseSpeaking: (label: string) => void;
   onToggleFavorite: (label: string) => void;
   pronunciationPlayer: PronunciationPlayer;
@@ -76,6 +85,10 @@ export function HistoryScreen({
   languageSettings,
   favorites,
   onClose,
+  foundLabels,
+  matchedPronunciations,
+  streakDays,
+  onOpenCollection,
   onOpenQuiz,
   onPractiseSpeaking,
   onToggleFavorite,
@@ -104,6 +117,7 @@ export function HistoryScreen({
       viewedObjects.map(entry => ({
         entry,
         status: getPronunciationStatus(pronunciationProgress, entry.label),
+        resting: isResting(pronunciationProgress, entry.label, Date.now()),
       })),
     [pronunciationProgress, viewedObjects],
   );
@@ -121,6 +135,16 @@ export function HistoryScreen({
   const visibleEntries = entries.filter(({ status }) =>
     matchesPronunciationFilter(filter, status),
   );
+  // What the list is for tomorrow, not only what it holds today.
+  const due = getWordsToReview(
+    viewedObjects,
+    pronunciationProgress,
+    Date.now(),
+  );
+  const countedWords = useCountUp(viewedObjects.length);
+  const level = getLevelProgress(
+    getExperience(foundLabels.length, matchedPronunciations),
+  );
 
   return (
     <Container>
@@ -134,18 +158,34 @@ export function HistoryScreen({
           >
             <BackChevron>‹</BackChevron>
           </BackButton>
-          <HeaderText>
-            <Title accessibilityRole="header">{copy.history.title}</Title>
-            <Subtitle>{copy.history.subtitle}</Subtitle>
-          </HeaderText>
-          <PractiseButton
-            accessibilityRole="button"
-            onPress={onOpenQuiz}
-            testID="history-open-quiz"
-          >
-            <PractiseText>{copy.quiz.start}</PractiseText>
-          </PractiseButton>
+          <HeaderActions>
+            <CollectionButton
+              accessibilityLabel={copy.collection.title}
+              accessibilityRole="button"
+              onPress={onOpenCollection}
+              testID="history-open-collection"
+            >
+              <CollectionMark>🏆</CollectionMark>
+            </CollectionButton>
+            <PractiseButton
+              accessibilityRole="button"
+              onPress={() => onOpenQuiz()}
+              testID="history-open-quiz"
+            >
+              <PractiseText>{copy.quiz.start}</PractiseText>
+            </PractiseButton>
+          </HeaderActions>
         </Header>
+
+        {/* The number a learner is proud of is the biggest thing on the
+            screen. */}
+        <Count accessibilityRole="header">
+          {countedWords}
+          <CountLabel>
+            {' '}
+            {copy.history.countLabel(viewedObjects.length)}
+          </CountLabel>
+        </Count>
 
         {viewedObjects.length > 0 ? (
           <Filters accessibilityLabel={copy.history.filters}>
@@ -170,6 +210,44 @@ export function HistoryScreen({
           </Filters>
         ) : null}
 
+        {/* Two numbers that only go up, which is the reason to come back
+            tomorrow. */}
+        <Progress>
+          <ProgressItem>
+            <ProgressValue>{level.level}</ProgressValue>
+            <ProgressLabel>{copy.history.levelLabel}</ProgressLabel>
+            <LevelTrack>
+              <LevelFill
+                $percentage={Math.round(
+                  (level.intoLevel / Math.max(level.levelSpan, 1)) * 100,
+                )}
+              />
+            </LevelTrack>
+          </ProgressItem>
+          <ProgressDivider />
+          <ProgressItem>
+            <ProgressValue>{streakDays}</ProgressValue>
+            <ProgressLabel>{copy.history.streakLabel}</ProgressLabel>
+          </ProgressItem>
+        </Progress>
+
+        {due.length > 0 ? (
+          <DueBand
+            accessibilityLabel={copy.history.dueTitle(due.length)}
+            accessibilityRole="button"
+            onPress={() => onOpenQuiz(due.map(entry => entry.label))}
+            testID="history-due"
+          >
+            <DueText>
+              <DueTitle>{copy.history.dueTitle(due.length)}</DueTitle>
+              <DueNote numberOfLines={1}>{copy.history.dueNote}</DueNote>
+            </DueText>
+            <DueAction>
+              <DueActionText>{copy.history.dueAction}</DueActionText>
+            </DueAction>
+          </DueBand>
+        ) : null}
+
         {viewedObjects.length === 0 ? (
           <EmptyState testID="history-empty">
             <EmptyText>{copy.history.empty}</EmptyText>
@@ -180,7 +258,7 @@ export function HistoryScreen({
           </EmptyState>
         ) : (
           <List showsVerticalScrollIndicator={false}>
-            {visibleEntries.map(({ entry, status }) => {
+            {visibleEntries.map(({ entry, resting, status }) => {
               const vocabulary = vocabularyRepository.findByLabel(
                 entry.label,
                 languageSettings,
@@ -198,65 +276,56 @@ export function HistoryScreen({
                       .catch(() => undefined)
                   }
                   testID={`history-${entry.label}`}
-                  $status={status}
                 >
-                  <RowHeader>
-                    <Flag>
-                      {languageFlags[languageSettings.learningLanguage]}
-                    </Flag>
-                    <Word numberOfLines={1} $status={status}>
-                      {vocabulary.word}
-                    </Word>
-                    {status === 'untried' ? null : (
-                      <StatusMark $status={status}>
-                        {status === 'matched' ? '✓' : '✕'}
-                      </StatusMark>
-                    )}
-                    <SeenAt>{formatSeenAt(copy, entry.seenAtMs)}</SeenAt>
-                    <FavoriteButton
-                      accessibilityLabel={copy.history.favorite}
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        selected: isFavorite(favorites, entry.label),
-                      }}
-                      hitSlop={10}
-                      onPress={() => onToggleFavorite(entry.label)}
-                      testID={`history-favorite-${entry.label}`}
-                    >
-                      <FavoriteMark
-                        $active={isFavorite(favorites, entry.label)}
-                      >
-                        {isFavorite(favorites, entry.label) ? '★' : '☆'}
-                      </FavoriteMark>
-                    </FavoriteButton>
-                  </RowHeader>
-
-                  <Translations numberOfLines={1}>
-                    {[
-                      vocabulary.meaning,
-                      ...vocabulary.translations.filter(
-                        translation => translation !== vocabulary.meaning,
-                      ),
-                    ].join('  •  ')}
-                  </Translations>
-
-                  <Example numberOfLines={2}>{vocabulary.example}</Example>
-
-                  <RowFooter>
-                    <PronunciationHint numberOfLines={1}>
-                      {vocabulary.pronunciationHint}
-                    </PronunciationHint>
-                    <SpeakButton
-                      accessibilityLabel={copy.history.practise}
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      onPress={() => onPractiseSpeaking(entry.label)}
-                      testID={`history-speak-${entry.label}`}
-                    >
-                      <MicIcon color={theme.colors.accent} />
-                      <SpeakButtonText>{copy.history.practise}</SpeakButtonText>
-                    </SpeakButton>
-                  </RowFooter>
+                  <StatusDot $status={status} />
+                  <RowText>
+                    <Word numberOfLines={1}>{vocabulary.word}</Word>
+                    <Translations numberOfLines={1}>
+                      {[
+                        vocabulary.meaning,
+                        ...vocabulary.translations
+                          .filter(
+                            translation =>
+                              translation.word !== vocabulary.meaning,
+                          )
+                          .map(translation => translation.word),
+                      ].join('  •  ')}
+                    </Translations>
+                  </RowText>
+                  <SeenAt>
+                    {resting
+                      ? copy.history.resting
+                      : formatSeenAt(copy, entry.seenAtMs)}
+                  </SeenAt>
+                  <FavoriteButton
+                    accessibilityLabel={copy.history.favorite}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: isFavorite(favorites, entry.label),
+                    }}
+                    hitSlop={10}
+                    onPress={() => onToggleFavorite(entry.label)}
+                    testID={`history-favorite-${entry.label}`}
+                  >
+                    <FavoriteMark $active={isFavorite(favorites, entry.label)}>
+                      {isFavorite(favorites, entry.label) ? '★' : '☆'}
+                    </FavoriteMark>
+                  </FavoriteButton>
+                  <SpeakButton
+                    accessibilityLabel={copy.history.practise}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: resting }}
+                    hitSlop={8}
+                    onPress={
+                      resting
+                        ? undefined
+                        : () => onPractiseSpeaking(entry.label)
+                    }
+                    testID={`history-speak-${entry.label}`}
+                    $resting={resting}
+                  >
+                    <MicIcon color={theme.colors.accent} />
+                  </SpeakButton>
                 </Row>
               );
             })}
@@ -302,65 +371,29 @@ const BackChevron = styled.Text`
   line-height: 26px;
 `;
 
-const Title = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 24px;
-  line-height: 30px;
-  font-weight: 700;
-`;
-
 const List = styled.ScrollView`
   flex: 1;
 `;
 
-const statusColor = (theme: DefaultTheme, status: PronunciationStatus) =>
-  status === 'matched'
-    ? theme.colors.success
-    : status === 'missed'
-    ? theme.colors.danger
-    : theme.colors.text;
-
-const Row = styled.Pressable<{ $status: PronunciationStatus }>`
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  border: 1px solid
-    ${({ theme, $status }) =>
-      $status === 'untried'
-        ? theme.colors.borderSubtle
-        : statusColor(theme, $status)};
-  border-radius: 16px;
-  background-color: ${({ theme }) => theme.colors.card};
-`;
-
-const RowHeader = styled.View`
+/** A line, not a card. Colour in blocks made every word shout at once; the dot
+ * says the same thing and gives the word back its weight. */
+const Row = styled.Pressable`
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
+  padding: 12px 2px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${({ theme }) => theme.colors.borderSubtle};
 `;
 
-const Flag = styled.Text`
-  font-size: 16px;
-  line-height: 22px;
-`;
-
-const Word = styled.Text<{ $status: PronunciationStatus }>`
-  flex: 1;
-  min-width: 0px;
-  color: ${({ theme, $status }) => statusColor(theme, $status)};
-  font-size: 18px;
-  line-height: 24px;
+const Word = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 15px;
   font-weight: 700;
 `;
 
 /** Colour alone would not survive colour blindness, so the outcome is marked
  * with a glyph as well. */
-const StatusMark = styled.Text<{ $status: PronunciationStatus }>`
-  color: ${({ theme, $status }) => statusColor(theme, $status)};
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 800;
-`;
-
 const SeenAt = styled.Text`
   color: ${({ theme }) => theme.colors.muted};
   font-size: 11px;
@@ -368,48 +401,9 @@ const SeenAt = styled.Text`
 `;
 
 const Translations = styled.Text`
-  margin-top: 4px;
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
-`;
-
-const Example = styled.Text`
-  margin-top: 8px;
+  margin-top: 1px;
   color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  line-height: 19px;
-`;
-
-const RowFooter = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top-width: 1px;
-  border-top-color: ${({ theme }) => theme.colors.borderSubtle};
-`;
-
-const PronunciationHint = styled.Text`
-  color: ${({ theme }) => theme.colors.mutedStrong};
   font-size: 12px;
-  line-height: 16px;
-  font-weight: 700;
-`;
-
-const HeaderText = styled.View`
-  flex: 1;
-  min-width: 0px;
-`;
-
-const Subtitle = styled.Text`
-  margin-top: 2px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  line-height: 18px;
 `;
 
 const EmptyState = styled.View`
@@ -436,6 +430,191 @@ const FavoriteMark = styled.Text<{ $active: boolean }>`
   line-height: 22px;
 `;
 
+/**
+ * Rolls the total up from nothing when the screen opens.
+ *
+ * The count is the one number a learner is proud of, and watching it climb is
+ * what makes it feel earned rather than reported. It settles in well under a
+ * second, and anyone who asked their phone for less motion sees it arrive at
+ * the total directly.
+ */
+function useCountUp(target: number) {
+  const [value, setValue] = useState(target);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(reduced => {
+        if (cancelled || reduced) return;
+
+        setValue(0);
+        const durationMs = getCountUpDurationMs(target);
+        const startedAtMs = Date.now();
+        const timer = setInterval(() => {
+          const elapsed = Date.now() - startedAtMs;
+          setValue(getCountUpValue(target, elapsed, durationMs));
+          if (elapsed >= durationMs) clearInterval(timer);
+        }, 40);
+
+        timers.push(timer);
+      })
+      .catch(() => undefined);
+
+    const timers: ReturnType<typeof setInterval>[] = [];
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearInterval);
+    };
+  }, [target]);
+
+  return value;
+}
+
+const Progress = styled.View`
+  flex-direction: row;
+  align-items: stretch;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 16px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const ProgressItem = styled.View`
+  flex: 1;
+  gap: 2px;
+`;
+
+const ProgressDivider = styled.View`
+  width: 1px;
+  margin: 0px 16px;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const ProgressValue = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+`;
+
+const ProgressLabel = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12px;
+`;
+
+const LevelTrack = styled.View`
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const LevelFill = styled.View<{ $percentage: number }>`
+  width: ${({ $percentage }) => $percentage}%;
+  height: 4px;
+  border-radius: 2px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const StatusDot = styled.View<{ $status: PronunciationStatus }>`
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background-color: ${({ theme, $status }) =>
+    $status === 'matched'
+      ? theme.colors.success
+      : $status === 'missed'
+      ? theme.colors.danger
+      : theme.colors.border};
+`;
+
+const RowText = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const Count = styled.Text`
+  margin: 6px 0px 18px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 44px;
+  line-height: 48px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+`;
+
+const CountLabel = styled.Text`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0px;
+`;
+
+/** The only block on the screen wearing the action colour, because it is the
+ * only thing here asking to be done. */
+const DueBand = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 13px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.accent};
+  border-radius: 14px;
+  background-color: ${({ theme }) => theme.colors.glassBlue};
+`;
+
+const DueText = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const DueTitle = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 13.5px;
+  font-weight: 700;
+`;
+
+const DueNote = styled.Text`
+  margin-top: 1px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11.5px;
+`;
+
+const DueAction = styled.View`
+  padding: 7px 13px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const DueActionText = styled.Text`
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const HeaderActions = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CollectionButton = styled.Pressable`
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 19px;
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const CollectionMark = styled.Text`
+  font-size: 17px;
+`;
+
 const PractiseButton = styled.Pressable`
   padding: 10px 16px;
   border-radius: 999px;
@@ -448,13 +627,14 @@ const PractiseText = styled.Text`
   font-weight: 800;
 `;
 
-const SpeakButton = styled.Pressable`
-  flex-direction: row;
+const SpeakButton = styled.Pressable<{ $resting: boolean }>`
+  opacity: ${({ $resting }) => ($resting ? 0.35 : 1)};
+  width: 32px;
+  height: 32px;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  justify-content: center;
   border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-  border-radius: 999px;
+  border-radius: 16px;
 `;
 
 const Filters = styled.View`
@@ -468,32 +648,30 @@ const FilterChip = styled.Pressable<{ $active: boolean }>`
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 6px 11px;
   border: 1px solid
     ${({ theme, $active }) =>
-      $active ? theme.colors.accent : theme.colors.borderSubtle};
+      $active ? theme.colors.text : theme.colors.borderSubtle};
   border-radius: 999px;
+  /* The chosen filter inverts rather than turning blue: the action colour is
+     spent on the one thing this screen asks for, which is the review. */
   background-color: ${({ theme, $active }) =>
-    $active ? theme.colors.accent : theme.colors.card};
+    $active ? theme.colors.text : 'transparent'};
 `;
 
 const FilterText = styled.Text<{ $active: boolean }>`
-  color: ${({ theme, $active }) => ($active ? '#ffffff' : theme.colors.muted)};
-  font-size: 12px;
+  color: ${({ theme, $active }) =>
+    $active ? theme.colors.background : theme.colors.muted};
+  font-size: 11.5px;
   line-height: 16px;
-  font-weight: 700;
+  font-weight: 600;
 `;
 
 const FilterCount = styled.Text<{ $active: boolean }>`
   color: ${({ theme, $active }) =>
-    $active ? 'rgba(255, 255, 255, 0.82)' : theme.colors.mutedStrong};
+    $active ? theme.colors.background : theme.colors.mutedStrong};
   font-size: 11px;
   line-height: 16px;
-  font-weight: 800;
-`;
-
-const SpeakButtonText = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
-  font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
+  opacity: 0.7;
 `;

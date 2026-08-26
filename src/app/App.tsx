@@ -62,7 +62,6 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         languageSettings={viewModel.languageSettings}
         copy={viewModel.copy}
         onObjectsSeen={viewModel.recordViewedLabels}
-        onOpenCollection={() => viewModel.selectTab('collection')}
         onOpenHistory={() => viewModel.selectTab('history')}
         onOpenSettings={() => viewModel.selectTab('settings')}
         onPractiseSpeaking={label =>
@@ -89,7 +88,11 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           onClose={() => viewModel.selectTab('camera')}
           pronunciationPlayer={systemPronunciationPlayer}
           favorites={viewModel.favorites}
-          onOpenQuiz={() => viewModel.selectTab('quiz')}
+          foundLabels={viewModel.foundLabels}
+          matchedPronunciations={viewModel.matchedPronunciations}
+          streakDays={viewModel.streakDays}
+          onOpenCollection={() => viewModel.selectTab('collection')}
+          onOpenQuiz={viewModel.openQuiz}
           onPractiseSpeaking={label =>
             viewModel.practiseSpeaking(label, 'history')
           }
@@ -119,6 +122,9 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           languageSettings={viewModel.languageSettings}
           onAttempt={viewModel.recordPronunciationResult}
           onClose={() => viewModel.selectTab(viewModel.speakReturnTab)}
+          onOpenHistory={() => viewModel.selectTab('history')}
+          onReturnToCamera={() => viewModel.selectTab('camera')}
+          pronunciationProgress={viewModel.pronunciationProgress}
           pronunciationPlayer={systemPronunciationPlayer}
           speechRecognizer={systemSpeechRecognizer}
           vocabularyRepository={localVocabularyRepository}

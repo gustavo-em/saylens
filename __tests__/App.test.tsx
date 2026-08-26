@@ -26,6 +26,7 @@ jest.mock(
     systemPronunciationPlayer: {
       speak: jest.fn(async () => undefined),
       stop: jest.fn(async () => undefined),
+      level: jest.fn(async () => 0),
     },
   }),
 );
@@ -35,6 +36,7 @@ const mockPronunciationPlayer = jest.requireMock(
 ).systemPronunciationPlayer as {
   speak: jest.Mock;
   stop: jest.Mock;
+  level: jest.Mock;
 };
 
 jest.mock(
@@ -44,6 +46,8 @@ jest.mock(
       isAvailable: jest.fn(async () => true),
       hasPermission: jest.fn(async () => true),
       listen: jest.fn(async () => ['Bottle']),
+      stop: jest.fn(async () => undefined),
+      level: jest.fn(async () => 0),
       cancel: jest.fn(async () => undefined),
     },
   }),
@@ -55,6 +59,8 @@ const mockSpeechRecognizer = jest.requireMock(
   isAvailable: jest.Mock;
   hasPermission: jest.Mock;
   listen: jest.Mock;
+  stop: jest.Mock;
+  level: jest.Mock;
   cancel: jest.Mock;
 };
 
@@ -148,13 +154,11 @@ async function layOutCamera(renderer: ReactTestRenderer.ReactTestRenderer) {
   });
 }
 
+/** The camera's destinations sit in a bar at the bottom, one tap away. */
 async function pressCameraMenuItem(
   renderer: ReactTestRenderer.ReactTestRenderer,
   testID: string,
 ) {
-  await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ testID: 'camera-menu' }).props.onPress();
-  });
   await ReactTestRenderer.act(() => {
     renderer.root.findByProps({ testID }).props.onPress();
   });
@@ -167,6 +171,8 @@ describe('App', () => {
     mockSpeechRecognizer.isAvailable.mockReset().mockResolvedValue(true);
     mockSpeechRecognizer.hasPermission.mockReset().mockResolvedValue(true);
     mockSpeechRecognizer.listen.mockReset().mockResolvedValue(['Bottle']);
+    mockSpeechRecognizer.stop.mockReset().mockResolvedValue(undefined);
+    mockSpeechRecognizer.level.mockReset().mockResolvedValue(0);
     mockSpeechRecognizer.cancel.mockReset().mockResolvedValue(undefined);
   });
 
@@ -188,7 +194,9 @@ describe('App', () => {
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
     expect(renderedTree).toContain('SayLens');
-    expect(renderedTree).toContain('camera-menu');
+    // The destinations are a bar at the bottom rather than a menu to open.
+    expect(renderedTree).toContain('camera-open-settings');
+    expect(renderedTree).toContain('camera-open-history');
     expect(renderedTree).toContain('camera-language-pair');
     expect(renderedTree).toContain('camera-preview');
     expect(renderedTree).toContain('Bottle');
@@ -215,13 +223,13 @@ describe('App', () => {
       renderer!.root.findAllByProps({ testID: 'detected-object-bottle-1' }),
     ).toHaveLength(0);
     const settingsTree = JSON.stringify(renderer!.toJSON());
-    expect(settingsTree).toContain('Perfil do dispositivo');
+    expect(settingsTree).toContain('Configurações');
     expect(settingsTree).toContain('Máximo desempenho');
-    expect(settingsTree).toContain(
-      'Reconhecimento mais rápido e fluido. Usa mais bateria.',
-    );
+    // An option is labelled by what it costs the device.
+    expect(settingsTree).toContain('núcleos do processador');
     expect(settingsTree).not.toContain('workers');
-    expect(settingsTree).toContain('Modo economia');
+    // The economy profile is the switch turned off rather than a card of its
+    // own, so its name is no longer on the screen.
     expect(settingsTree).not.toContain('BASE TÉCNICA');
     expect(settingsTree).not.toContain('MILESTONE');
     expect(settingsTree).not.toContain('Guia de enquadramento');
@@ -238,9 +246,8 @@ describe('App', () => {
     await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
-      renderer!.root.findByProps({
-        testID: 'performance-profile-maximum-performance',
-      }).props.accessibilityState.checked,
+      renderer!.root.findByProps({ testID: 'performance-profile-toggle' }).props
+        .accessibilityState.checked,
     ).toBe(true);
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props
@@ -291,7 +298,12 @@ describe('App', () => {
     });
     await ReactTestRenderer.act(() => {
       renderer!.root
-        .findByProps({ testID: 'performance-profile-power-saving' })
+        .findByProps({ testID: 'performance-profile-toggle' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'learning-language-row' })
         .props.onPress();
     });
     await ReactTestRenderer.act(() => {
@@ -320,6 +332,13 @@ describe('App', () => {
       relaunched!.root.findByProps({ testID: 'appearance-light' }).props
         .accessibilityState.checked,
     ).toBe(true);
+
+    await ReactTestRenderer.act(() => {
+      relaunched!.root
+        .findByProps({ testID: 'learning-language-row' })
+        .props.onPress();
+    });
+
     expect(
       relaunched!.root.findByProps({ testID: 'learning-language-es' }).props
         .accessibilityState.checked,
@@ -342,15 +361,14 @@ describe('App', () => {
 
     await ReactTestRenderer.act(() => {
       renderer!.root
-        .findByProps({ testID: 'performance-profile-power-saving' })
+        .findByProps({ testID: 'performance-profile-toggle' })
         .props.onPress();
     });
 
     expect(
-      renderer!.root.findByProps({
-        testID: 'performance-profile-power-saving',
-      }).props.accessibilityState.checked,
-    ).toBe(true);
+      renderer!.root.findByProps({ testID: 'performance-profile-toggle' }).props
+        .accessibilityState.checked,
+    ).toBe(false);
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props
         .performanceProfile,
@@ -367,13 +385,12 @@ describe('App', () => {
     await pressCameraMenuItem(renderer!, 'camera-open-settings');
 
     expect(
-      renderer!.root.findByProps({
-        testID: 'performance-profile-maximum-performance',
-      }).props.accessibilityState.checked,
+      renderer!.root.findByProps({ testID: 'performance-profile-toggle' }).props
+        .accessibilityState.checked,
     ).toBe(true);
-    renderer!.root.findByProps({
-      testID: 'performance-profile-power-saving',
-    });
+    // Both profiles are reachable from one switch, so the control being
+    // present is what says the device supports the pair.
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Máximo desempenho');
   });
 
   it('shows compact vocabulary details on a detected object', async () => {
@@ -399,8 +416,10 @@ describe('App', () => {
     expect(renderedTree).toContain('Bottle');
     expect(renderedTree).toContain('Garrafa');
     expect(renderedTree).toContain('BÓ-tl');
-    expect(renderedTree).toContain('Garrafa');
-    expect(renderedTree).toContain('Botella');
+    // Only the two languages the learner chose. A word in a third one they
+    // never asked for is noise, and the flag says which language this is.
+    expect(renderedTree).toContain('🇧🇷');
+    expect(renderedTree).not.toContain('Botella');
     // The sentence on the card is written in the language being learned.
     expect(renderedTree).toContain('This is my water bottle.');
     expect(renderedTree).not.toContain('Esta é minha garrafa de água.');
@@ -438,16 +457,27 @@ describe('App', () => {
 
     await ReactTestRenderer.act(() => {
       renderer!.root
+        .findByProps({ testID: 'native-language-row' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
         .findByProps({ testID: 'native-language-en-US' })
         .props.onPress();
     });
 
     expect(JSON.stringify(renderer!.toJSON())).toContain('Settings');
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'learning-language-row' })
+        .props.onPress();
+    });
+
     expect(
       renderer!.root.findByProps({ testID: 'learning-language-en-US' }).props
         .accessibilityState.checked,
     ).toBe(true);
-
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({ testID: 'learning-language-es' })
@@ -535,10 +565,19 @@ describe('App', () => {
     });
 
     expect(mockSpeechRecognizer.listen).toHaveBeenCalledWith('en-US');
-    expect(JSON.stringify(renderer!.toJSON())).toContain('Muito bem!');
+
+    // A word said right is celebrated rather than merely reported, and the
+    // celebration offers both ways out.
+    const celebrated = JSON.stringify(renderer!.toJSON());
+    expect(celebrated).toContain('Parabéns!');
+    expect(celebrated).toContain('Voltando em 5s');
+    renderer!.root.findByProps({ testID: 'speak-celebration-camera' });
 
     await ReactTestRenderer.act(() => {
-      pressableWithTestID(renderer!, 'speak-close').props.onPress();
+      pressableWithTestID(
+        renderer!,
+        'speak-celebration-history',
+      ).props.onPress();
     });
 
     expect(
@@ -588,7 +627,14 @@ describe('App', () => {
     });
     await layOutCamera(renderer!);
 
-    await pressCameraMenuItem(renderer!, 'camera-open-collection');
+    // The rooms are reached from the list of words, which is where progress
+    // lives now that the camera carries one destination.
+    await pressCameraMenuItem(renderer!, 'camera-open-history');
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'history-open-collection' })
+        .props.onPress();
+    });
 
     const collectionTree = JSON.stringify(renderer!.toJSON());
     expect(collectionTree).toContain('Cozinha');

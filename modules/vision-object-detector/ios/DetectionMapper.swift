@@ -70,3 +70,10 @@ struct RecognizedObject {
   let score: Float
   let boundingBox: CGRect
 }
+
+/// A box being followed from frame to frame, with the names it has been given
+/// recently. The names are what the vote reads; the box is what is drawn.
+struct TrackedObject {
+  let object: RecognizedObject
+  let recentLabels: [String]
+}

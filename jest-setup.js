@@ -31,6 +31,7 @@ jest.mock('react-native-reanimated', () => {
     Easing,
     ReduceMotion: { System: 'system' },
     useAnimatedStyle: updater => updater(),
+    useAnimatedProps: updater => updater(),
     useSharedValue: initialValue => ({ value: initialValue }),
     // The animation helpers all resolve to the value they animate towards, so
     // a test sees the finished state rather than a frame of the transition.

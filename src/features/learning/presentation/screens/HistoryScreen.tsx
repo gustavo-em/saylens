@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+import { TextInput } from 'react-native';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import styled, { useTheme } from 'styled-components/native';
@@ -19,7 +27,7 @@ import {
 import { getExperience, getLevelProgress } from '../../domain/LearnerProgress';
 import { isResting } from '../../domain/PronunciationProgress';
 import { getWordsToReview } from '../../domain/ReviewQueue';
-import { getCountUpDurationMs, getCountUpValue } from '../animation/countUp';
+import { getCountUpDurationMs } from '../animation/countUp';
 import type { ViewedObject } from '../../domain/ViewedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 
@@ -141,7 +149,6 @@ export function HistoryScreen({
     pronunciationProgress,
     Date.now(),
   );
-  const countedWords = useCountUp(viewedObjects.length);
   const level = getLevelProgress(
     getExperience(foundLabels.length, matchedPronunciations),
   );
@@ -180,7 +187,7 @@ export function HistoryScreen({
         {/* The number a learner is proud of is the biggest thing on the
             screen. */}
         <Count accessibilityRole="header">
-          {countedWords}
+          <CountUp target={viewedObjects.length} />
           <CountLabel>
             {' '}
             {copy.history.countLabel(viewedObjects.length)}
@@ -217,12 +224,18 @@ export function HistoryScreen({
             <ProgressValue>{level.level}</ProgressValue>
             <ProgressLabel>{copy.history.levelLabel}</ProgressLabel>
             <LevelTrack>
-              <LevelFill
-                $percentage={Math.round(
+              <LevelFillBar
+                percentage={Math.round(
                   (level.intoLevel / Math.max(level.levelSpan, 1)) * 100,
                 )}
               />
             </LevelTrack>
+            <ProgressHint numberOfLines={1}>
+              {copy.history.levelHint(
+                Math.max(level.levelSpan - level.intoLevel, 0),
+                level.level + 1,
+              )}
+            </ProgressHint>
           </ProgressItem>
           <ProgressDivider />
           <ProgressItem>
@@ -230,6 +243,9 @@ export function HistoryScreen({
             <ProgressLabel>{copy.history.streakLabel}</ProgressLabel>
           </ProgressItem>
         </Progress>
+        {/* A number on its own says nothing, so the screen says where it comes
+            from. */}
+        <ProgressSource>{copy.history.levelSource}</ProgressSource>
 
         {due.length > 0 ? (
           <DueBand
@@ -438,38 +454,57 @@ const FavoriteMark = styled.Text<{ $active: boolean }>`
  * second, and anyone who asked their phone for less motion sees it arrive at
  * the total directly.
  */
-function useCountUp(target: number) {
-  const [value, setValue] = useState(target);
+/** The bar fills to where the learner stands, arriving with the count. */
+function LevelFillBar({ percentage }: { percentage: number }) {
+  const width = useSharedValue(0);
 
   useEffect(() => {
-    let cancelled = false;
+    width.value = withTiming(percentage, {
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [percentage, width]);
 
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(reduced => {
-        if (cancelled || reduced) return;
+  const style = useAnimatedStyle(() => ({ width: `${width.value}%` }));
 
-        setValue(0);
-        const durationMs = getCountUpDurationMs(target);
-        const startedAtMs = Date.now();
-        const timer = setInterval(() => {
-          const elapsed = Date.now() - startedAtMs;
-          setValue(getCountUpValue(target, elapsed, durationMs));
-          if (elapsed >= durationMs) clearInterval(timer);
-        }, 40);
+  return <LevelFill style={style} />;
+}
 
-        timers.push(timer);
-      })
-      .catch(() => undefined);
+/**
+ * The total, rolled up from nothing when the screen opens.
+ *
+ * The count is the one number a learner is proud of, and watching it climb is
+ * what makes it feel earned rather than reported. It runs on the interface
+ * thread rather than on a timer in JavaScript, and anyone who asked their
+ * phone for less motion sees the total arrive directly.
+ */
+function CountUp({ target }: { target: number }) {
+  const counted = useSharedValue(0);
 
-    const timers: ReturnType<typeof setInterval>[] = [];
+  useEffect(() => {
+    counted.value = 0;
+    counted.value = withTiming(target, {
+      duration: getCountUpDurationMs(target),
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [counted, target]);
 
-    return () => {
-      cancelled = true;
-      timers.forEach(clearInterval);
-    };
-  }, [target]);
+  const animatedProps = useAnimatedProps(() => ({
+    text: String(Math.round(counted.value)),
+    defaultValue: String(Math.round(counted.value)),
+  }));
 
-  return value;
+  return (
+    <CountValue
+      animatedProps={animatedProps}
+      editable={false}
+      pointerEvents="none"
+      underlineColorAndroid="transparent"
+      value={String(target)}
+    />
+  );
 }
 
 const Progress = styled.View`
@@ -513,11 +548,23 @@ const LevelTrack = styled.View`
   background-color: ${({ theme }) => theme.colors.borderSubtle};
 `;
 
-const LevelFill = styled.View<{ $percentage: number }>`
-  width: ${({ $percentage }) => $percentage}%;
+const LevelFill = styled(Animated.View)`
   height: 4px;
   border-radius: 2px;
   background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const ProgressHint = styled.Text`
+  margin-top: 7px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11px;
+`;
+
+const ProgressSource = styled.Text`
+  margin-top: 10px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11px;
+  line-height: 15px;
 `;
 
 const StatusDot = styled.View<{ $status: PronunciationStatus }>`
@@ -537,13 +584,22 @@ const RowText = styled.View`
   min-width: 0px;
 `;
 
-const Count = styled.Text`
-  margin: 6px 0px 18px;
+/** A text input rather than a text: it is the one element whose contents can
+ * be written from the interface thread, which is where the count runs. */
+const CountValue = styled(Animated.createAnimatedComponent(TextInput))`
+  padding: 0px;
   color: ${({ theme }) => theme.colors.text};
   font-size: 44px;
   line-height: 48px;
   font-weight: 800;
   letter-spacing: -1.2px;
+`;
+
+const Count = styled.View`
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0px 18px;
 `;
 
 const CountLabel = styled.Text`

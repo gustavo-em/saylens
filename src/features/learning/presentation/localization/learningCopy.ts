@@ -73,6 +73,10 @@ export interface LearningCopy {
     /** Names for the two numbers at the top, which carry their own value. */
     levelLabel: string;
     streakLabel: string;
+    /** What a level is and how far the next one is, because a number on its
+     * own tells a learner nothing. */
+    levelHint: (remaining: number, nextLevel: number) => string;
+    levelSource: string;
     empty: string;
     tapToHear: string;
     favorite: string;
@@ -287,6 +291,9 @@ const copies: Record<
       resting: 'Descansando',
       levelLabel: 'Nível',
       streakLabel: 'Dias seguidos',
+      levelHint: (remaining, nextLevel) =>
+        `${remaining} pontos para o nível ${nextLevel}`,
+      levelSource: '10 pontos por objeto novo, 15 por pronúncia certa',
       restingUntil:
         'Você errou três vezes seguidas. Esta palavra volta amanhã.',
       empty: 'Aponte a câmera para um objeto para começar seu histórico.',
@@ -469,6 +476,9 @@ const copies: Record<
       resting: 'Resting',
       levelLabel: 'Level',
       streakLabel: 'Days in a row',
+      levelHint: (remaining, nextLevel) =>
+        `${remaining} points to level ${nextLevel}`,
+      levelSource: '10 points per new object, 15 per correct pronunciation',
       restingUntil: 'Three misses in a row. This word comes back tomorrow.',
       empty: 'Point the camera at an object to start your history.',
       tapToHear: 'Tap to hear it again.',
@@ -651,6 +661,9 @@ const copies: Record<
       restingUntil: 'Tres fallos seguidos. Esta palabra vuelve mañana.',
       levelLabel: 'Nivel',
       streakLabel: 'Días seguidos',
+      levelHint: (remaining, nextLevel) =>
+        `${remaining} puntos para el nivel ${nextLevel}`,
+      levelSource: '10 puntos por objeto nuevo, 15 por pronunciación correcta',
       empty: 'Apunta la cámara a un objeto para empezar tu historial.',
       tapToHear: 'Toca para escucharlo de nuevo.',
       favorite: 'Favorito',

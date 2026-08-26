@@ -29,10 +29,15 @@ final class SpeechRecognitionModule: NSObject {
     static let language = "E_SPEECH_LANGUAGE"
   }
 
+  /// How long the learner has to start speaking. Tapping a button and then
+  /// saying a word takes longer than the pause inside a sentence does, and
+  /// timing the first word by the second is what made every attempt end
+  /// before it began.
+  private static let firstWordTimeout: TimeInterval = 5
   /// A word takes a moment; silence after it means the learner is done.
   private static let silenceTimeout: TimeInterval = 1.2
   /// A hard stop, so a noisy room cannot keep the microphone open forever.
-  private static let maximumRecordingTime: TimeInterval = 8
+  private static let maximumRecordingTime: TimeInterval = 12
   /// How long the final transcription may take once the audio has ended.
   private static let finalResultTimeout: TimeInterval = 2.5
   private static let maximumResults = 5
@@ -48,6 +53,10 @@ final class SpeechRecognitionModule: NSObject {
   private var silenceTimer: DispatchSourceTimer?
   private var deadlineTimer: DispatchSourceTimer?
   private var heardAnything = false
+  /// How loud the microphone is hearing the room, from 0 to 1, written on the
+  /// audio tap and read from the interface's queue while it draws the level.
+  private let levelLock = NSLock()
+  private var latestLevel: Float = 0
 
   @objc static func requiresMainQueueSetup() -> Bool { false }
 
@@ -132,6 +141,25 @@ final class SpeechRecognitionModule: NSObject {
     }
   }
 
+  /// Ends the recording and keeps whatever was said. Tapping the microphone a
+  /// second time is how a learner says "that was it", and waiting out a
+  /// silence timer after a word is already spoken is time spent for nothing.
+  @objc(stop:reject:)
+  func stop(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    reject: @escaping RCTPromiseRejectBlock
+  ) {
+    stateQueue.async { [weak self] in
+      guard let self else {
+        resolve(nil)
+        return
+      }
+
+      if self.pendingResolve != nil { self.finishAfterSilence() }
+      resolve(nil)
+    }
+  }
+
   @objc(cancel:reject:)
   func cancel(
     _ resolve: @escaping RCTPromiseResolveBlock,
@@ -171,8 +199,9 @@ final class SpeechRecognitionModule: NSObject {
     let input = audioEngine.inputNode
     let format = input.outputFormat(forBus: 0)
     input.removeTap(onBus: 0)
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
       request.append(buffer)
+      self?.recordLevel(of: buffer)
     }
 
     audioEngine.prepare()
@@ -184,23 +213,79 @@ final class SpeechRecognitionModule: NSObject {
       }
     }
 
-    startSilenceTimer()
+    startSilenceTimer(waiting: Self.firstWordTimeout)
     startDeadlineTimer()
+  }
+
+  /// The loudness of one buffer, as a number between 0 and 1.
+  ///
+  /// Speech sits roughly between -50 dB and -10 dB once it reaches the
+  /// microphone, so that range is what the bar heights are spread across:
+  /// quieter than -50 is silence, louder than -10 is already at the top.
+  private func recordLevel(of buffer: AVAudioPCMBuffer) {
+    guard let channel = buffer.floatChannelData?[0] else { return }
+
+    let count = Int(buffer.frameLength)
+    guard count > 0 else { return }
+
+    var sum: Float = 0
+    for index in 0..<count {
+      let sample = channel[index]
+      sum += sample * sample
+    }
+
+    let meanSquare = sum / Float(count)
+    guard meanSquare > 0 else {
+      setLevel(0)
+      return
+    }
+
+    let decibels = 10 * log10f(meanSquare)
+    let level = min(max((decibels + 50) / 40, 0), 1)
+
+    setLevel(level)
+  }
+
+  private func setLevel(_ level: Float) {
+    levelLock.lock()
+    latestLevel = level
+    levelLock.unlock()
+  }
+
+  private func currentLevel() -> Float {
+    levelLock.lock()
+    defer { levelLock.unlock() }
+    return latestLevel
+  }
+
+  @objc(level:reject:)
+  func level(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    reject: @escaping RCTPromiseRejectBlock
+  ) {
+    resolve(NSNumber(value: currentLevel()))
   }
 
   private func handle(result: SFSpeechRecognitionResult?, error: Error?) {
     guard pendingResolve != nil else { return }
 
     if let result {
-      heardAnything = true
-
       if result.isFinal {
         settleResolving(with: Self.transcriptions(from: result))
         return
       }
 
-      // Something was said, so the countdown to silence starts again.
-      startSilenceTimer()
+      // The recogniser reports partial results before it has heard a word, and
+      // an empty one is not something said.
+      let spoken = !result.bestTranscription.formattedString
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .isEmpty
+      guard spoken else { return }
+
+      heardAnything = true
+      // Something was said, so the countdown to silence starts again, now
+      // measured as a pause rather than as a wait for the first word.
+      startSilenceTimer(waiting: Self.silenceTimeout)
       return
     }
 
@@ -269,10 +354,10 @@ final class SpeechRecognitionModule: NSObject {
 
   // MARK: - Timers and teardown
 
-  private func startSilenceTimer() {
+  private func startSilenceTimer(waiting timeout: TimeInterval) {
     silenceTimer?.cancel()
     let timer = DispatchSource.makeTimerSource(queue: stateQueue)
-    timer.schedule(deadline: .now() + Self.silenceTimeout)
+    timer.schedule(deadline: .now() + timeout)
     timer.setEventHandler { [weak self] in self?.finishAfterSilence() }
     timer.resume()
     silenceTimer = timer
@@ -329,6 +414,7 @@ final class SpeechRecognitionModule: NSObject {
   }
 
   private func teardown() {
+    setLevel(0)
     silenceTimer?.cancel()
     silenceTimer = nil
     deadlineTimer?.cancel()

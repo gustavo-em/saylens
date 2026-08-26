@@ -7,6 +7,8 @@ interface NativeSpeechModule {
   isAvailable(): Promise<boolean>;
   hasPermission(): Promise<boolean>;
   listen(languageTag: string): Promise<string[]>;
+  stop(): Promise<void>;
+  level(): Promise<number>;
   cancel(): Promise<void>;
 }
 
@@ -46,6 +48,14 @@ export const systemSpeechRecognizer: SpeechRecognizer = {
   listen(language) {
     return nativeModule().listen(recognitionLocales[language]);
   },
+  stop() {
+    return nativeModule().stop();
+  },
+
+  level() {
+    return nativeModule().level();
+  },
+
   cancel() {
     return nativeModule().cancel();
   },

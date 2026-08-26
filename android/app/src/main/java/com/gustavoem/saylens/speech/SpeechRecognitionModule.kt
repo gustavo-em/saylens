@@ -31,6 +31,9 @@ class SpeechRecognitionModule(
   private var languageTag = ""
   private var hasRetriedOnline = false
 
+  @Volatile
+  private var latestLevel = 0f
+
   override fun getName(): String = NAME
 
   @ReactMethod
@@ -80,6 +83,24 @@ class SpeechRecognitionModule(
       hasRetriedOnline = false
     }
     reactContext.runOnUiQueueThread { startListening(languageTag, true) }
+  }
+
+  /**
+   * Ends the recording and keeps whatever was said. Tapping the microphone a
+   * second time is how a learner says "that was it", and waiting out a silence
+   * timer after a word is already spoken is time spent for nothing.
+   */
+  @ReactMethod
+  fun level(promise: Promise) {
+    promise.resolve(latestLevel.toDouble())
+  }
+
+  @ReactMethod
+  fun stop(promise: Promise) {
+    reactContext.runOnUiQueueThread {
+      recognizer?.stopListening()
+      promise.resolve(null)
+    }
   }
 
   @ReactMethod
@@ -134,7 +155,14 @@ class SpeechRecognitionModule(
   private val listener = object : RecognitionListener {
     override fun onReadyForSpeech(params: Bundle?) = Unit
     override fun onBeginningOfSpeech() = Unit
-    override fun onRmsChanged(rmsdB: Float) = Unit
+    /**
+   * How loud the microphone is hearing the room. Android reports it in
+   * decibels, roughly between zero and ten once someone is speaking, which is
+   * the range the interface spreads its bars across.
+   */
+  override fun onRmsChanged(rmsdB: Float) {
+    latestLevel = (rmsdB / 10f).coerceIn(0f, 1f)
+  }
     override fun onBufferReceived(buffer: ByteArray?) = Unit
     override fun onEndOfSpeech() = Unit
     override fun onPartialResults(partialResults: Bundle?) = Unit

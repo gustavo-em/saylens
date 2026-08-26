@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
-  View,
   type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
@@ -8,20 +7,31 @@ import {
 import Animated, {
   Easing,
   type AnimatedStyle,
+  interpolateColor,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import styled, { useTheme } from 'styled-components/native';
 
 import { AppMark } from '../../../../app/components/AppMark';
-import { languageCodes, languageFlags } from '../../domain/LearningLanguage';
+import {
+  languageBaseFlags,
+  languageCodes,
+  languageFlags,
+} from '../../domain/LearningLanguage';
 import type { DetectedObject } from '../../domain/DetectedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
+import {
+  getObjectCardPlacement,
+  OBJECT_CARD_WIDTH,
+} from '../animation/objectCardPlacement';
 import {
   getObjectCardScale,
   getObjectCardTilt,
@@ -31,7 +41,6 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 interface CameraViewProps {
   copy: LearningCopy;
   isActive: boolean;
-  onOpenCollection: () => void;
   onOpenHistory: () => void;
   onPractiseSpeaking: (label: string) => void;
   onOpenSettings: () => void;
@@ -53,13 +62,11 @@ interface ViewportSize {
   height: number;
 }
 
-const OBJECT_CARD_WIDTH = 208;
-const OBJECT_CARD_EDGE_INSET = 8;
-/** Space between the object's box and the card standing next to it. */
-const OBJECT_CARD_GAP = 10;
-const OBJECT_CARD_ESTIMATED_HEIGHT = 76;
-const OBJECT_CARD_TOP_SAFE_INSET = 92;
-const OBJECT_CARD_BOTTOM_SAFE_INSET = 116;
+/** Half of one breath of the practise button, in milliseconds. */
+const PRACTISE_PULSE_MS = 900;
+/** The brand blue, and the lighter tone it breathes towards. */
+const PRACTISE_BASE = '#4153FB';
+const PRACTISE_LIT = '#6D7BFF';
 const OBJECT_CARD_PERSPECTIVE = 900;
 /** A small lean back, so the card reads as standing on the scene rather than
  * printed on the screen. */
@@ -72,37 +79,25 @@ const TARGET_CORNERS = [
   'bottomRight',
 ] as const;
 
-function MenuIcon({ color }: { color: string }) {
+function PauseIcon({ color }: { color: string }) {
   return (
     <Svg height={20} viewBox="0 0 24 24" width={20}>
-      <Path
-        d="M4 7h16M4 12h16M4 17h16"
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeWidth={2}
-      />
+      <Path d="M8 5h3v14H8zM13 5h3v14h-3z" fill={color} />
     </Svg>
   );
 }
 
-function CloseIcon({ color }: { color: string }) {
+function PlayIcon({ color }: { color: string }) {
   return (
     <Svg height={20} viewBox="0 0 24 24" width={20}>
-      <Path
-        d="M6 6l12 12M18 6L6 18"
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeWidth={2}
-      />
+      <Path d="M8 5l11 7-11 7V5Z" fill={color} />
     </Svg>
   );
 }
 
-function ListIcon({ color }: { color: string }) {
+function ListIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg height={20} viewBox="0 0 24 24" width={20}>
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
       <Path
         d="M9 6h11M9 12h11M9 18h11"
         fill="none"
@@ -121,59 +116,24 @@ function ListIcon({ color }: { color: string }) {
   );
 }
 
-function PauseIcon({ color }: { color: string }) {
+/**
+ * Two rails with a knob each.
+ *
+ * A line-art gear was tried twice and read as a ship's wheel both times: thin
+ * teeth on a ring are spokes to the eye. Sliders say "adjust" without the
+ * ambiguity, which is what this screen's settings are.
+ */
+function SettingsIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg height={20} viewBox="0 0 24 24" width={20}>
-      <Path d="M8 5h3v14H8zM13 5h3v14h-3z" fill={color} />
-    </Svg>
-  );
-}
-
-function PlayIcon({ color }: { color: string }) {
-  return (
-    <Svg height={20} viewBox="0 0 24 24" width={20}>
-      <Path d="M8 5l11 7-11 7V5Z" fill={color} />
-    </Svg>
-  );
-}
-
-function CollectionIcon({ color }: { color: string }) {
-  return (
-    <Svg height={20} viewBox="0 0 24 24" width={20}>
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
       <Path
-        d="M4 5h16v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V5Z"
-        fill="none"
-        stroke={color}
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-      />
-      <Path
-        d="M4 6.5H2.5v1a3 3 0 0 0 3 3M20 6.5h1.5v1a3 3 0 0 1-3 3M12 14v4M8.5 20h7"
-        fill="none"
+        d="M3.5 8.5h17M3.5 15.5h17"
         stroke={color}
         strokeLinecap="round"
-        strokeWidth={1.8}
+        strokeWidth={1.9}
       />
-    </Svg>
-  );
-}
-
-function SettingsIcon({ color }: { color: string }) {
-  return (
-    <Svg height={20} viewBox="0 0 24 24" width={20}>
-      <Path
-        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-        fill="none"
-        stroke={color}
-        strokeWidth={1.8}
-      />
-      <Path
-        d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.7 7.7 0 0 0-1.7-1l-.4-2.6h-3.9l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.7 7.7 0 0 0 1.7 1l.4 2.6h3.9l.4-2.6a7.7 7.7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5Z"
-        fill="none"
-        stroke={color}
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-      />
+      <Circle cx={15} cy={8.5} fill={color} r={3.1} />
+      <Circle cx={9.5} cy={15.5} fill={color} r={3.1} />
     </Svg>
   );
 }
@@ -234,66 +194,85 @@ function getObjectStyle(
   };
 }
 
-type CardSide = 'left' | 'right';
-
-interface CardPlacement {
-  left: number;
-  top: number;
-  side: CardSide;
-  transformOrigin: [string, string, number];
-}
-
 /**
- * Puts the card beside the object rather than over it, standing on the same
- * line its base sits on, and says which side it ended up on so it can be
- * hinged on the object itself.
- *
- * The side with more room wins, and the card falls back to floating above the
- * object only when neither side can hold it.
+ * The one button on the card that asks the learner to do something, so it
+ * breathes: a slow pulse with a halo behind it, which reads as an invitation
+ * where a still button reads as decoration. The movement is small and slow on
+ * purpose — the card it sits on is already tracking a moving object.
  */
-function getObjectCardPlacement(
-  targetStyle: ReturnType<typeof getObjectStyle>,
-  viewport: ViewportSize,
-  scale: number,
-): CardPlacement {
-  const width = OBJECT_CARD_WIDTH * scale;
-  const height = OBJECT_CARD_ESTIMATED_HEIGHT * scale;
-  const roomOnTheLeft = targetStyle.left - OBJECT_CARD_EDGE_INSET;
-  const roomOnTheRight =
-    viewport.width -
-    (targetStyle.left + targetStyle.width) -
-    OBJECT_CARD_EDGE_INSET;
-  const side: CardSide =
-    roomOnTheRight >= width || roomOnTheRight >= roomOnTheLeft
-      ? 'right'
-      : 'left';
+function PractiseAction({
+  accessibilityLabel,
+  label,
+  onPress,
+  testID,
+}: {
+  accessibilityLabel: string;
+  label: string;
+  onPress: () => void;
+  testID: string;
+}) {
+  const pulse = useSharedValue(0);
 
-  // Relative to the target, which is the box drawn around the object.
-  const left =
-    side === 'right'
-      ? targetStyle.width + OBJECT_CARD_GAP
-      : -(width + OBJECT_CARD_GAP);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1, {
+          duration: PRACTISE_PULSE_MS,
+          easing: Easing.inOut(Easing.quad),
+        }),
+        withTiming(0, {
+          duration: PRACTISE_PULSE_MS,
+          easing: Easing.inOut(Easing.quad),
+        }),
+      ),
+      -1,
+      false,
+    );
+  }, [pulse]);
 
-  // The card's base lines up with the object's, so both read as standing on
-  // the same surface.
-  const preferredAbsoluteTop = targetStyle.top + targetStyle.height - height;
-  const absoluteTop = Math.max(
-    OBJECT_CARD_TOP_SAFE_INSET,
-    Math.min(
-      preferredAbsoluteTop,
-      viewport.height - OBJECT_CARD_BOTTOM_SAFE_INSET - height,
+  const buttonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.value * 0.06 }],
+    // The colour lifts with the beat as well as the size. Scale alone is easy
+    // to miss on a wide button; a button that brightens is not.
+    backgroundColor: interpolateColor(
+      pulse.value,
+      [0, 1],
+      [PRACTISE_BASE, PRACTISE_LIT],
     ),
-  );
+    // Its own glow strengthens too, so the pulse reads even where the halo
+    // behind it is clipped by the card's edge.
+    shadowOpacity: 0.35 + pulse.value * 0.4,
+    shadowRadius: 8 + pulse.value * 10,
+  }));
 
-  return {
-    left,
-    top: absoluteTop - targetStyle.top,
-    side,
-    // The hinge is the edge facing the object, so the card opens away from it
-    // like a panel standing against it rather than turning around itself.
-    transformOrigin: side === 'right' ? ['0%', '100%', 0] : ['100%', '100%', 0],
-  };
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: 0.55 * (1 - pulse.value),
+    transform: [{ scale: 1 + pulse.value * 0.45 }],
+  }));
+
+  return (
+    <PractiseSlot>
+      <PractiseHalo pointerEvents="none" style={haloStyle} />
+      <PractiseButton
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        hitSlop={6}
+        onPress={onPress}
+        style={buttonStyle}
+        testID={testID}
+        $primary
+      >
+        <MicIcon color="#ffffff" />
+        <ActionLabel numberOfLines={1} $primary>
+          {label}
+        </ActionLabel>
+      </PractiseButton>
+    </PractiseSlot>
+  );
 }
+
+/** A quiet object shows only its name, at this size. */
+const OBJECT_LABEL_SIZE = { width: 138, height: 30 };
 
 interface InterpolatedObjectTargetProps {
   accessibilityLabel: string;
@@ -304,6 +283,9 @@ interface InterpolatedObjectTargetProps {
   onHear: () => void;
   onPractise: () => void;
   practiseLabel: string;
+  /** A quiet object is one of the others in frame: it shows its name and
+   * waits, rather than carrying the whole card. */
+  quiet?: boolean;
   targetStyle: ReturnType<typeof getObjectStyle>;
   testID: string;
   viewport: ViewportSize;
@@ -312,6 +294,7 @@ interface InterpolatedObjectTargetProps {
 function InterpolatedObjectTarget({
   accessibilityLabel,
   children,
+  quiet = false,
   durationMs,
   hearLabel,
   onHear,
@@ -326,13 +309,17 @@ function InterpolatedObjectTarget({
   const width = useSharedValue(targetStyle.width);
   const height = useSharedValue(targetStyle.height);
   const cardScale = getObjectCardScale(targetStyle, viewport);
-  const placement = getObjectCardPlacement(targetStyle, viewport, cardScale);
+  const placement = getObjectCardPlacement(
+    targetStyle,
+    viewport,
+    cardScale,
+    quiet ? OBJECT_LABEL_SIZE : undefined,
+  );
   // Hinged on the edge facing the object, the card's far edge is the one that
   // goes back: to the right of the object it opens rightwards, to the left it
   // opens leftwards.
   const cardTilt =
-    getObjectCardTilt(targetStyle, viewport) *
-    (placement.side === 'right' ? 1 : -1);
+    getObjectCardTilt(targetStyle, viewport) * placement.hingeDirection;
   const scale = useSharedValue(cardScale);
   const tilt = useSharedValue(cardTilt);
 
@@ -372,17 +359,28 @@ function InterpolatedObjectTarget({
     width: width.value,
   }));
 
-  // The card is a panel standing beside the object rather than a sticker on
-  // the glass: it keeps a little perspective, leans back, and turns to face
-  // the middle of the screen by as much as the object is off to one side.
-  const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [
-      { perspective: OBJECT_CARD_PERSPECTIVE },
-      { rotateY: `${tilt.value}deg` },
-      { rotateX: `${OBJECT_CARD_PITCH_DEGREES}deg` },
-      { scale: scale.value },
-    ],
-  }));
+  // The card is a panel standing against the object rather than a sticker on
+  // the glass: it keeps a little perspective and opens away from the object on
+  // the edge it is hinged to, around whichever axis that edge runs along.
+  const isSideways = placement.hingeAxis === 'y';
+  // A quiet object carries a flat label. Perspective is for the one card the
+  // learner is being asked to read.
+  const animatedCardStyle = useAnimatedStyle(() =>
+    quiet
+      ? { transform: [{ scale: scale.value }] }
+      : {
+          transform: [
+            { perspective: OBJECT_CARD_PERSPECTIVE },
+            { rotateY: isSideways ? `${tilt.value}deg` : '0deg' },
+            {
+              rotateX: isSideways
+                ? `${OBJECT_CARD_PITCH_DEGREES}deg`
+                : `${tilt.value}deg`,
+            },
+            { scale: scale.value },
+          ],
+        },
+  );
 
   return (
     <ObjectTarget
@@ -403,7 +401,12 @@ function InterpolatedObjectTarget({
       testID={testID}
     >
       {TARGET_CORNERS.map(corner => (
-        <TargetCorner key={corner} $corner={corner} pointerEvents="none" />
+        <TargetCorner
+          key={corner}
+          $corner={corner}
+          $quiet={quiet}
+          pointerEvents="none"
+        />
       ))}
       {children([
         {
@@ -420,7 +423,6 @@ function InterpolatedObjectTarget({
 export function CameraView({
   copy,
   isActive,
-  onOpenCollection,
   onOpenHistory,
   onPractiseSpeaking,
   onOpenSettings,
@@ -430,11 +432,11 @@ export function CameraView({
   viewModel,
 }: CameraViewProps) {
   const theme = useTheme();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { learningLanguage, nativeLanguage } = viewModel.languageSettings;
   const nativeCode = languageCodes[nativeLanguage];
   const learningCode = languageCodes[learningLanguage];
   const languagePairLabel = `${nativeCode} para ${learningCode}`;
+  const [chosenId, setChosenId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>({
     width: 0,
     height: 0,
@@ -477,6 +479,39 @@ export function CameraView({
   }
 
   const detectionFrame = viewModel.detectionFrame;
+  // One object carries the card. The learner picks it by tapping a label, and
+  // until then it is the nearest one, which is what the phone is pointed at.
+  const nearestId = viewModel.detectionItems.reduce<string | null>(
+    (nearest, item) => {
+      const area = item.object.bounds.width * item.object.bounds.height;
+      const nearestItem = viewModel.detectionItems.find(
+        candidate => candidate.object.id === nearest,
+      );
+      const nearestArea =
+        nearestItem == null
+          ? 0
+          : nearestItem.object.bounds.width * nearestItem.object.bounds.height;
+
+      return area > nearestArea ? item.object.id : nearest;
+    },
+    null,
+  );
+  const readingId =
+    chosenId != null &&
+    viewModel.detectionItems.some(item => item.object.id === chosenId)
+      ? chosenId
+      : nearestId;
+  // The reading the model is surest of, which the diagnostics panel reports so
+  // a name that looks wrong can be judged against its score.
+  const strongestDetection = viewModel.detectionItems.reduce<
+    (typeof viewModel.detectionItems)[number]['object'] | null
+  >(
+    (strongest, item) =>
+      strongest == null || item.object.confidence > strongest.confidence
+        ? item.object
+        : strongest,
+    null,
+  );
   const isLandscape = viewport.width > viewport.height;
   const displayedError =
     viewModel.cameraError ??
@@ -500,9 +535,11 @@ export function CameraView({
               detectionFrame.sourceHeight,
               viewport,
             );
+            const isReading = object.id === readingId;
 
             return (
               <InterpolatedObjectTarget
+                quiet={!isReading}
                 accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${vocabulary.pronunciationHint}`}
                 durationMs={viewModel.detectionInterpolationDurationMs}
                 hearLabel={copy.camera.hear}
@@ -514,67 +551,82 @@ export function CameraView({
                 testID={`detected-object-${object.id}`}
                 viewport={viewport}
               >
-                {cardStyle => (
-                  <>
-                    <CardAnchor pointerEvents="none" />
-                    <ObjectCard style={cardStyle}>
-                      <ObjectWord numberOfLines={1}>
+                {cardStyle =>
+                  !isReading ? (
+                    <ObjectLabel
+                      accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}`}
+                      accessibilityRole="button"
+                      onPress={() => setChosenId(object.id)}
+                      style={cardStyle}
+                      testID={`label-object-${object.id}`}
+                    >
+                      <ObjectLabelWord numberOfLines={1}>
                         {vocabulary.word}
-                      </ObjectWord>
-                      <TranslationRow>
-                        {vocabulary.translations.map((translation, index) => (
-                          <React.Fragment key={translation}>
-                            {index > 0 ? (
-                              <TranslationDot>•</TranslationDot>
-                            ) : null}
-                            <Translation
-                              numberOfLines={1}
-                              $secondary={index > 0}
-                            >
-                              {translation}
-                            </Translation>
-                          </React.Fragment>
-                        ))}
-                      </TranslationRow>
-                      <ObjectExample numberOfLines={2}>
-                        {vocabulary.example}
-                      </ObjectExample>
-                      <ObjectRule />
-                      <ObjectPronunciation>
-                        <PronunciationText numberOfLines={1}>
-                          {vocabulary.pronunciation}
-                        </PronunciationText>
-                      </ObjectPronunciation>
-                      <ObjectActions>
-                        <ActionButton
+                      </ObjectLabelWord>
+                      <ObjectLabelMeaning numberOfLines={1}>
+                        {vocabulary.meaning}
+                      </ObjectLabelMeaning>
+                    </ObjectLabel>
+                  ) : (
+                    <>
+                      <ObjectCard style={cardStyle}>
+                        {/* The word is the way to hear it: reading a word and
+                            tapping it to listen is the gesture a dictionary
+                            taught everyone, and it leaves the row below for
+                            the one thing the app is asking to be done. */}
+                        <ObjectWordRow
                           accessibilityLabel={copy.camera.hear}
                           accessibilityRole="button"
                           hitSlop={6}
                           onPress={() => viewModel.onObjectPress(vocabulary)}
                           testID={`hear-object-${object.id}`}
                         >
-                          <SpeakerIcon />
-                          <ActionLabel numberOfLines={1}>
-                            {copy.camera.hear}
-                          </ActionLabel>
-                        </ActionButton>
-                        <ActionButton
-                          accessibilityLabel={copy.camera.practiseSpeaking}
-                          accessibilityRole="button"
-                          hitSlop={6}
-                          onPress={() => onPractiseSpeaking(object.label)}
-                          testID={`practise-object-${object.id}`}
-                          $primary
-                        >
-                          <MicIcon color="#ffffff" />
-                          <ActionLabel numberOfLines={1} $primary>
-                            {copy.camera.practise}
-                          </ActionLabel>
-                        </ActionButton>
-                      </ObjectActions>
-                    </ObjectCard>
-                  </>
-                )}
+                          <ObjectWord numberOfLines={1}>
+                            {vocabulary.word}
+                          </ObjectWord>
+                          <SpeakerIcon size={16} />
+                        </ObjectWordRow>
+                        <TranslationRow>
+                          {vocabulary.translations.map((translation, index) => (
+                            <React.Fragment key={translation.word}>
+                              {index > 0 ? (
+                                <TranslationDot>•</TranslationDot>
+                              ) : null}
+                              {/* The flag says which language the word beside it
+                                belongs to, which colour alone cannot. */}
+                              <TranslationFlag>
+                                {languageBaseFlags[translation.language]}
+                              </TranslationFlag>
+                              <Translation
+                                numberOfLines={1}
+                                $secondary={index > 0}
+                              >
+                                {translation.word}
+                              </Translation>
+                            </React.Fragment>
+                          ))}
+                        </TranslationRow>
+                        <ObjectExample numberOfLines={2}>
+                          {vocabulary.example}
+                        </ObjectExample>
+                        <ObjectRule />
+                        <ObjectPronunciation>
+                          <PronunciationText numberOfLines={1}>
+                            {vocabulary.pronunciation}
+                          </PronunciationText>
+                        </ObjectPronunciation>
+                        <ObjectActions>
+                          <PractiseAction
+                            accessibilityLabel={copy.camera.practiseSpeaking}
+                            label={copy.camera.practise}
+                            onPress={() => onPractiseSpeaking(object.label)}
+                            testID={`practise-object-${object.id}`}
+                          />
+                        </ObjectActions>
+                      </ObjectCard>
+                    </>
+                  )
+                }
               </InterpolatedObjectTarget>
             );
           })}
@@ -591,97 +643,37 @@ export function CameraView({
             <HeaderMark accessibilityLabel="SayLens" accessible>
               <AppMark height={46} testID="camera-brand-logo" width={46} />
             </HeaderMark>
-            <MenuColumn>
-              <RoundButton
-                accessibilityLabel={copy.camera.menu}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: isMenuOpen }}
-                onPress={() => setIsMenuOpen(open => !open)}
-                testID="camera-menu"
-              >
-                {isMenuOpen ? (
-                  <CloseIcon color={theme.colors.text} />
-                ) : (
-                  <MenuIcon color={theme.colors.text} />
-                )}
-              </RoundButton>
+            <LanguagePill
+              accessibilityHint={copy.camera.tapToChangeLanguages}
+              accessibilityLabel={languagePairLabel}
+              accessibilityRole="button"
+              onPress={onOpenSettings}
+              testID="camera-language-pair"
+            >
+              {/* Two flags and an arrow say the whole thing. The codes and the
+                  tick repeated it, and the width they cost was width the open
+                  menu needed. */}
+              <LanguageFlag>{languageFlags[nativeLanguage]}</LanguageFlag>
+              <LanguageArrow>→</LanguageArrow>
+              <LanguageFlag>{languageFlags[learningLanguage]}</LanguageFlag>
+            </LanguagePill>
 
-              {isMenuOpen ? (
-                <MenuItems>
-                  <MenuItem
-                    accessibilityLabel={copy.tabs.settings}
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      onOpenSettings();
-                    }}
-                    testID="camera-open-settings"
-                  >
-                    <MenuItemLabel>{copy.tabs.settings}</MenuItemLabel>
-                    <RoundButton as={View}>
-                      <SettingsIcon color={theme.colors.text} />
-                    </RoundButton>
-                  </MenuItem>
-
-                  <MenuItem
-                    accessibilityLabel={copy.history.title}
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      onOpenHistory();
-                    }}
-                    testID="camera-open-history"
-                  >
-                    <MenuItemLabel>{copy.history.title}</MenuItemLabel>
-                    <RoundButton as={View}>
-                      <ListIcon color={theme.colors.text} />
-                    </RoundButton>
-                  </MenuItem>
-
-                  <MenuItem
-                    accessibilityLabel={copy.collection.title}
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      onOpenCollection();
-                    }}
-                    testID="camera-open-collection"
-                  >
-                    <MenuItemLabel>{copy.collection.title}</MenuItemLabel>
-                    <RoundButton as={View}>
-                      <CollectionIcon color={theme.colors.text} />
-                    </RoundButton>
-                  </MenuItem>
-
-                  <MenuItem
-                    accessibilityLabel={
-                      viewModel.isFrozen
-                        ? copy.camera.resume
-                        : copy.camera.pause
-                    }
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      viewModel.toggleFrozen();
-                    }}
-                    testID="camera-toggle-freeze"
-                  >
-                    <MenuItemLabel>
-                      {viewModel.isFrozen
-                        ? copy.camera.resume
-                        : copy.camera.pause}
-                    </MenuItemLabel>
-                    <RoundButton as={View} $accent={viewModel.isFrozen}>
-                      {viewModel.isFrozen ? (
-                        <PlayIcon color={theme.colors.text} />
-                      ) : (
-                        <PauseIcon color={theme.colors.text} />
-                      )}
-                    </RoundButton>
-                  </MenuItem>
-                </MenuItems>
-              ) : null}
-            </MenuColumn>
+            <FreezeButton
+              accessibilityLabel={
+                viewModel.isFrozen ? copy.camera.resume : copy.camera.pause
+              }
+              accessibilityRole="button"
+              accessibilityState={{ selected: viewModel.isFrozen }}
+              onPress={viewModel.toggleFrozen}
+              testID="camera-toggle-freeze"
+              $frozen={viewModel.isFrozen}
+            >
+              {viewModel.isFrozen ? (
+                <PlayIcon color={theme.colors.text} />
+              ) : (
+                <PauseIcon color={theme.colors.text} />
+              )}
+            </FreezeButton>
           </Header>
 
           {showDiagnostics ? (
@@ -729,26 +721,23 @@ export function CameraView({
                 </DiagnosticsValue>
               </DiagnosticsRow>
               <DiagnosticsRow>
+                <DiagnosticsLabel>
+                  {copy.diagnostics.strongest}
+                </DiagnosticsLabel>
+                <DiagnosticsValue>
+                  {strongestDetection
+                    ? `${
+                        strongestDetection.label
+                      } ${strongestDetection.confidence.toFixed(2)}`
+                    : '—'}
+                </DiagnosticsValue>
+              </DiagnosticsRow>
+              <DiagnosticsRow>
                 <DiagnosticsLabel>{copy.diagnostics.profile}</DiagnosticsLabel>
                 <DiagnosticsValue>{diagnostics.profileLabel}</DiagnosticsValue>
               </DiagnosticsRow>
             </DiagnosticsPanel>
           ) : null}
-
-          <LanguagePill
-            accessibilityHint={copy.camera.tapToChangeLanguages}
-            accessibilityLabel={languagePairLabel}
-            accessibilityRole="button"
-            onPress={onOpenSettings}
-            testID="camera-language-pair"
-          >
-            <LanguageFlag>{languageFlags[nativeLanguage]}</LanguageFlag>
-            <LanguageCode>{nativeCode}</LanguageCode>
-            <LanguageArrow>→</LanguageArrow>
-            <LanguageFlag>{languageFlags[learningLanguage]}</LanguageFlag>
-            <LanguageCode>{learningCode}</LanguageCode>
-            <LanguageCheck>✓</LanguageCheck>
-          </LanguagePill>
 
           {viewModel.isFrozen ? (
             <FrozenBadge testID="camera-frozen-badge">
@@ -762,6 +751,33 @@ export function CameraView({
               <ErrorText>{displayedError}</ErrorText>
             </ErrorBanner>
           ) : null}
+
+          {/* The three places a learner goes, where a thumb reaches them. */}
+          <BottomBar>
+            <BarItem
+              accessibilityLabel={copy.history.title}
+              accessibilityRole="button"
+              onPress={onOpenHistory}
+              testID="camera-open-history"
+            >
+              <BarIcon>
+                <ListIcon color="#ffffff" size={23} />
+              </BarIcon>
+              <BarLabel numberOfLines={1}>{copy.history.title}</BarLabel>
+            </BarItem>
+
+            <BarItem
+              accessibilityLabel={copy.tabs.settings}
+              accessibilityRole="button"
+              onPress={onOpenSettings}
+              testID="camera-open-settings"
+            >
+              <BarIcon>
+                <SettingsIcon color="#ffffff" size={23} />
+              </BarIcon>
+              <BarLabel numberOfLines={1}>{copy.tabs.settings}</BarLabel>
+            </BarItem>
+          </BottomBar>
         </Overlay>
       ) : null}
     </Container>
@@ -796,10 +812,12 @@ const ObjectTarget = styled(Animated.View)`
  * the camera image stays readable underneath. */
 const TargetCorner = styled.View<{
   $corner: (typeof TARGET_CORNERS)[number];
+  $quiet?: boolean;
 }>`
   position: absolute;
   width: 18px;
   height: 18px;
+  opacity: ${({ $quiet }) => ($quiet ? 0.55 : 1)};
   border-color: rgba(255, 255, 255, 0.94);
   ${({ $corner }) =>
     $corner === 'topLeft'
@@ -811,9 +829,41 @@ const TargetCorner = styled.View<{
       : 'bottom: 0px; right: 0px; border-bottom-width: 2.5px; border-right-width: 2.5px; border-bottom-right-radius: 8px;'}
 `;
 
+/** Everything else in frame: the word, its meaning, and nothing more. Tapping
+ * it makes it the one being read, which is the same gesture as choosing what a
+ * camera focuses on. */
+const ObjectLabel = styled(
+  Animated.createAnimatedComponent(styled.Pressable``),
+)`
+  position: absolute;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.overlayCardBorder};
+  background-color: ${({ theme }) => theme.colors.overlayCardTranslucent};
+  elevation: 8;
+  shadow-color: #000000;
+  shadow-opacity: 0.28;
+  shadow-radius: 10px;
+  shadow-offset: 2px 6px;
+`;
+
+const ObjectLabelWord = styled.Text`
+  color: ${({ theme }) => theme.colors.overlayInk};
+  font-size: 13px;
+  font-weight: 800;
+`;
+
+const ObjectLabelMeaning = styled.Text`
+  color: ${({ theme }) => theme.colors.overlayMuted};
+  font-size: 12px;
+`;
+
 const ObjectCard = styled(Animated.View)`
   position: absolute;
-  width: 208px;
+  width: ${OBJECT_CARD_WIDTH}px;
   padding: 16px;
   border-radius: 20px;
   border: 1px solid ${({ theme }) => theme.colors.overlayCardBorder};
@@ -827,16 +877,10 @@ const ObjectCard = styled(Animated.View)`
   shadow-offset: 6px 12px;
 `;
 
-/** Short leader line and dot tying the card back to the object it describes. */
-const CardAnchor = styled.View`
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  margin-left: -5px;
-  border-radius: 5px;
-  background-color: ${({ theme }) => theme.colors.overlayCard};
+const ObjectWordRow = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
 `;
 
 const ObjectWord = styled.Text`
@@ -844,6 +888,12 @@ const ObjectWord = styled.Text`
   font-size: 24px;
   line-height: 30px;
   font-weight: 700;
+`;
+
+const TranslationFlag = styled.Text`
+  margin-right: 4px;
+  font-size: 13px;
+  line-height: 20px;
 `;
 
 const TranslationRow = styled.View`
@@ -900,6 +950,24 @@ const PronunciationText = styled.Text`
 
 /** Hearing the word and saying it back are the two things to do with a card,
  * so both are named rather than left to a tap the learner has to guess. */
+/** Holds the button and the halo that grows behind it, so the halo can spread
+ * without moving anything else on the card. */
+const PractiseSlot = styled.View`
+  flex: 1;
+  align-items: stretch;
+  justify-content: center;
+`;
+
+/** With hearing moved to the word, practising is the only thing left to press,
+ * so it takes the whole row. */
+
+const PractiseHalo = styled(Animated.View)`
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.overlayAction};
+`;
+
 const ObjectActions = styled.View`
   flex-direction: row;
   gap: 8px;
@@ -915,10 +983,19 @@ const ActionButton = styled.Pressable<{ $primary?: boolean }>`
   padding: 7px 6px;
   border: 1px solid
     ${({ theme, $primary }) =>
-      $primary ? theme.colors.accent : theme.colors.overlayRule};
+      $primary ? theme.colors.overlayAction : theme.colors.overlayRule};
   border-radius: 999px;
   background-color: ${({ theme, $primary }) =>
-    $primary ? theme.colors.accent : 'transparent'};
+    $primary ? theme.colors.overlayAction : 'transparent'};
+`;
+
+/** The same button, able to animate. It fills its slot rather than flexing,
+ * because the slot around it is what holds the row's proportions. */
+const PractiseButton = styled(Animated.createAnimatedComponent(ActionButton))`
+  flex: 0;
+  padding: 10px 8px;
+  shadow-color: ${({ theme }) => theme.colors.overlayAction};
+  shadow-offset: 0px 3px;
 `;
 
 const ActionLabel = styled.Text<{ $primary?: boolean }>`
@@ -932,7 +1009,7 @@ const ActionLabel = styled.Text<{ $primary?: boolean }>`
 const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
   flex: 1;
   padding-right: ${({ $landscape }) => ($landscape ? 154 : 0)}px;
-  padding-bottom: ${({ $landscape }) => ($landscape ? 16 : 112)}px;
+  padding-bottom: ${({ $landscape }) => ($landscape ? 16 : 26)}px;
   z-index: 2;
 `;
 
@@ -1051,85 +1128,81 @@ const PermissionError = styled.Text`
   text-align: center;
 `;
 
+/** Sits in the header, pushed up against the menu button, so the two controls
+ * that change what the camera does are within a thumb's reach of each other. */
 const LanguagePill = styled.Pressable`
-  align-self: center;
+  flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  padding: 12px 20px;
+  gap: 7px;
+  margin: 4px 8px 0px auto;
+  padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid ${({ theme }) => theme.colors.glassBorder};
-  background-color: ${({ theme }) => theme.colors.glassStrong};
+  border: 1px solid ${({ theme }) => theme.colors.overlayGlassBorder};
+  background-color: ${({ theme }) => theme.colors.overlayGlass};
 `;
 
 const LanguageFlag = styled.Text`
-  font-size: 18px;
-  line-height: 22px;
-`;
-
-const LanguageCode = styled.Text`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
+  font-size: 17px;
+  line-height: 21px;
 `;
 
 const LanguageArrow = styled.Text`
   color: ${({ theme }) => theme.colors.muted};
-  font-size: 16px;
+  font-size: 14px;
 `;
 
-const LanguageCheck = styled.Text`
-  width: 22px;
-  height: 22px;
-  border-radius: 11px;
-  background-color: ${({ theme }) => theme.colors.translationPrimary};
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 22px;
-  text-align: center;
-`;
-
-const MenuColumn = styled.View`
+/** One surface rather than three loose icons: a dock the thumb can find
+ * without looking, with room around each target. Cards are kept above it by
+ * the placement's bottom inset, so nothing a learner is reading sits under it. */
+const BottomBar = styled.View`
+  flex-direction: row;
+  justify-content: space-around;
   align-items: flex-end;
-  gap: 10px;
+  margin-top: auto;
+  padding: 10px 12px 0px;
 `;
 
-const RoundButton = styled.Pressable<{ $accent?: boolean }>`
-  width: 42px;
-  height: 42px;
+/** Three controls floating over the scene rather than a bar across it. A bar
+ * is a piece of interface the camera has to look through; these are objects
+ * resting on it. */
+const BarItem = styled.Pressable`
+  align-items: center;
+  gap: 7px;
+  min-width: 68px;
+`;
+
+const BarIcon = styled.View`
+  width: 50px;
+  height: 50px;
   align-items: center;
   justify-content: center;
-  border: 1px solid
-    ${({ theme, $accent }) =>
-      $accent ? theme.colors.accent : theme.colors.glassBorder};
-  border-radius: 21px;
-  background-color: ${({ theme, $accent }) =>
-    $accent ? theme.colors.glassBlue : theme.colors.glassStrong};
-  elevation: 6;
+  border: 1px solid ${({ theme }) => theme.colors.overlayGlassBorder};
+  border-radius: 25px;
+  background-color: ${({ theme }) => theme.colors.overlayGlass};
 `;
 
-const MenuItems = styled.View`
-  align-items: flex-end;
-  gap: 10px;
-`;
-
-const MenuItem = styled.Pressable`
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-`;
-
-const MenuItemLabel = styled.Text`
-  padding: 6px 12px;
-  border-radius: 999px;
-  background-color: ${({ theme }) => theme.colors.glassStrong};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 12px;
+const BarLabel = styled.Text`
+  color: #ffffff;
+  font-size: 11.5px;
   font-weight: 700;
-  overflow: hidden;
+  /* The label sits on the scene, not on a surface, so it carries its own
+     shadow to stay readable over a bright floor. */
+  text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.8);
+`;
+
+/** Freezing is a mode, and a rare one, so it sits where a camera puts its
+ * flash toggle rather than competing with the places a learner goes. */
+const FreezeButton = styled.Pressable<{ $frozen: boolean }>`
+  width: 38px;
+  height: 38px;
+  margin-top: 4px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.overlayGlassBorder};
+  border-radius: 19px;
+  background-color: ${({ theme, $frozen }) =>
+    $frozen ? theme.colors.overlayAction : theme.colors.overlayGlass};
 `;
 
 const DiagnosticsPanel = styled.View`

@@ -3,6 +3,15 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import App from '../src/app/App';
 
+// This file drives whole screens, and the count that rolls up on the words
+// screen would leave state updates landing after each act block. The curve
+// itself is covered by its own test.
+jest.mock('../src/features/learning/presentation/animation/countUp', () => ({
+  __esModule: true,
+  getCountUpDurationMs: () => 0,
+  getCountUpValue: (target: number) => target,
+}));
+
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,
@@ -117,8 +126,11 @@ jest.mock(
             inferenceTimeMs: 45,
           };
 
-          // The tracker only shows a layer once a label has been seen twice,
-          // so the fake detector has to deliver two results like the real one.
+          // The tracker only shows a layer once a label has landed on the same
+          // place four times, so the fake detector delivers four results the
+          // way the real one would.
+          onDetections(result);
+          onDetections(result);
           onDetections(result);
           onDetections(result);
         }, [isActive, onDetections]);
@@ -616,7 +628,7 @@ describe('App', () => {
       'Bottle',
       'en-US',
     );
-    expect(JSON.stringify(renderer!.toJSON())).toContain('Treinar');
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Falar');
   });
 
   it('collects a detected object into its rooms and counts a streak', async () => {

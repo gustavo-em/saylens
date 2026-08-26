@@ -89,6 +89,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           pronunciationPlayer={systemPronunciationPlayer}
           favorites={viewModel.favorites}
           foundLabels={viewModel.foundLabels}
+          hasRestoredWords={viewModel.hasRestoredWords}
           matchedPronunciations={viewModel.matchedPronunciations}
           streakDays={viewModel.streakDays}
           onOpenCollection={() => viewModel.selectTab('collection')}

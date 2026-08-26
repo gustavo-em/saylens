@@ -284,7 +284,7 @@ const copies: Record<
       title: 'Minhas palavras',
       subtitle: 'Os últimos 15 objetos que você reconheceu.',
       countLabel: count =>
-        count === 1 ? 'palavra encontrada' : 'palavras encontradas',
+        count === 1 ? 'palavra descoberta' : 'palavras descobertas',
       dueTitle: count => `${count} para revisar hoje`,
       dueNote: 'Palavras de um dia atrás, e as que você errou',
       dueAction: 'Revisar',
@@ -359,7 +359,7 @@ const copies: Record<
       pronunciationLabel: 'PRONÚNCIA',
       practiseSpeaking: 'Praticar a fala',
       hear: 'Ouvir',
-      practise: 'Treinar',
+      practise: 'Falar',
       tapToChangeLanguages: 'Toque para escolher os idiomas.',
       menu: 'Opções',
       pause: 'Pausar',
@@ -469,7 +469,8 @@ const copies: Record<
     history: {
       title: 'My words',
       subtitle: 'The last 15 objects you recognised.',
-      countLabel: count => (count === 1 ? 'word found' : 'words found'),
+      countLabel: count =>
+        count === 1 ? 'word discovered' : 'words discovered',
       dueTitle: count => `${count} to review today`,
       dueNote: 'Words from a day ago, and the ones you missed',
       dueAction: 'Review',
@@ -541,7 +542,7 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIATION',
       practiseSpeaking: 'Practise speaking',
       hear: 'Hear',
-      practise: 'Practise',
+      practise: 'Speak',
       tapToChangeLanguages: 'Tap to choose the languages.',
       menu: 'Options',
       pause: 'Pause',
@@ -653,7 +654,7 @@ const copies: Record<
       title: 'Mis palabras',
       subtitle: 'Los últimos 15 objetos que reconociste.',
       countLabel: count =>
-        count === 1 ? 'palabra encontrada' : 'palabras encontradas',
+        count === 1 ? 'palabra descubierta' : 'palabras descubiertas',
       dueTitle: count => `${count} para repasar hoy`,
       dueNote: 'Palabras de hace un día, y las que fallaste',
       dueAction: 'Repasar',

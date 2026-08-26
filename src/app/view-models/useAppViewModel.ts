@@ -50,6 +50,9 @@ export function useAppViewModel(
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
+  /** False until the stored words have been read back. Before that the list is
+   * empty because nothing has loaded, not because nothing was found. */
+  const [hasRestoredWords, setHasRestoredWords] = useState(false);
   /** Set when a round is opened for a particular set of words, such as the
    * ones due for review, and cleared when practice is opened at large. */
   const [reviewLabels, setReviewLabels] = useState<readonly string[] | null>(
@@ -85,7 +88,10 @@ export function useAppViewModel(
       .then(stored => {
         if (isCurrent) setViewedObjects(sanitizeViewedObjects(stored));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (isCurrent) setHasRestoredWords(true);
+      });
 
     return () => {
       isCurrent = false;
@@ -303,6 +309,7 @@ export function useAppViewModel(
     favorites,
     // Practice draws on everything the learner has met: what is still in
     // history plus everything kept as a favourite.
+    hasRestoredWords,
     quizLabels:
       reviewLabels ??
       Array.from(

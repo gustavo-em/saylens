@@ -85,3 +85,32 @@ describe('learner progress', () => {
     ).toEqual({ foundLabels: ['cup'], streakDays: 0, lastFoundDayMs: 0 });
   });
 });
+
+describe('the level curve fits the catalogue', () => {
+  it('gives the first level away for four objects', () => {
+    expect(getLevel(0)).toBe(1);
+    expect(getLevel(39)).toBe(1);
+    expect(getLevel(40)).toBe(2);
+  });
+
+  it('keeps every level inside what the catalogue can pay for', () => {
+    // Eighty words found and pronounced is all the experience there is.
+    const everything = getExperience(80, 80);
+    const level = getLevel(everything);
+    const span = experienceForLevel(level + 1) - experienceForLevel(level);
+
+    expect(everything).toBe(2000);
+    expect(level).toBeGreaterThanOrEqual(15);
+    // A single level never costs more than a fifth of a whole catalogue.
+    expect(span).toBeLessThanOrEqual(everything / 5);
+  });
+
+  it('charges a little more for each level than the one before', () => {
+    const spans = [2, 3, 4, 5].map(
+      level => experienceForLevel(level + 1) - experienceForLevel(level),
+    );
+
+    expect(spans).toEqual([...spans].sort((a, b) => a - b));
+    expect(spans[0]).toBeLessThan(spans[spans.length - 1]);
+  });
+});

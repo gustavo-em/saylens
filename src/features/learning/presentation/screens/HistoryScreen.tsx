@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TextInput } from 'react-native';
 import Animated, {
   Easing,
   ReduceMotion,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,7 +27,7 @@ import {
 import { getExperience, getLevelProgress } from '../../domain/LearnerProgress';
 import { isResting } from '../../domain/PronunciationProgress';
 import { getWordsToReview } from '../../domain/ReviewQueue';
-import { getCountUpDurationMs } from '../animation/countUp';
+import { getCountUpDurationMs, getCountUpValue } from '../animation/countUp';
 import type { ViewedObject } from '../../domain/ViewedObject';
 import type { LearningCopy } from '../localization/learningCopy';
 
@@ -40,6 +40,9 @@ interface HistoryScreenProps {
   foundLabels: readonly string[];
   matchedPronunciations: number;
   streakDays: number;
+  /** False until the stored words have been read back, so the screen can show
+   * that it is still loading rather than that nothing was ever found. */
+  hasRestoredWords: boolean;
   onOpenCollection: () => void;
   /** Opens a round. The review band passes the words that are due, so the
    * round asks about those rather than about everything. */
@@ -96,6 +99,7 @@ export function HistoryScreen({
   foundLabels,
   matchedPronunciations,
   streakDays,
+  hasRestoredWords,
   onOpenCollection,
   onOpenQuiz,
   onPractiseSpeaking,
@@ -241,6 +245,7 @@ export function HistoryScreen({
           <ProgressItem>
             <ProgressValue>{streakDays}</ProgressValue>
             <ProgressLabel>{copy.history.streakLabel}</ProgressLabel>
+            <StreakWeek days={streakDays} />
           </ProgressItem>
         </Progress>
         {/* A number on its own says nothing, so the screen says where it comes
@@ -264,7 +269,9 @@ export function HistoryScreen({
           </DueBand>
         ) : null}
 
-        {viewedObjects.length === 0 ? (
+        {!hasRestoredWords && viewedObjects.length === 0 ? (
+          <SkeletonRows />
+        ) : viewedObjects.length === 0 ? (
           <EmptyState testID="history-empty">
             <EmptyText>{copy.history.empty}</EmptyText>
           </EmptyState>
@@ -454,9 +461,13 @@ const FavoriteMark = styled.Text<{ $active: boolean }>`
  * second, and anyone who asked their phone for less motion sees it arrive at
  * the total directly.
  */
-/** The bar fills to where the learner stands, arriving with the count. */
+/**
+ * The bar fills to where the learner stands, arriving with the count, and a
+ * light travels across what has been earned so far.
+ */
 function LevelFillBar({ percentage }: { percentage: number }) {
   const width = useSharedValue(0);
+  const sheen = useSharedValue(0);
 
   useEffect(() => {
     width.value = withTiming(percentage, {
@@ -464,48 +475,173 @@ function LevelFillBar({ percentage }: { percentage: number }) {
       easing: Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.System,
     });
-  }, [percentage, width]);
+    sheen.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
+        // A pause between passes, so it reads as a highlight rather than as
+        // something still loading.
+        withTiming(1, { duration: 1600 }),
+      ),
+      -1,
+      false,
+      undefined,
+      ReduceMotion.System,
+    );
+  }, [percentage, sheen, width]);
 
-  const style = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+  const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+  const sheenStyle = useAnimatedStyle(() => ({
+    opacity: sheen.value < 1 ? 0.55 : 0,
+    left: `${sheen.value * 100}%`,
+  }));
 
-  return <LevelFill style={style} />;
+  return (
+    <LevelFill style={fillStyle}>
+      <LevelSheen pointerEvents="none" style={sheenStyle} />
+    </LevelFill>
+  );
+}
+
+/**
+ * The last week, one square a day, filled for the days in a row the learner
+ * has kept. The streak is the only record kept of which days those were, so
+ * the squares are counted back from today.
+ */
+function StreakWeek({ days }: { days: number }) {
+  return (
+    <Week>
+      {Array.from({ length: STREAK_WEEK_DAYS }, (_, index) => {
+        const daysAgo = STREAK_WEEK_DAYS - 1 - index;
+
+        return <Day key={daysAgo} $filled={daysAgo < days} />;
+      })}
+    </Week>
+  );
+}
+
+/** Rows that stand in for words while the stored ones are read back. */
+function SkeletonRows() {
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 780, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+      undefined,
+      ReduceMotion.System,
+    );
+  }, [pulse]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.35 + pulse.value * 0.35,
+  }));
+
+  return (
+    <SkeletonList testID="history-loading">
+      {SKELETON_WIDTHS.map(width => (
+        <SkeletonRow key={width}>
+          <SkeletonDot style={style} />
+          <SkeletonLines>
+            <SkeletonBar style={style} $width={width} />
+            <SkeletonBar style={style} $width={width - 18} $short />
+          </SkeletonLines>
+          <SkeletonTail style={style} />
+        </SkeletonRow>
+      ))}
+    </SkeletonList>
+  );
 }
 
 /**
  * The total, rolled up from nothing when the screen opens.
  *
  * The count is the one number a learner is proud of, and watching it climb is
- * what makes it feel earned rather than reported. It runs on the interface
- * thread rather than on a timer in JavaScript, and anyone who asked their
- * phone for less motion sees the total arrive directly.
+ * what makes it feel earned rather than reported.
+ *
+ * It steps in JavaScript rather than on the interface thread. Reanimated can
+ * animate a number, but writing that number into a view's text needs the
+ * native prop whitelist, and that is a no-op in Reanimated 4 — the value
+ * animates and the text jumps from its first frame to its last. Twenty-five
+ * steps over a second is a cost worth paying for a count that can be read.
  */
 function CountUp({ target }: { target: number }) {
-  const counted = useSharedValue(0);
+  const [shown, setShown] = useState(0);
 
   useEffect(() => {
-    counted.value = 0;
-    counted.value = withTiming(target, {
-      duration: getCountUpDurationMs(target),
-      easing: Easing.out(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [counted, target]);
+    setShown(0);
 
-  const animatedProps = useAnimatedProps(() => ({
-    text: String(Math.round(counted.value)),
-    defaultValue: String(Math.round(counted.value)),
-  }));
+    const durationMs = getCountUpDurationMs(target);
+    const startedAtMs = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startedAtMs;
+      setShown(getCountUpValue(target, elapsed, durationMs));
+      if (elapsed >= durationMs) clearInterval(timer);
+    }, 40);
 
-  return (
-    <CountValue
-      animatedProps={animatedProps}
-      editable={false}
-      pointerEvents="none"
-      underlineColorAndroid="transparent"
-      value={String(target)}
-    />
-  );
+    return () => clearInterval(timer);
+  }, [target]);
+
+  return <CountValue>{shown}</CountValue>;
 }
+
+/** Seven days, one square each, ending today. */
+const STREAK_WEEK_DAYS = 7;
+/** Widths of the standing-in rows, so they do not look printed. */
+const SKELETON_WIDTHS = [128, 96, 142, 110, 120, 88];
+
+const Week = styled.View`
+  flex-direction: row;
+  gap: 4px;
+  margin-top: 9px;
+`;
+
+const Day = styled.View<{ $filled: boolean }>`
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background-color: ${({ theme, $filled }) =>
+    $filled ? theme.colors.accent : theme.colors.borderSubtle};
+`;
+
+const SkeletonList = styled.View`
+  padding-top: 4px;
+`;
+
+const SkeletonRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 2px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const SkeletonDot = styled(Animated.View)`
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const SkeletonLines = styled.View`
+  flex: 1;
+  gap: 6px;
+`;
+
+const SkeletonBar = styled(Animated.View)<{ $width: number; $short?: boolean }>`
+  width: ${({ $width }) => $width}px;
+  height: ${({ $short }) => ($short ? 8 : 11)}px;
+  border-radius: 5px;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const SkeletonTail = styled(Animated.View)`
+  width: 34px;
+  height: 9px;
+  border-radius: 5px;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
 
 const Progress = styled.View`
   flex-direction: row;
@@ -550,8 +686,18 @@ const LevelTrack = styled.View`
 
 const LevelFill = styled(Animated.View)`
   height: 4px;
+  overflow: hidden;
   border-radius: 2px;
   background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+/** A light that crosses what has been earned. */
+const LevelSheen = styled(Animated.View)`
+  position: absolute;
+  top: 0px;
+  width: 26px;
+  height: 4px;
+  background-color: #ffffff;
 `;
 
 const ProgressHint = styled.Text`
@@ -584,10 +730,7 @@ const RowText = styled.View`
   min-width: 0px;
 `;
 
-/** A text input rather than a text: it is the one element whose contents can
- * be written from the interface thread, which is where the count runs. */
-const CountValue = styled(Animated.createAnimatedComponent(TextInput))`
-  padding: 0px;
+const CountValue = styled.Text`
   color: ${({ theme }) => theme.colors.text};
   font-size: 44px;
   line-height: 48px;

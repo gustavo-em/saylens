@@ -31,7 +31,7 @@ enum DetectorConstants {
   /// be about one. Both match Android, so a difference between the platforms
   /// is a difference in hardware rather than in what was asked of the model.
   static let maximumResults = 5
-  static let scoreThreshold: Float = 0.55
+  static let scoreThreshold: Float = 0.65
 
   /// How much a new box has to overlap the previous one to be treated as the
   /// same object rather than a new one.

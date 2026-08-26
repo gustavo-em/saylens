@@ -643,7 +643,13 @@ class SayLensObjectDetector : HybridSayLensObjectDetectorSpec() {
     const val GPU_DELEGATE_ENABLED = false
     const val GPU_DELEGATE_PROBE_ATTEMPT_LIMIT = 1
     const val MAX_RESULTS = 5
-    const val DEFAULT_SCORE_THRESHOLD = 0.55f
+    /**
+     * What the model has to be sure of before a box is reported at all. The
+     * interface asks for more than this again before it puts a word on screen:
+     * a small model is confidently wrong now and then, and a learner remembers
+     * a wrong word far longer than a right one.
+     */
+    const val DEFAULT_SCORE_THRESHOLD = 0.65f
     const val RGBA_BYTES_PER_PIXEL = 4
     const val NANOSECONDS_PER_MILLISECOND = 1_000_000.0
     const val NANOSECONDS_PER_SECOND = 1_000_000_000.0

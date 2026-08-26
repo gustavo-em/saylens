@@ -15,8 +15,21 @@ export const EMPTY_LEARNER_PROGRESS: LearnerProgress = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const XP_PER_FOUND_OBJECT = 10;
 const XP_PER_MATCHED_WORD = 15;
-/** Each level costs a little more than the one before it. */
-const XP_LEVEL_STEP = 25;
+/**
+ * What a level costs, and how much more the next one costs.
+ *
+ * The catalogue holds eighty words, so a learner who finds every one and says
+ * every one correctly earns two thousand points and no more. A curve has to
+ * fit inside that: the previous one charged fifty points times the level, which
+ * asked seven hundred and fifty for a single level — seventy-five objects —
+ * and put everything past level nine out of reach for good.
+ *
+ * Four objects buy the first level, and each level after costs ten more than
+ * the one before. Finding and pronouncing the whole catalogue lands around
+ * level seventeen.
+ */
+const XP_LEVEL_BASE = 40;
+const XP_LEVEL_GROWTH = 10;
 
 export function startOfDay(atMs: number): number {
   const date = new Date(atMs);
@@ -81,15 +94,22 @@ export function getExperience(
   );
 }
 
-/** Experience needed to reach a level, growing by one step per level. */
+/** Experience needed to reach a level: every step before it, added up. */
 export function experienceForLevel(level: number): number {
-  return XP_LEVEL_STEP * level * (level - 1);
+  const steps = Math.max(level - 1, 0);
+
+  return XP_LEVEL_BASE * steps + (XP_LEVEL_GROWTH * steps * (steps - 1)) / 2;
 }
 
 export function getLevel(experience: number): number {
-  return Math.floor(
-    (1 + Math.sqrt(1 + (4 * Math.max(experience, 0)) / XP_LEVEL_STEP)) / 2,
-  );
+  // The sum above is a quadratic in the number of steps taken, so the level is
+  // what is left after solving it for that number.
+  const points = Math.max(experience, 0);
+  const a = XP_LEVEL_GROWTH / 2;
+  const b = XP_LEVEL_BASE - XP_LEVEL_GROWTH / 2;
+  const steps = (-b + Math.sqrt(b * b + 4 * a * points)) / (2 * a);
+
+  return Math.floor(steps) + 1;
 }
 
 /** How far the learner is into the current level, for the progress bar. */

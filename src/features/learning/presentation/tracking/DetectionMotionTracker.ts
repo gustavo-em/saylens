@@ -14,8 +14,36 @@ const MAX_PREDICTION_HORIZON_MS = 180;
  * layer, otherwise single-frame noise flashes a card over the scene.
  */
 const MISSING_TRACK_RETENTION_MS = 800;
-const MIN_HITS_TO_CONFIRM = 2;
+/**
+ * What a detection has to do before it earns a card.
+ *
+ * A small model is confidently wrong now and then — a microwave read as a
+ * toilet, an earphone read as a bird — and a learner remembers the wrong word
+ * far longer than the right one. Two things have to hold: the same label has
+ * to keep landing on the same place for four readings, and the model has to
+ * have been sure of it on average, well above the floor it needed to be
+ * reported at all.
+ *
+ * Three quarters is deliberately strict. It loses genuine objects in poor
+ * light and at a distance, and that is the trade: a learner forgives an app
+ * that says nothing far more easily than one that teaches them the wrong
+ * word.
+ *
+ * Tracks are matched within a label, so a detector that cannot decide between
+ * two names never accumulates the readings for either, and nothing is shown
+ * until it settles.
+ */
+const MIN_HITS_TO_CONFIRM = 4;
+const MIN_CONFIRMED_CONFIDENCE = 0.75;
 const VELOCITY_SMOOTHING = 0.55;
+
+/** Enough readings, and enough certainty across them. */
+function isConfirmed(track: ObjectTrack) {
+  return (
+    track.hits >= MIN_HITS_TO_CONFIRM &&
+    track.confidenceSum / track.hits >= MIN_CONFIRMED_CONFIDENCE
+  );
+}
 /**
  * The detector re-measures every box from scratch, so a still object still
  * moves a pixel or two between results. Blending each new measurement into the
@@ -35,6 +63,8 @@ interface MotionVector {
 interface ObjectTrack {
   confidence: number;
   hits: number;
+  /** Mean confidence across the readings that built this track. */
+  confidenceSum: number;
   id: string;
   label: string;
   lastObservedBounds: NormalizedBounds;
@@ -205,6 +235,7 @@ export class DetectionMotionTracker {
         : ZERO_VELOCITY;
       const track: ObjectTrack = {
         confidence: object.confidence,
+        confidenceSum: (matchingTrack?.confidenceSum ?? 0) + object.confidence,
         hits: (matchingTrack?.hits ?? 0) + 1,
         id,
         label: object.label,
@@ -215,7 +246,7 @@ export class DetectionMotionTracker {
 
       matchedTrackIds.add(id);
       nextTracks.set(id, track);
-      if (track.hits < MIN_HITS_TO_CONFIRM) return;
+      if (!isConfirmed(track)) return;
 
       trackedObjects.push({
         ...object,
@@ -231,7 +262,7 @@ export class DetectionMotionTracker {
       if (missingForMs > MISSING_TRACK_RETENTION_MS) return;
 
       nextTracks.set(track.id, track);
-      if (track.hits < MIN_HITS_TO_CONFIRM) return;
+      if (!isConfirmed(track)) return;
 
       trackedObjects.push({
         bounds: projectBounds(

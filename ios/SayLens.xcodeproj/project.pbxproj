@@ -14,6 +14,8 @@
 		6CDB119DD7959B074F141BBA /* PronunciationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 9BFF9BE6FB124FE68C8A422F /* PronunciationModule.m */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		DDEC906BAE2C3A4140B8D80A /* AppReviewModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF30C9463A5E7167EAD5EFC2 /* AppReviewModule.swift */; };
+		BE0F4D83C7D7D3C0F81BC537 /* AppReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8401E2D752D838FB5E013D94 /* AppReviewModule.m */; };
 		94E25B75D64D6BC95633FA34 /* SpeechRecognitionModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 863EB55E9B06EB9ACAD33030 /* SpeechRecognitionModule.m */; };
 		DB4607DDACE94E938650CF94 /* PronunciationModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB2AB9EF427FDF3A7B79059 /* PronunciationModule.swift */; };
 /* End PBXBuildFile section */
@@ -29,6 +31,8 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-SayLens.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SayLens.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SayLens/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SayLens/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		DF30C9463A5E7167EAD5EFC2 /* AppReviewModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppReviewModule.swift; sourceTree = "<group>"; };
+		8401E2D752D838FB5E013D94 /* AppReviewModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = AppReviewModule.m; sourceTree = "<group>"; };
 		863EB55E9B06EB9ACAD33030 /* SpeechRecognitionModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = SpeechRecognitionModule.m; sourceTree = "<group>"; };
 		9BFF9BE6FB124FE68C8A422F /* PronunciationModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = PronunciationModule.m; sourceTree = "<group>"; };
 		E704D24F86A9D1CD55E42638 /* SpeechRecognitionModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionModule.swift; sourceTree = "<group>"; };
@@ -56,6 +60,7 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				67FEE316D316E53D01F141DB /* Pronunciation */,
+						BB520051EB5EC643E5B9DC01 /* Review */,
 				705814D22A9C710F1C600166 /* Speech */,
 			);
 			name = SayLens;
@@ -78,6 +83,16 @@
 			);
 			name = Pronunciation;
 			path = SayLens/Pronunciation;
+			sourceTree = "<group>";
+		};
+		BB520051EB5EC643E5B9DC01 /* Review */ = {
+			isa = PBXGroup;
+			children = (
+				DF30C9463A5E7167EAD5EFC2 /* AppReviewModule.swift */,
+				8401E2D752D838FB5E013D94 /* AppReviewModule.m */,
+			);
+			name = Review;
+			path = SayLens/Review;
 			sourceTree = "<group>";
 		};
 		705814D22A9C710F1C600166 /* Speech */ = {
@@ -280,6 +295,8 @@
 				DB4607DDACE94E938650CF94 /* PronunciationModule.swift in Sources */,
 				6CDB119DD7959B074F141BBA /* PronunciationModule.m in Sources */,
 				363FE7DF8407B1F31EA37F7A /* SpeechRecognitionModule.swift in Sources */,
+				DDEC906BAE2C3A4140B8D80A /* AppReviewModule.swift in Sources */,
+				BE0F4D83C7D7D3C0F81BC537 /* AppReviewModule.m in Sources */,
 				94E25B75D64D6BC95633FA34 /* SpeechRecognitionModule.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

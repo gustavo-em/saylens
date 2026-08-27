@@ -388,15 +388,24 @@ export function useAppViewModel(
     [updatePreference],
   );
 
+  const finishOnboarding = useCallback(
+    () => updatePreference('hasSeenOnboarding', true),
+    [updatePreference],
+  );
+
   return {
     activeTab,
     appearanceMode: preferences.appearanceMode,
     cameraAccess,
-    cameraIsActive: activeTab === 'camera',
+    // The detector is not run behind the walk-through: nothing of what it
+    // finds can be seen, and the frames still cost battery.
+    cameraIsActive: activeTab === 'camera' && preferences.hasSeenOnboarding,
     changeAppearanceMode,
     changeLearningLanguage,
     changeNativeLanguage,
     changePerformanceProfile,
+    finishOnboarding,
+    hasSeenOnboarding: preferences.hasSeenOnboarding,
     isRestored,
     recordViewedLabels,
     selectTab,

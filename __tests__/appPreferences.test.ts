@@ -7,6 +7,7 @@ import {
 const stored: AppPreferences = {
   appearanceMode: 'light',
   showDiagnostics: true,
+  hasSeenOnboarding: true,
   learningLanguage: 'es',
   nativeLanguage: 'en-US',
   performanceProfile: 'power-saving',

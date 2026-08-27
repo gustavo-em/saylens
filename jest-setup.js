@@ -32,7 +32,17 @@ jest.mock('react-native-reanimated', () => {
     ReduceMotion: { System: 'system' },
     useAnimatedStyle: updater => updater(),
     useAnimatedProps: updater => updater(),
+    useAnimatedScrollHandler: handler => handler,
     useSharedValue: initialValue => ({ value: initialValue }),
+    Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+    // The suite reads resting values, so a point that lands exactly on an
+    // input reads its own output and anything else reads the middle of the
+    // range.
+    interpolate: (value, input, output) => {
+      const index = input.indexOf(value);
+
+      return index >= 0 ? output[index] : output[Math.floor(output.length / 2)];
+    },
     // The animation helpers all resolve to the value they animate towards, so
     // a test sees the finished state rather than a frame of the transition.
     withTiming: targetValue => targetValue,

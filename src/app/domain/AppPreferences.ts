@@ -12,6 +12,9 @@ import { appearanceModes, type AppearanceMode } from '../theme/theme';
 export interface AppPreferences {
   appearanceMode: AppearanceMode;
   showDiagnostics: boolean;
+  /** False until the first run has been walked through or skipped, which is
+   * what tells a returning learner apart from a new one. */
+  hasSeenOnboarding: boolean;
   learningLanguage: LearningLanguage;
   nativeLanguage: LearningLanguage;
   performanceProfile: PerformanceProfile;
@@ -20,6 +23,7 @@ export interface AppPreferences {
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   appearanceMode: 'dark',
   showDiagnostics: false,
+  hasSeenOnboarding: false,
   learningLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.learningLanguage,
   nativeLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.nativeLanguage,
   performanceProfile: 'maximum-performance',
@@ -57,6 +61,10 @@ export function sanitizeAppPreferences(
       typeof values.showDiagnostics === 'boolean'
         ? values.showDiagnostics
         : defaults.showDiagnostics,
+    hasSeenOnboarding:
+      typeof values.hasSeenOnboarding === 'boolean'
+        ? values.hasSeenOnboarding
+        : defaults.hasSeenOnboarding,
     appearanceMode: pick(
       values.appearanceMode,
       appearanceModes,

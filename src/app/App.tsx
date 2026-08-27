@@ -16,6 +16,7 @@ import { CollectionScreen } from '../features/learning/presentation/screens/Coll
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
 import { AppSplash } from './components/AppSplash';
+import { OnboardingScreen } from './components/OnboardingScreen';
 import { firebaseAuthenticator } from '../features/learning/infrastructure/auth/firebaseAuthenticator';
 import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
 import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
@@ -175,6 +176,21 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           showDiagnostics={viewModel.showDiagnostics}
           performanceCapabilities={viewModel.performanceCapabilities}
           performanceProfile={viewModel.performanceProfile}
+        />
+      ) : null}
+
+      {/* The walk-through sits over the app rather than in front of it: the
+          screens behind it are already built, so finishing lands on a camera
+          that is ready. */}
+      {!viewModel.hasSeenOnboarding ? (
+        <OnboardingScreen
+          copy={viewModel.copy}
+          languageSettings={viewModel.languageSettings}
+          onFinish={viewModel.finishOnboarding}
+          onSignInWithGoogle={viewModel.signInWithGoogle}
+          signInError={viewModel.signInError}
+          user={viewModel.user}
+          vocabularyRepository={localVocabularyRepository}
         />
       ) : null}
 

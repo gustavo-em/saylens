@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
@@ -199,8 +200,17 @@ async function pressCameraMenuItem(
   });
 }
 
+const PREFERENCES_KEY = 'saylens.preferences.v1';
+
 describe('App', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Every test here but the walk-through's own opens the app as someone who
+    // has been here before, so the first run is not standing in front of the
+    // screens being driven.
+    await AsyncStorage.setItem(
+      PREFERENCES_KEY,
+      JSON.stringify({ hasSeenOnboarding: true }),
+    );
     mockPronunciationPlayer.speak.mockReset().mockResolvedValue(undefined);
     mockPronunciationPlayer.stop.mockReset().mockResolvedValue(undefined);
     mockSpeechRecognizer.isAvailable.mockReset().mockResolvedValue(true);
@@ -697,5 +707,125 @@ describe('App', () => {
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(true);
+  });
+
+  it('walks a first run through the app and never asks again', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    const firstStep = JSON.stringify(renderer!.toJSON());
+    expect(firstStep).toContain('Aponte para qualquer coisa');
+    // The detector does not run behind a screen that covers it.
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(false);
+
+    // Three taps to reach the fourth step.
+    for (let taps = 0; taps < 3; taps += 1) {
+      await ReactTestRenderer.act(() => {
+        pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
+      });
+    }
+
+    // The last step asks for an account instead of carrying on.
+    expect(JSON.stringify(renderer!.toJSON())).toContain(
+      'Guarde seu progresso',
+    );
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding-advance' }),
+    ).toHaveLength(0);
+
+    // Doing it later is a real answer, and it ends the walk-through.
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-later').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding' }),
+    ).toHaveLength(0);
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(true);
+    expect(
+      JSON.parse((await AsyncStorage.getItem(PREFERENCES_KEY)) ?? '{}'),
+    ).toMatchObject({ hasSeenOnboarding: true });
+  });
+
+  it('lets a first run skip straight to the camera', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-skip').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding' }),
+    ).toHaveLength(0);
+  });
+
+  it('follows the swiped page rather than the button alone', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'onboarding-pages' })
+        .props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { x: 750 * 3 } },
+        });
+    });
+
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding-google' }),
+    ).not.toHaveLength(0);
+  });
+
+  it('offers the account from the last step of the first run', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'onboarding-pages' })
+        .props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { x: 750 * 3 } },
+        });
+    });
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-google').props.onPress();
+    });
+
+    expect(mockAuthenticator.signInWithGoogle).toHaveBeenCalled();
+
+    // Leaving stays one tap away on the step that asks for something.
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-skip').props.onPress();
+    });
+
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding' }),
+    ).toHaveLength(0);
   });
 });

@@ -5,6 +5,12 @@ import {
   type LearningLanguage,
 } from '../../domain/LearningLanguage';
 
+/** One step of the first run: a heading and the sentence under it. */
+export interface OnboardingStepCopy {
+  title: string;
+  body: string;
+}
+
 export interface LearningCopy {
   tabs: { camera: string; settings: string };
   diagnostics: {
@@ -24,6 +30,16 @@ export interface LearningCopy {
     later: string;
     benefit: string;
     soon: string;
+  };
+  onboarding: {
+    skip: string;
+    next: string;
+    start: string;
+    stepOf: (current: number, total: number) => string;
+    camera: OnboardingStepCopy;
+    speak: OnboardingStepCopy;
+    words: OnboardingStepCopy;
+    account: OnboardingStepCopy;
   };
   review: {
     title: string;
@@ -247,6 +263,28 @@ const copies: Record<
       benefit: 'Suas palavras, sequência e nível ficam salvos na sua conta.',
       soon: 'Entrar chega em breve. Por enquanto tudo fica guardado neste aparelho.',
     },
+    onboarding: {
+      skip: 'Pular tudo',
+      next: 'Próximo',
+      start: 'Começar',
+      stepOf: (current, total) => `Passo ${current} de ${total}`,
+      camera: {
+        title: 'Aponte para qualquer coisa',
+        body: 'A câmera reconhece o objeto e mostra a palavra, a tradução e uma frase para usar.',
+      },
+      speak: {
+        title: 'Diga a palavra em voz alta',
+        body: 'O app ouve e mostra qual sílaba saiu diferente, em vez de só dar uma nota.',
+      },
+      words: {
+        title: 'Suas palavras voltam',
+        body: 'Cada objeto novo vira uma palavra na sua lista, com nível, dias seguidos e revisão no dia seguinte.',
+      },
+      account: {
+        title: 'Guarde seu progresso',
+        body: 'Entre com o Google para levar suas palavras para outro aparelho. Dá para fazer isso depois, nos ajustes.',
+      },
+    },
     review: {
       title: 'Como estamos indo?',
       body: 'Sua nota ajuda outras pessoas a encontrarem o app.',
@@ -450,6 +488,28 @@ const copies: Record<
       benefit: 'Your words, streak and level are kept with your account.',
       soon: 'Signing in is coming. For now everything stays on this phone.',
     },
+    onboarding: {
+      skip: 'Skip all',
+      next: 'Next',
+      start: 'Start',
+      stepOf: (current, total) => `Step ${current} of ${total}`,
+      camera: {
+        title: 'Point at anything',
+        body: 'The camera recognises the object and shows the word, the translation and a sentence to use it in.',
+      },
+      speak: {
+        title: 'Say the word out loud',
+        body: 'The app listens and shows which syllable came out different, instead of only giving a score.',
+      },
+      words: {
+        title: 'Your words come back',
+        body: 'Every new object becomes a word in your list, with a level, a streak and a review the next day.',
+      },
+      account: {
+        title: 'Keep your progress',
+        body: 'Sign in with Google to carry your words to another phone. You can do this later, in settings.',
+      },
+    },
     review: {
       title: 'How are we doing?',
       body: 'Your rating helps other people find the app.',
@@ -649,6 +709,28 @@ const copies: Record<
       later: 'Ahora no',
       benefit: 'Tus palabras, racha y nivel se guardan en tu cuenta.',
       soon: 'El inicio de sesión llega pronto. Por ahora todo queda en este teléfono.',
+    },
+    onboarding: {
+      skip: 'Saltar todo',
+      next: 'Siguiente',
+      start: 'Empezar',
+      stepOf: (current, total) => `Paso ${current} de ${total}`,
+      camera: {
+        title: 'Apunta a cualquier cosa',
+        body: 'La cámara reconoce el objeto y muestra la palabra, la traducción y una frase para usarla.',
+      },
+      speak: {
+        title: 'Di la palabra en voz alta',
+        body: 'La app escucha y muestra qué sílaba salió distinta, en vez de darte solo una nota.',
+      },
+      words: {
+        title: 'Tus palabras vuelven',
+        body: 'Cada objeto nuevo se vuelve una palabra en tu lista, con nivel, días seguidos y repaso al día siguiente.',
+      },
+      account: {
+        title: 'Guarda tu progreso',
+        body: 'Entra con Google para llevar tus palabras a otro aparato. Puedes hacerlo después, en la configuración.',
+      },
     },
     review: {
       title: '¿Cómo vamos?',

@@ -12,6 +12,8 @@ interface SignInScreenProps {
    * configured this is absent, and the button says so rather than failing. */
   onSignInWithGoogle?: () => void;
   onClose: () => void;
+  /** Called when the learner asks to leave the account they are in. */
+  onSignOut?: () => void;
   /** What went wrong on the last attempt, if anything did. */
   signInError?: string | null;
   /** Who is signed in, when anybody is. */
@@ -53,6 +55,7 @@ export function SignInScreen({
   copy,
   onClose,
   onSignInWithGoogle,
+  onSignOut,
   signInError,
   user,
 }: SignInScreenProps) {
@@ -83,34 +86,53 @@ export function SignInScreen({
               <Benefit>{copy.account.benefit}</Benefit>
             </>
           ) : (
-            <Subtitle testID="sign-in-user">
-              {user.name ?? user.email ?? ''}
-            </Subtitle>
+            <>
+              <Subtitle testID="sign-in-user">
+                {user.name ?? user.email ?? ''}
+              </Subtitle>
+              <Benefit>{user.email ?? copy.account.signedInNote}</Benefit>
+            </>
           )}
           {signInError != null ? <Problem>{signInError}</Problem> : null}
         </Stage>
 
+        {/* Someone already signed in has nothing to sign in to: the actions
+            become the way out of the account and the way back. */}
         <Actions>
-          <GoogleButton
-            accessibilityLabel={copy.account.google}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !isAvailable }}
-            onPress={onSignInWithGoogle}
-            testID="sign-in-google"
-            $available={isAvailable}
-          >
-            <GoogleMark />
-            <GoogleText>{copy.account.google}</GoogleText>
-          </GoogleButton>
+          {user == null ? (
+            <>
+              <GoogleButton
+                accessibilityLabel={copy.account.google}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !isAvailable }}
+                onPress={onSignInWithGoogle}
+                testID="sign-in-google"
+                $available={isAvailable}
+              >
+                <GoogleMark />
+                <GoogleText>{copy.account.google}</GoogleText>
+              </GoogleButton>
 
-          {isAvailable ? null : <Soon>{copy.account.soon}</Soon>}
+              {isAvailable ? null : <Soon>{copy.account.soon}</Soon>}
+            </>
+          ) : (
+            <SignOutButton
+              accessibilityRole="button"
+              onPress={onSignOut}
+              testID="sign-in-sign-out"
+            >
+              <SignOutText>{copy.account.signOut}</SignOutText>
+            </SignOutButton>
+          )}
 
           <Later
             accessibilityRole="button"
             onPress={onClose}
             testID="sign-in-later"
           >
-            <LaterText>{copy.account.later}</LaterText>
+            <LaterText>
+              {user == null ? copy.account.later : copy.account.back}
+            </LaterText>
           </Later>
         </Actions>
       </SignInSafeArea>
@@ -227,6 +249,22 @@ const Soon = styled.Text`
   font-size: 12px;
   line-height: 17px;
   text-align: center;
+`;
+
+const SignOutButton = styled.Pressable`
+  align-items: center;
+  justify-content: center;
+  padding: 15px 18px;
+  border-radius: 16px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.card};
+`;
+
+const SignOutText = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 15px;
+  font-weight: 700;
 `;
 
 const Later = styled.Pressable`

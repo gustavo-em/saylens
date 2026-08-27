@@ -157,6 +157,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           copy={viewModel.copy}
           onClose={() => viewModel.selectTab('settings')}
           onSignInWithGoogle={viewModel.signInWithGoogle}
+          onSignOut={viewModel.signOut}
           signInError={viewModel.signInError}
           user={viewModel.user}
         />
@@ -177,6 +178,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           showDiagnostics={viewModel.showDiagnostics}
           performanceCapabilities={viewModel.performanceCapabilities}
           performanceProfile={viewModel.performanceProfile}
+          user={viewModel.user}
         />
       ) : null}
 

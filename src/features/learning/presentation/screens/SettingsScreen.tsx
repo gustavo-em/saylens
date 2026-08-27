@@ -17,6 +17,7 @@ import {
   type PerformanceCapabilities,
   type PerformanceProfile,
 } from '../../domain/PerformanceProfile';
+import type { AuthenticatedUser } from '../../application/ports/Authenticator';
 import type { LearningCopy } from '../localization/learningCopy';
 
 interface SettingsScreenProps {
@@ -33,6 +34,7 @@ interface SettingsScreenProps {
   showDiagnostics: boolean;
   performanceCapabilities: PerformanceCapabilities;
   performanceProfile: PerformanceProfile;
+  user: AuthenticatedUser | null;
 }
 
 type OpenPicker = 'native' | 'learning' | null;
@@ -59,6 +61,7 @@ export function SettingsScreen({
   showDiagnostics,
   performanceCapabilities,
   performanceProfile,
+  user,
 }: SettingsScreenProps) {
   const { height, width } = useWindowDimensions();
   const isLandscape = width > height;
@@ -99,8 +102,19 @@ export function SettingsScreen({
               $last
             >
               <RowText>
-                <RowTitle>{copy.account.google}</RowTitle>
-                <RowNote>{copy.account.benefit}</RowNote>
+                {/* Someone who has already signed in is not being asked to
+                    sign in again: the row becomes the way back to who they
+                    are. */}
+                <RowTitle>
+                  {user
+                    ? user.name ?? copy.account.profile
+                    : copy.account.google}
+                </RowTitle>
+                <RowNote>
+                  {user
+                    ? user.email ?? copy.account.signedInNote
+                    : copy.account.benefit}
+                </RowNote>
               </RowText>
               <Chevron $open={false}>›</Chevron>
             </Row>

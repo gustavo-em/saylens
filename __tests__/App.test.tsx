@@ -584,6 +584,33 @@ describe('App', () => {
     expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Botella', 'es');
   });
 
+  it('offers the profile in settings once someone has signed in', async () => {
+    mockAuthenticator.subscribe.mockImplementationOnce(
+      (listen: (user: unknown) => void) => {
+        listen({
+          id: 'learner-1',
+          name: 'Gustavo',
+          email: 'gustavo@example.com',
+        });
+
+        return () => undefined;
+      },
+    );
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
+
+    const settingsTree = JSON.stringify(renderer!.toJSON());
+    expect(settingsTree).toContain('Gustavo');
+    expect(settingsTree).toContain('gustavo@example.com');
+    expect(settingsTree).not.toContain('Continuar com o Google');
+  });
+
   it('practises a detected word and comes back to the camera', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
@@ -750,6 +777,8 @@ describe('App', () => {
 
     const firstStep = JSON.stringify(renderer!.toJSON());
     expect(firstStep).toContain('Aponte para qualquer coisa');
+    // The detector's limits are declared where the camera is promised.
+    expect(firstStep).toContain('O reconhecimento não é perfeito e pode errar');
     // The detector does not run behind a screen that covers it.
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,

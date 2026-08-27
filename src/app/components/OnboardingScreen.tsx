@@ -4,6 +4,7 @@ import {
   useState,
   type ComponentRef,
   type ReactElement,
+  type ReactNode,
 } from 'react';
 import {
   useWindowDimensions,
@@ -193,6 +194,12 @@ export function OnboardingScreen({
                   {copy.onboarding[id].title}
                 </Title>
                 <Body>{copy.onboarding[id].body}</Body>
+                {/* Said here rather than the first time it happens, so a wrong
+                    word reads as a limit that was declared and not as the app
+                    lying. */}
+                {copy.onboarding[id].note != null ? (
+                  <Note>{copy.onboarding[id].note}</Note>
+                ) : null}
               </MovingWords>
             </Page>
           ))}
@@ -310,7 +317,7 @@ function MovingWords({
   scrollX,
   width,
 }: {
-  children: ReactElement | ReactElement[];
+  children: ReactNode;
   index: number;
   scrollX: SharedValue<number>;
   width: number;
@@ -449,6 +456,18 @@ const Body = styled.Text`
   font-size: 15px;
   line-height: 21px;
   text-align: center;
+`;
+
+/** Smaller and quieter than the sentence above it: it is a caveat, not part
+ * of the promise. */
+const Note = styled.Text`
+  max-width: 300px;
+  margin-top: 10px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  opacity: 0.85;
 `;
 
 const Footer = styled.View`

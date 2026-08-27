@@ -9,6 +9,9 @@ import {
 export interface OnboardingStepCopy {
   title: string;
   body: string;
+  /** A caveat under the sentence, for a step that promises something the app
+   * cannot always deliver. */
+  note?: string;
 }
 
 export interface LearningCopy {
@@ -27,6 +30,10 @@ export interface LearningCopy {
     title: string;
     subtitle: string;
     google: string;
+    profile: string;
+    signedInNote: string;
+    signOut: string;
+    back: string;
     later: string;
     benefit: string;
     soon: string;
@@ -259,6 +266,10 @@ const copies: Record<
       subtitle:
         'Entre para guardar suas palavras e continuar em outro aparelho.',
       google: 'Continuar com o Google',
+      profile: 'Ver meu perfil',
+      signedInNote: 'Suas palavras estão guardadas na sua conta.',
+      signOut: 'Sair da conta',
+      back: 'Voltar',
       later: 'Agora não',
       benefit: 'Suas palavras, sequência e nível ficam salvos na sua conta.',
       soon: 'Entrar chega em breve. Por enquanto tudo fica guardado neste aparelho.',
@@ -271,6 +282,7 @@ const copies: Record<
       camera: {
         title: 'Aponte para qualquer coisa',
         body: 'A câmera reconhece o objeto e mostra a palavra, a tradução e uma frase para usar.',
+        note: 'O reconhecimento não é perfeito e pode errar. Se a palavra não combinar com o objeto, aponte de outro ângulo.',
       },
       speak: {
         title: 'Diga a palavra em voz alta',
@@ -484,6 +496,10 @@ const copies: Record<
       title: 'Your account',
       subtitle: 'Sign in to keep your words and carry on from another phone.',
       google: 'Continue with Google',
+      profile: 'View my profile',
+      signedInNote: 'Your words are kept with your account.',
+      signOut: 'Sign out',
+      back: 'Back',
       later: 'Not now',
       benefit: 'Your words, streak and level are kept with your account.',
       soon: 'Signing in is coming. For now everything stays on this phone.',
@@ -496,6 +512,7 @@ const copies: Record<
       camera: {
         title: 'Point at anything',
         body: 'The camera recognises the object and shows the word, the translation and a sentence to use it in.',
+        note: 'Recognition is not perfect and can get things wrong. If the word does not match the object, point from another angle.',
       },
       speak: {
         title: 'Say the word out loud',
@@ -706,6 +723,10 @@ const copies: Record<
       title: 'Tu cuenta',
       subtitle: 'Entra para guardar tus palabras y seguir en otro teléfono.',
       google: 'Continuar con Google',
+      profile: 'Ver mi perfil',
+      signedInNote: 'Tus palabras se guardan en tu cuenta.',
+      signOut: 'Cerrar sesión',
+      back: 'Volver',
       later: 'Ahora no',
       benefit: 'Tus palabras, racha y nivel se guardan en tu cuenta.',
       soon: 'El inicio de sesión llega pronto. Por ahora todo queda en este teléfono.',
@@ -718,6 +739,7 @@ const copies: Record<
       camera: {
         title: 'Apunta a cualquier cosa',
         body: 'La cámara reconoce el objeto y muestra la palabra, la traducción y una frase para usarla.',
+        note: 'El reconocimiento no es perfecto y puede equivocarse. Si la palabra no coincide con el objeto, apunta desde otro ángulo.',
       },
       speak: {
         title: 'Di la palabra en voz alta',

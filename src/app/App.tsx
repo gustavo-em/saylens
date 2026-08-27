@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import styled, { ThemeProvider } from 'styled-components/native';
@@ -15,6 +15,7 @@ import { CameraScreen } from '../features/learning/presentation/screens/CameraSc
 import { CollectionScreen } from '../features/learning/presentation/screens/CollectionScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
+import { AppSplash } from './components/AppSplash';
 import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
 import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
@@ -30,6 +31,7 @@ import { useAppViewModel } from './view-models/useAppViewModel';
 type AppViewModel = ReturnType<typeof useAppViewModel>;
 
 function AppContent({ viewModel }: { viewModel: AppViewModel }) {
+  const [isOpening, setIsOpening] = useState(true);
   const workerSettings = getPerformanceProfileSettings(
     viewModel.performanceProfile,
     viewModel.performanceCapabilities,
@@ -169,6 +171,13 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           showDiagnostics={viewModel.showDiagnostics}
           performanceCapabilities={viewModel.performanceCapabilities}
           performanceProfile={viewModel.performanceProfile}
+        />
+      ) : null}
+
+      {isOpening ? (
+        <AppSplash
+          isReady={viewModel.hasRestoredWords}
+          onFinished={() => setIsOpening(false)}
         />
       ) : null}
 

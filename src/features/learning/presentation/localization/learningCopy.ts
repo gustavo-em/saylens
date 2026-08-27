@@ -17,6 +17,22 @@ export interface LearningCopy {
     profile: string;
     strongest: string;
   };
+  account: {
+    title: string;
+    subtitle: string;
+    google: string;
+    later: string;
+    benefit: string;
+    soon: string;
+  };
+  review: {
+    title: string;
+    body: string;
+    thanks: string;
+    feedbackThanks: string;
+    later: string;
+    never: string;
+  };
   speak: {
     title: string;
     subtitle: string;
@@ -222,6 +238,23 @@ const copies: Record<
 > = {
   'pt-BR': {
     tabs: { camera: 'Câmera', settings: 'Configurações' },
+    account: {
+      title: 'Sua conta',
+      subtitle:
+        'Entre para guardar suas palavras e continuar em outro aparelho.',
+      google: 'Continuar com o Google',
+      later: 'Agora não',
+      benefit: 'Suas palavras, sequência e nível ficam salvos na sua conta.',
+      soon: 'Entrar chega em breve. Por enquanto tudo fica guardado neste aparelho.',
+    },
+    review: {
+      title: 'Como estamos indo?',
+      body: 'Sua nota ajuda outras pessoas a encontrarem o app.',
+      thanks: 'Obrigado! Vamos abrir a avaliação.',
+      feedbackThanks: 'Obrigado por dizer. Vamos melhorar.',
+      later: 'Agora não',
+      never: 'Não perguntar de novo',
+    },
     speak: {
       title: 'Falar',
       subtitle: 'Diga a palavra e compare com a pronúncia.',
@@ -409,6 +442,22 @@ const copies: Record<
   },
   en: {
     tabs: { camera: 'Camera', settings: 'Settings' },
+    account: {
+      title: 'Your account',
+      subtitle: 'Sign in to keep your words and carry on from another phone.',
+      google: 'Continue with Google',
+      later: 'Not now',
+      benefit: 'Your words, streak and level are kept with your account.',
+      soon: 'Signing in is coming. For now everything stays on this phone.',
+    },
+    review: {
+      title: 'How are we doing?',
+      body: 'Your rating helps other people find the app.',
+      thanks: 'Thank you. Opening the rating now.',
+      feedbackThanks: 'Thank you for saying so. We will do better.',
+      later: 'Not now',
+      never: 'Do not ask again',
+    },
     speak: {
       title: 'Speak',
       subtitle: 'Say the word and compare it with the pronunciation.',
@@ -593,6 +642,22 @@ const copies: Record<
   },
   es: {
     tabs: { camera: 'Cámara', settings: 'Configuración' },
+    account: {
+      title: 'Tu cuenta',
+      subtitle: 'Entra para guardar tus palabras y seguir en otro teléfono.',
+      google: 'Continuar con Google',
+      later: 'Ahora no',
+      benefit: 'Tus palabras, racha y nivel se guardan en tu cuenta.',
+      soon: 'El inicio de sesión llega pronto. Por ahora todo queda en este teléfono.',
+    },
+    review: {
+      title: '¿Cómo vamos?',
+      body: 'Tu valoración ayuda a otras personas a encontrar la app.',
+      thanks: 'Gracias. Abriendo la valoración.',
+      feedbackThanks: 'Gracias por decirlo. Vamos a mejorar.',
+      later: 'Ahora no',
+      never: 'No preguntar de nuevo',
+    },
     speak: {
       title: 'Hablar',
       subtitle: 'Di la palabra y compárala con la pronunciación.',

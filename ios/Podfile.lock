@@ -2460,7 +2460,7 @@ SPEC CHECKSUMS:
   RNReanimated: 66ea54c88797982b302e18c848becea024329ba0
   RNSVG: df7b2c0679ac7b9a668af6c6b40e2c6cb4df88f5
   RNWorklets: 0f21cfc67d4ac5dcd085805b89236cc626a038f6
-  SayLensObjectDetector: d18d2a1ce1fdb155bf64262a3410339032242be6
+  SayLensObjectDetector: 7f68a17256ddfc8f7ae144af9c5f4e42132193b9
   SocketRocket: d57b1af80c029e12a75cd9b218287c67381e4593
   VisionCamera: ac95fd4a5019aa59e0b2894a4b2f36fabb94b3ef
   VisionCameraWorklets: 3048d882c02f71d276f783e53f3b967ee4597095

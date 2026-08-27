@@ -4,4 +4,5 @@ export type AppTab =
   | 'history'
   | 'quiz'
   | 'speak'
-  | 'collection';
+  | 'collection'
+  | 'account';

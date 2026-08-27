@@ -19,18 +19,27 @@ final class DetectorWorker {
   /// The size is the image the model actually read, which is not the frame the
   /// camera delivered: it was stood up and shrunk on the way in, and the boxes
   /// come back measured against it.
-  typealias ResultHandler = (PendingFrame, ObjectDetectorResult, CGSize) -> Void
+  /// The detection result, the name found for each of its boxes, and the size
+  /// of the image both were measured against.
+  typealias ResultHandler = (
+    PendingFrame,
+    ObjectDetectorResult,
+    [String?],
+    CGSize
+  ) -> Void
 
   let id: Int
   private let log: Logger
   private let queue: DispatchQueue
   private let copier = FrameCopier()
+  private let cropper = FrameCropper()
   private let state = UnfairLock()
   private let onResult: ResultHandler
 
   private var isBusy = false
   private var isClosed = false
   private var detector: ObjectDetector?
+  private var labeller: ImageClassifier?
   private var hasLoggedFirstResult = false
 
   init(
@@ -60,6 +69,7 @@ final class DetectorWorker {
       let startedAt = DispatchTime.now()
       do {
         _ = try self.detectorForCurrentState()
+        _ = try self.labellerForCurrentState()
         let elapsed = Self.milliseconds(since: startedAt)
         self.log.info("Worker \(self.id) prewarmed in \(elapsed, format: .fixed(precision: 0)) ms.")
       } catch {
@@ -96,6 +106,7 @@ final class DetectorWorker {
     state.withLock { isClosed = true }
     queue.async { [weak self] in
       self?.detector = nil
+      self?.labeller = nil
     }
   }
 
@@ -110,6 +121,7 @@ final class DetectorWorker {
       // an upright image and no orientation to interpret.
       let image = try MPImage(pixelBuffer: pixelBuffer)
       let result = try detector.detect(image: image)
+      let names = try nameEach(of: result, in: pixelBuffer)
 
       if !hasLoggedFirstResult {
         hasLoggedFirstResult = true
@@ -119,6 +131,7 @@ final class DetectorWorker {
       onResult(
         frame,
         result,
+        names,
         CGSize(
           width: CVPixelBufferGetWidth(pixelBuffer),
           height: CVPixelBufferGetHeight(pixelBuffer)
@@ -127,6 +140,48 @@ final class DetectorWorker {
     } catch {
       log.warning("Worker \(self.id) failed on a frame: \(error.localizedDescription).")
     }
+  }
+
+  /**
+   Asks the classifier what each box holds.
+
+   A box the classifier cannot name keeps whatever the detector called it,
+   which is the honest fallback: the detector was sure enough to draw the box,
+   and a name from eighty is better than none.
+   */
+  private func nameEach(
+    of result: ObjectDetectorResult,
+    in frame: CVPixelBuffer
+  ) throws -> [String?] {
+    let labeller = try labellerForCurrentState()
+
+    return result.detections.map { detection in
+      guard
+        let crop = try? cropper.crop(frame, to: detection.boundingBox),
+        let image = try? MPImage(pixelBuffer: crop),
+        let classified = try? labeller.classify(image: image),
+        let best = classified.classificationResult.classifications.first?
+          .categories.first,
+        let name = best.categoryName
+      else { return nil }
+
+      return name
+    }
+  }
+
+  private func labellerForCurrentState() throws -> ImageClassifier {
+    if let labeller { return labeller }
+
+    let options = ImageClassifierOptions()
+    options.baseOptions.modelAssetPath = try DetectorModel.resolveLabellerPath()
+    options.baseOptions.delegate = .CPU
+    options.runningMode = .image
+    options.maxResults = DetectorConstants.labellerMaximumResults
+    options.scoreThreshold = DetectorConstants.labellerScoreThreshold
+
+    let created = try ImageClassifier(options: options)
+    labeller = created
+    return created
   }
 
   private func detectorForCurrentState() throws -> ObjectDetector {

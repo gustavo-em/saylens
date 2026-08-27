@@ -25,6 +25,7 @@ interface SettingsScreenProps {
   languageSettings: LearningLanguageSettings;
   onAppearanceModeChange: (mode: AppearanceMode) => void;
   onClose: () => void;
+  onOpenAccount: () => void;
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
   onPerformanceProfileChange: (profile: PerformanceProfile) => void;
@@ -50,6 +51,7 @@ export function SettingsScreen({
   languageSettings,
   onAppearanceModeChange,
   onClose,
+  onOpenAccount,
   onLearningLanguageChange,
   onNativeLanguageChange,
   onPerformanceProfileChange,
@@ -86,6 +88,23 @@ export function SettingsScreen({
 
           <Title accessibilityRole="header">{copy.settings.title}</Title>
           <Subtitle>{copy.settings.subtitle}</Subtitle>
+
+          <GroupLabel>{copy.account.title}</GroupLabel>
+          <Group>
+            <Row
+              accessibilityRole="button"
+              as={RowButton}
+              onPress={onOpenAccount}
+              testID="settings-open-account"
+              $last
+            >
+              <RowText>
+                <RowTitle>{copy.account.google}</RowTitle>
+                <RowNote>{copy.account.benefit}</RowNote>
+              </RowText>
+              <Chevron $open={false}>›</Chevron>
+            </Row>
+          </Group>
 
           <GroupLabel>{copy.settings.languagesSection}</GroupLabel>
           <Group>

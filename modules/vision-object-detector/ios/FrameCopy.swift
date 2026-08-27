@@ -163,3 +163,92 @@ final class FrameCopier {
     return buffer
   }
 }
+
+/**
+ * Cuts one box out of an upright frame, for the classifier that names it.
+ *
+ * The crop is grown a little: a detector's box hugs the object, and a
+ * classifier reads an object with a margin of its surroundings far better than
+ * one cut to the edge.
+ */
+final class FrameCropper {
+  private static let margin: CGFloat = 0.12
+  private static let bytesPerPixel = 4
+
+  private var destination: CVPixelBuffer?
+  private var width = 0
+  private var height = 0
+
+  func crop(_ source: CVPixelBuffer, to box: CGRect) throws -> CVPixelBuffer {
+    let sourceWidth = CVPixelBufferGetWidth(source)
+    let sourceHeight = CVPixelBufferGetHeight(source)
+
+    let grown = box.insetBy(
+      dx: -box.width * Self.margin,
+      dy: -box.height * Self.margin
+    )
+    let left = max(Int(grown.minX), 0)
+    let top = max(Int(grown.minY), 0)
+    let right = min(Int(grown.maxX), sourceWidth)
+    let bottom = min(Int(grown.maxY), sourceHeight)
+
+    let width = right - left
+    let height = bottom - top
+    guard width > 8, height > 8 else { throw DetectorError.unsupportedFrame }
+
+    let destination = try reusableBuffer(width: width, height: height)
+
+    CVPixelBufferLockBaseAddress(source, .readOnly)
+    CVPixelBufferLockBaseAddress(destination, [])
+    defer {
+      CVPixelBufferUnlockBaseAddress(destination, [])
+      CVPixelBufferUnlockBaseAddress(source, .readOnly)
+    }
+
+    guard
+      let sourceAddress = CVPixelBufferGetBaseAddress(source),
+      let destinationAddress = CVPixelBufferGetBaseAddress(destination)
+    else {
+      throw DetectorError.unsupportedFrame
+    }
+
+    let input = sourceAddress.assumingMemoryBound(to: UInt8.self)
+    let output = destinationAddress.assumingMemoryBound(to: UInt8.self)
+    let sourceRowBytes = CVPixelBufferGetBytesPerRow(source)
+    let destinationRowBytes = CVPixelBufferGetBytesPerRow(destination)
+
+    for row in 0..<height {
+      let from = (top + row) * sourceRowBytes + left * Self.bytesPerPixel
+      let to = row * destinationRowBytes
+      memcpy(output + to, input + from, width * Self.bytesPerPixel)
+    }
+
+    return destination
+  }
+
+  /// One reusable buffer, resized when a differently shaped box arrives.
+  private func reusableBuffer(width: Int, height: Int) throws -> CVPixelBuffer {
+    if let destination, self.width == width, self.height == height {
+      return destination
+    }
+
+    var created: CVPixelBuffer?
+    let status = CVPixelBufferCreate(
+      kCFAllocatorDefault,
+      width,
+      height,
+      kCVPixelFormatType_32BGRA,
+      [kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary] as CFDictionary,
+      &created
+    )
+
+    guard status == kCVReturnSuccess, let buffer = created else {
+      throw DetectorError.pixelBufferAllocationFailed(status)
+    }
+
+    destination = buffer
+    self.width = width
+    self.height = height
+    return buffer
+  }
+}

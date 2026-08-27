@@ -153,9 +153,10 @@ final class DetectorWorkerPool {
   private func publish(
     frame: PendingFrame,
     result: ObjectDetectorResult,
+    names: [String?],
     processedSize: CGSize
   ) {
-    let objects = DetectionMapper.objects(from: result)
+    let objects = DetectionMapper.objects(from: result, names: names)
     let batch: NativeDetectionBatch? = state.withLock {
       guard frame.sequence > latestSequence else { return nil }
 
@@ -301,8 +302,13 @@ final class DetectorWorkerPool {
 
     let created = (1...max(count, 1)).map { id in
       DetectorWorker(id: id, qualityOfService: qualityOfService) {
-        [weak self] frame, result, processedSize in
-        self?.publish(frame: frame, result: result, processedSize: processedSize)
+        [weak self] frame, result, names, processedSize in
+        self?.publish(
+          frame: frame,
+          result: result,
+          names: names,
+          processedSize: processedSize
+        )
       }
     }
 

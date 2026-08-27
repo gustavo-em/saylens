@@ -33,6 +33,17 @@ enum DetectorConstants {
   static let maximumResults = 5
   static let scoreThreshold: Float = 0.65
 
+  /**
+   Naming what the detector found.
+
+   The detector knows eighty things and has to answer with one of them
+   whichever object it is pointed at, so an earphone comes back as a mouse.
+   A classifier reading the same box knows a thousand, and is asked for the
+   name; the detector's own label is kept only when the classifier is unsure.
+   */
+  static let labellerScoreThreshold: Float = 0.45
+  static let labellerMaximumResults = 1
+
   /// How much a new box has to overlap the previous one to be treated as the
   /// same object rather than a new one.
   static let trackingOverlap: CGFloat = 0.4

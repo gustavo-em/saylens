@@ -15,10 +15,14 @@ import { CameraScreen } from '../features/learning/presentation/screens/CameraSc
 import { CollectionScreen } from '../features/learning/presentation/screens/CollectionScreen';
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
+import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
+import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
 import { systemSpeechRecognizer } from '../features/learning/infrastructure/speech/systemSpeechRecognizer';
 import { SettingsScreen } from '../features/learning/presentation/screens/SettingsScreen';
+import { SignInScreen } from '../features/learning/presentation/screens/SignInScreen';
 import { asyncStoragePreferencesStore } from './infrastructure/preferences/asyncStoragePreferencesStore';
+import { asyncStorageReviewInvitationStore } from './infrastructure/review/asyncStorageReviewInvitationStore';
 import { getPerformanceProfileSettings } from '../features/learning/domain/PerformanceProfile';
 import { getAppTheme } from './theme/theme';
 import { useAppViewModel } from './view-models/useAppViewModel';
@@ -143,6 +147,13 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         />
       ) : null}
 
+      {viewModel.activeTab === 'account' ? (
+        <SignInScreen
+          copy={viewModel.copy}
+          onClose={() => viewModel.selectTab('settings')}
+        />
+      ) : null}
+
       {viewModel.activeTab === 'settings' ? (
         <SettingsScreen
           appearanceMode={viewModel.appearanceMode}
@@ -150,6 +161,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           languageSettings={viewModel.languageSettings}
           onAppearanceModeChange={viewModel.changeAppearanceMode}
           onClose={() => viewModel.selectTab('camera')}
+          onOpenAccount={() => viewModel.selectTab('account')}
           onLearningLanguageChange={viewModel.changeLearningLanguage}
           onNativeLanguageChange={viewModel.changeNativeLanguage}
           onPerformanceProfileChange={viewModel.changePerformanceProfile}
@@ -157,6 +169,21 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           showDiagnostics={viewModel.showDiagnostics}
           performanceCapabilities={viewModel.performanceCapabilities}
           performanceProfile={viewModel.performanceProfile}
+        />
+      ) : null}
+
+      {viewModel.isInvitingReview ? (
+        <ReviewInvitation
+          copy={viewModel.copy}
+          onDismiss={viewModel.dismissReviewInvitation}
+          onNever={viewModel.declineReviewInvitation}
+          onRate={() => {
+            viewModel.acceptReviewInvitation();
+            systemAppReviewPrompter
+              .requestReview()
+              .catch(() => undefined)
+              .finally(viewModel.dismissReviewInvitation);
+          }}
         />
       ) : null}
     </Root>
@@ -170,6 +197,7 @@ export default function App() {
     asyncStorageFavoriteWordStore,
     asyncStoragePronunciationProgressStore,
     asyncStorageLearnerProgressStore,
+    asyncStorageReviewInvitationStore,
   );
 
   return (

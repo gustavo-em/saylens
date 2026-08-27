@@ -18,7 +18,10 @@ Pod::Spec.new do |spec|
   # reads it from the same path as an Android asset. Copying it into an iOS
   # folder would put a second copy of the same weights in the repository.
   spec.resource_bundles = {
-    "SayLensObjectDetectorModel" => ["android/src/main/assets/efficientdet_lite0_int8.tflite"]
+    "SayLensObjectDetectorModel" => [
+      "android/src/main/assets/efficientdet_lite0_int8.tflite",
+      "android/src/main/assets/efficientnet_lite0_int8.tflite",
+    ]
   }
 
   spec.frameworks = "CoreMedia", "CoreVideo", "ImageIO"

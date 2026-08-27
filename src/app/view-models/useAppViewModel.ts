@@ -38,6 +38,16 @@ import {
   sanitizeAppPreferences,
   type AppPreferences,
 } from '../domain/AppPreferences';
+import type { ReviewInvitationStore } from '../../features/learning/application/ports/ReviewInvitationStore';
+import {
+  EMPTY_REVIEW_INVITATION,
+  recordDeclined,
+  recordInvitationShown,
+  recordPronunciationSuccess,
+  recordRated,
+  shouldInviteReview,
+  type ReviewInvitationState,
+} from '../../features/learning/domain/ReviewInvitation';
 import type { AppTab } from '../navigation/AppTab';
 import type { AppearanceMode } from '../theme/theme';
 
@@ -47,12 +57,16 @@ export function useAppViewModel(
   favoriteWordStore: FavoriteWordStore,
   pronunciationProgressStore: PronunciationProgressStore,
   learnerProgressStore: LearnerProgressStore,
+  reviewInvitationStore: ReviewInvitationStore,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
   /** False until the stored words have been read back. Before that the list is
    * empty because nothing has loaded, not because nothing was found. */
   const [hasRestoredWords, setHasRestoredWords] = useState(false);
+  const [reviewInvitation, setReviewInvitation] =
+    useState<ReviewInvitationState>(EMPTY_REVIEW_INVITATION);
+  const [isInvitingReview, setIsInvitingReview] = useState(false);
   /** Set when a round is opened for a particular set of words, such as the
    * ones due for review, and cleared when practice is opened at large. */
   const [reviewLabels, setReviewLabels] = useState<readonly string[] | null>(
@@ -83,13 +97,32 @@ export function useAppViewModel(
   useEffect(() => {
     let isCurrent = true;
 
+    reviewInvitationStore
+      .load()
+      .then(stored => {
+        if (isCurrent && stored != null) setReviewInvitation(stored);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [reviewInvitationStore]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
     viewedObjectStore
       .load()
       .then(stored => {
-        if (isCurrent) setViewedObjects(sanitizeViewedObjects(stored));
+        if (!isCurrent) return;
+
+        setViewedObjects(sanitizeViewedObjects(stored));
+        setHasRestoredWords(true);
       })
-      .catch(() => undefined)
-      .finally(() => {
+      .catch(() => {
+        // A store that cannot be read is an empty list, not a permanent
+        // loading state.
         if (isCurrent) setHasRestoredWords(true);
       });
 
@@ -130,8 +163,29 @@ export function useAppViewModel(
     };
   }, [pronunciationProgressStore]);
 
+  const saveReviewInvitation = useCallback(
+    (next: ReviewInvitationState) => {
+      setReviewInvitation(next);
+      reviewInvitationStore.save(next).catch(() => undefined);
+    },
+    [reviewInvitationStore],
+  );
+
   const recordPronunciationResult = useCallback(
     (label: string, matched: boolean) => {
+      if (matched) {
+        // Asking right after something went right is the only honest moment
+        // to ask; the rules for how often live in the domain.
+        const counted = recordPronunciationSuccess(reviewInvitation);
+
+        if (shouldInviteReview(counted, Date.now())) {
+          saveReviewInvitation(recordInvitationShown(counted, Date.now()));
+          setIsInvitingReview(true);
+        } else {
+          saveReviewInvitation(counted);
+        }
+      }
+
       setPronunciationProgress(current => {
         const next = recordPronunciationAttempt(
           current,
@@ -145,8 +199,21 @@ export function useAppViewModel(
         return next;
       });
     },
-    [pronunciationProgressStore],
+    [pronunciationProgressStore, reviewInvitation, saveReviewInvitation],
   );
+
+  const dismissReviewInvitation = useCallback(() => {
+    setIsInvitingReview(false);
+  }, []);
+
+  const declineReviewInvitation = useCallback(() => {
+    saveReviewInvitation(recordDeclined(reviewInvitation));
+    setIsInvitingReview(false);
+  }, [reviewInvitation, saveReviewInvitation]);
+
+  const acceptReviewInvitation = useCallback(() => {
+    saveReviewInvitation(recordRated(reviewInvitation));
+  }, [reviewInvitation, saveReviewInvitation]);
 
   const toggleFavoriteLabel = useCallback(
     (label: string) => {
@@ -333,6 +400,10 @@ export function useAppViewModel(
     pronunciationStatusOf: (label: string) =>
       getPronunciationStatus(pronunciationProgress, label),
     recordPronunciationResult,
+    isInvitingReview,
+    acceptReviewInvitation,
+    declineReviewInvitation,
+    dismissReviewInvitation,
     showDiagnostics: preferences.showDiagnostics,
     speakLabel,
     speakReturnTab,

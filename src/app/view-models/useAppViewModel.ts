@@ -384,11 +384,12 @@ export function useAppViewModel(
 
   const practiseSpeaking = useCallback(
     (label: string, returnTab: AppTab = 'history') => {
+      usageReporter.speakingStarted(label, returnTab).catch(() => undefined);
       setSpeakLabel(label);
       setSpeakReturnTab(returnTab);
       setActiveTab('speak');
     },
-    [],
+    [usageReporter],
   );
 
   const changeNativeLanguage = useCallback(

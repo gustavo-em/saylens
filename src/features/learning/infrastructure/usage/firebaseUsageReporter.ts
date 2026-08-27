@@ -46,6 +46,19 @@ export const firebaseUsageReporter: UsageReporter = {
       // Same again.
     }
   },
+
+  async speakingStarted(label, from) {
+    // Which words are worth saying out loud, and whether the camera or the
+    // list is what puts a learner in front of them.
+    try {
+      await logEvent(getAnalytics(), 'speaking_started', {
+        word: label,
+        source: SCREEN_NAMES[from],
+      });
+    } catch {
+      // Same again.
+    }
+  },
 };
 
 /** Analytics is off until the app says otherwise, so nothing is collected

@@ -22,6 +22,7 @@ jest.mock(
     firebaseUsageReporter: {
       screenOpened: jest.fn(async () => undefined),
       appOpened: jest.fn(async () => undefined),
+      speakingStarted: jest.fn(async () => undefined),
     },
     startUsageReporting: jest.fn(async () => undefined),
   }),
@@ -91,6 +92,14 @@ jest.mock(
     },
   }),
 );
+
+const mockUsageReporter = jest.requireMock(
+  '../src/features/learning/infrastructure/usage/firebaseUsageReporter',
+).firebaseUsageReporter as {
+  screenOpened: jest.Mock;
+  appOpened: jest.Mock;
+  speakingStarted: jest.Mock;
+};
 
 const mockAuthenticator = jest.requireMock(
   '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
@@ -234,6 +243,8 @@ describe('App', () => {
     mockSpeechRecognizer.level.mockReset().mockResolvedValue(0);
     mockSpeechRecognizer.cancel.mockReset().mockResolvedValue(undefined);
     mockAuthenticator.signInWithGoogle.mockClear();
+    mockUsageReporter.screenOpened.mockClear();
+    mockUsageReporter.speakingStarted.mockClear();
   });
 
   it('opens on the camera screen with a settings control', async () => {
@@ -590,6 +601,11 @@ describe('App', () => {
 
     renderer!.root.findByProps({ testID: 'speak-listen' });
     expect(JSON.stringify(renderer!.toJSON())).toContain('Bottle');
+    expect(mockUsageReporter.speakingStarted).toHaveBeenCalledWith(
+      'bottle',
+      'camera',
+    );
+    expect(mockUsageReporter.screenOpened).toHaveBeenCalledWith('speak');
 
     await ReactTestRenderer.act(() => {
       pressableWithTestID(renderer!, 'speak-close').props.onPress();

@@ -21,13 +21,13 @@ function afterSuccesses(count: number) {
 }
 
 describe('review invitation', () => {
-  it('says nothing until the app has helped a few times', () => {
-    expect(shouldInviteReview(afterSuccesses(4), NOW)).toBe(false);
-    expect(shouldInviteReview(afterSuccesses(5), NOW)).toBe(true);
+  it('says nothing before the app has helped at all', () => {
+    expect(shouldInviteReview(afterSuccesses(0), NOW)).toBe(false);
+    expect(shouldInviteReview(afterSuccesses(1), NOW)).toBe(true);
   });
 
   it('waits a week before asking a second time', () => {
-    const asked = recordInvitationShown(afterSuccesses(5), NOW);
+    const asked = recordInvitationShown(afterSuccesses(1), NOW);
 
     expect(shouldInviteReview(asked, NOW + A_WEEK - 1)).toBe(false);
     expect(shouldInviteReview(asked, NOW + A_WEEK)).toBe(true);

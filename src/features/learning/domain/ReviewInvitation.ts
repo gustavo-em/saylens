@@ -19,12 +19,15 @@ export const EMPTY_REVIEW_INVITATION: ReviewInvitationState = {
 /**
  * How much has to go right before the app asks what a learner thinks of it.
  *
- * Asking after the first success is asking a stranger; asking after the fifth
- * is asking someone the app has already helped five times. And once asked,
- * a week has to pass before it is asked again — the fastest way to earn one
- * star is to interrupt somebody twice.
+ * One success is enough to be asked, which is what this app wants while its
+ * rating flow is being judged. It is worth raising before a release that is
+ * being advertised: asking after the first word is asking a stranger, and a
+ * stranger's rating is the one most likely to be a shrug.
+ *
+ * Once asked, a week has to pass before it is asked again — the fastest way
+ * to earn one star is to interrupt somebody twice.
  */
-const SUCCESSES_BEFORE_ASKING = 5;
+const SUCCESSES_BEFORE_ASKING = 1;
 const ASK_AGAIN_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function recordPronunciationSuccess(

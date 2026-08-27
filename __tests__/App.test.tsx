@@ -13,6 +13,20 @@ jest.mock('../src/features/learning/presentation/animation/countUp', () => ({
   getCountUpValue: (target: number) => target,
 }));
 
+// The app talks to Firebase through a port, and this suite is not testing the
+// port's implementation: the real module is native and ships as ESM, neither
+// of which belongs in a unit test.
+jest.mock(
+  '../src/features/learning/infrastructure/usage/firebaseUsageReporter',
+  () => ({
+    firebaseUsageReporter: {
+      screenOpened: jest.fn(async () => undefined),
+      appOpened: jest.fn(async () => undefined),
+    },
+    startUsageReporting: jest.fn(async () => undefined),
+  }),
+);
+
 jest.mock(
   '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
   () => ({

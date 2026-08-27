@@ -18,6 +18,7 @@ import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen
 import { AppSplash } from './components/AppSplash';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { firebaseAuthenticator } from '../features/learning/infrastructure/auth/firebaseAuthenticator';
+import { firebaseUsageReporter } from '../features/learning/infrastructure/usage/firebaseUsageReporter';
 import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
 import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
@@ -228,6 +229,7 @@ export default function App() {
     asyncStorageLearnerProgressStore,
     asyncStorageReviewInvitationStore,
     firebaseAuthenticator,
+    firebaseUsageReporter,
   );
 
   return (

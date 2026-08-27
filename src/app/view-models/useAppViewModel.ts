@@ -43,6 +43,8 @@ import type {
   Authenticator,
 } from '../../features/learning/application/ports/Authenticator';
 import type { ReviewInvitationStore } from '../../features/learning/application/ports/ReviewInvitationStore';
+import type { UsageReporter } from '../../features/learning/application/ports/UsageReporter';
+import { getDaysSinceLastOpen } from '../../features/learning/domain/VisitGap';
 import {
   EMPTY_REVIEW_INVITATION,
   recordDeclined,
@@ -52,6 +54,7 @@ import {
   shouldInviteReview,
   type ReviewInvitationState,
 } from '../../features/learning/domain/ReviewInvitation';
+import { asyncStorageVisitStore } from '../infrastructure/usage/asyncStorageVisitStore';
 import type { AppTab } from '../navigation/AppTab';
 import type { AppearanceMode } from '../theme/theme';
 
@@ -63,6 +66,7 @@ export function useAppViewModel(
   learnerProgressStore: LearnerProgressStore,
   reviewInvitationStore: ReviewInvitationStore,
   authenticator: Authenticator,
+  usageReporter: UsageReporter,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
@@ -346,6 +350,33 @@ export function useAppViewModel(
     },
     [],
   );
+
+  // Whether the learner came back, reported once when the app opens.
+  useEffect(() => {
+    let isCurrent = true;
+
+    asyncStorageVisitStore
+      .load()
+      .then(lastOpenedAtMs => {
+        if (!isCurrent) return;
+
+        const now = Date.now();
+        usageReporter
+          .appOpened(getDaysSinceLastOpen(lastOpenedAtMs, now))
+          .catch(() => undefined);
+        asyncStorageVisitStore.save(now).catch(() => undefined);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [usageReporter]);
+
+  // Which screens are opened, reported as they are opened.
+  useEffect(() => {
+    usageReporter.screenOpened(activeTab).catch(() => undefined);
+  }, [activeTab, usageReporter]);
 
   const selectTab = useCallback((tab: AppTab) => {
     setActiveTab(tab);

@@ -16,6 +16,7 @@ import { CollectionScreen } from '../features/learning/presentation/screens/Coll
 import { HistoryScreen } from '../features/learning/presentation/screens/HistoryScreen';
 import { QuizScreen } from '../features/learning/presentation/screens/QuizScreen';
 import { AppSplash } from './components/AppSplash';
+import { firebaseAuthenticator } from '../features/learning/infrastructure/auth/firebaseAuthenticator';
 import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
 import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
@@ -153,6 +154,9 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         <SignInScreen
           copy={viewModel.copy}
           onClose={() => viewModel.selectTab('settings')}
+          onSignInWithGoogle={viewModel.signInWithGoogle}
+          signInError={viewModel.signInError}
+          user={viewModel.user}
         />
       ) : null}
 
@@ -207,6 +211,7 @@ export default function App() {
     asyncStoragePronunciationProgressStore,
     asyncStorageLearnerProgressStore,
     asyncStorageReviewInvitationStore,
+    firebaseAuthenticator,
   );
 
   return (

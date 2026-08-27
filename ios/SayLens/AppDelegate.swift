@@ -1,3 +1,4 @@
+import FirebaseCore
 import UIKit
 import React
 import React_RCTAppDelegate
@@ -14,6 +15,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Firebase reads GoogleService-Info.plist here, before any JavaScript can
+    // ask for an account. Without this the app has no default Firebase
+    // instance and falls over on the first call.
+    FirebaseApp.configure()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

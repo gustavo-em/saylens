@@ -13,6 +13,21 @@ jest.mock('../src/features/learning/presentation/animation/countUp', () => ({
 }));
 
 jest.mock(
+  '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
+  () => ({
+    firebaseAuthenticator: {
+      signInWithGoogle: jest.fn(async () => ({
+        id: 'learner-1',
+        name: 'Gustavo',
+        email: 'gustavo@example.com',
+      })),
+      signOut: jest.fn(async () => undefined),
+      subscribe: jest.fn(() => () => undefined),
+    },
+  }),
+);
+
+jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,
 );
@@ -61,6 +76,14 @@ jest.mock(
     },
   }),
 );
+
+const mockAuthenticator = jest.requireMock(
+  '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
+).firebaseAuthenticator as {
+  signInWithGoogle: jest.Mock;
+  signOut: jest.Mock;
+  subscribe: jest.Mock;
+};
 
 const mockSpeechRecognizer = jest.requireMock(
   '../src/features/learning/infrastructure/speech/systemSpeechRecognizer',
@@ -186,6 +209,7 @@ describe('App', () => {
     mockSpeechRecognizer.stop.mockReset().mockResolvedValue(undefined);
     mockSpeechRecognizer.level.mockReset().mockResolvedValue(0);
     mockSpeechRecognizer.cancel.mockReset().mockResolvedValue(undefined);
+    mockAuthenticator.signInWithGoogle.mockClear();
   });
 
   it('opens on the camera screen with a settings control', async () => {

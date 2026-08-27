@@ -5,17 +5,43 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
+# Firebase resolves through Swift Package Manager, whose products each carry
+# their own copy of the SDK unless the pods are linked dynamically.
+use_frameworks! :linkage => :dynamic
+
+# MediaPipe ships as a static binary, which CocoaPods refuses to carry inside a
+# dynamically linked pod unless the check is lifted. It is only ever linked
+# into the detector module, so there is nothing for it to collide with.
+STATIC_PODS = %w[
+  MediaPipeTasksVision
+  MediaPipeTasksCommon
+  MediaPipeTasksText
+  SayLensObjectDetector
+].freeze
+
+pre_install do |installer|
+  Pod::Installer::Xcode::TargetValidator.send(:define_method, :verify_no_static_framework_transitive_dependencies) {}
+
+  installer.pod_targets.each do |pod|
+    next unless STATIC_PODS.include?(pod.name)
+
+    def pod.build_type
+      Pod::BuildType.static_library
+    end
+  end
 end
 
 target 'SayLens' do
   config = use_native_modules!
+
+  # Google Sign-In reaches Firebase through AppCheckCore, which is Swift and so
+  # can only see these two if they publish module maps.
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'RecaptchaInterop', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

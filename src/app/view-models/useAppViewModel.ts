@@ -38,6 +38,10 @@ import {
   sanitizeAppPreferences,
   type AppPreferences,
 } from '../domain/AppPreferences';
+import type {
+  AuthenticatedUser,
+  Authenticator,
+} from '../../features/learning/application/ports/Authenticator';
 import type { ReviewInvitationStore } from '../../features/learning/application/ports/ReviewInvitationStore';
 import {
   EMPTY_REVIEW_INVITATION,
@@ -58,6 +62,7 @@ export function useAppViewModel(
   pronunciationProgressStore: PronunciationProgressStore,
   learnerProgressStore: LearnerProgressStore,
   reviewInvitationStore: ReviewInvitationStore,
+  authenticator: Authenticator,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
@@ -67,6 +72,8 @@ export function useAppViewModel(
   const [reviewInvitation, setReviewInvitation] =
     useState<ReviewInvitationState>(EMPTY_REVIEW_INVITATION);
   const [isInvitingReview, setIsInvitingReview] = useState(false);
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
+  const [signInError, setSignInError] = useState<string | null>(null);
   /** Set when a round is opened for a particular set of words, such as the
    * ones due for review, and cleared when practice is opened at large. */
   const [reviewLabels, setReviewLabels] = useState<readonly string[] | null>(
@@ -201,6 +208,26 @@ export function useAppViewModel(
     },
     [pronunciationProgressStore, reviewInvitation, saveReviewInvitation],
   );
+
+  useEffect(() => authenticator.subscribe(setUser), [authenticator]);
+
+  const signInWithGoogle = useCallback(async () => {
+    setSignInError(null);
+
+    try {
+      await authenticator.signInWithGoogle();
+    } catch (error) {
+      // Closing the Google sheet is a decision, not a failure, and the screen
+      // says nothing about it.
+      if ((error as Error).name === 'SignInCancelledError') return;
+
+      setSignInError((error as Error).message);
+    }
+  }, [authenticator]);
+
+  const signOut = useCallback(async () => {
+    await authenticator.signOut().catch(() => undefined);
+  }, [authenticator]);
 
   const dismissReviewInvitation = useCallback(() => {
     setIsInvitingReview(false);
@@ -400,6 +427,10 @@ export function useAppViewModel(
     pronunciationStatusOf: (label: string) =>
       getPronunciationStatus(pronunciationProgress, label),
     recordPronunciationResult,
+    user,
+    signInError,
+    signInWithGoogle,
+    signOut,
     isInvitingReview,
     acceptReviewInvitation,
     declineReviewInvitation,

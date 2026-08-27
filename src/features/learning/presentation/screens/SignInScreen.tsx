@@ -3,6 +3,7 @@ import Svg, { Path } from 'react-native-svg';
 import styled from 'styled-components/native';
 
 import { AppMark } from '../../../../app/components/AppMark';
+import type { AuthenticatedUser } from '../../application/ports/Authenticator';
 import type { LearningCopy } from '../localization/learningCopy';
 
 interface SignInScreenProps {
@@ -11,6 +12,10 @@ interface SignInScreenProps {
    * configured this is absent, and the button says so rather than failing. */
   onSignInWithGoogle?: () => void;
   onClose: () => void;
+  /** What went wrong on the last attempt, if anything did. */
+  signInError?: string | null;
+  /** Who is signed in, when anybody is. */
+  user?: AuthenticatedUser | null;
 }
 
 function GoogleMark() {
@@ -48,6 +53,8 @@ export function SignInScreen({
   copy,
   onClose,
   onSignInWithGoogle,
+  signInError,
+  user,
 }: SignInScreenProps) {
   const isAvailable = onSignInWithGoogle != null;
 
@@ -70,8 +77,17 @@ export function SignInScreen({
             <AppMark height={72} width={72} />
           </Mark>
           <Title accessibilityRole="header">{copy.account.title}</Title>
-          <Subtitle>{copy.account.subtitle}</Subtitle>
-          <Benefit>{copy.account.benefit}</Benefit>
+          {user == null ? (
+            <>
+              <Subtitle>{copy.account.subtitle}</Subtitle>
+              <Benefit>{copy.account.benefit}</Benefit>
+            </>
+          ) : (
+            <Subtitle testID="sign-in-user">
+              {user.name ?? user.email ?? ''}
+            </Subtitle>
+          )}
+          {signInError != null ? <Problem>{signInError}</Problem> : null}
         </Stage>
 
         <Actions>
@@ -168,6 +184,15 @@ const Benefit = styled.Text`
   max-width: 290px;
   margin-top: 10px;
   color: ${({ theme }) => theme.colors.mutedStrong};
+  font-size: 13px;
+  line-height: 19px;
+  text-align: center;
+`;
+
+const Problem = styled.Text`
+  max-width: 300px;
+  margin-top: 12px;
+  color: ${({ theme }) => theme.colors.danger};
   font-size: 13px;
   line-height: 19px;
   text-align: center;

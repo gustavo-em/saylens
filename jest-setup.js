@@ -22,6 +22,15 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
+// The app opens in the language the device reports, and a test renderer
+// resolves whatever locale the machine running the suite happens to have. The
+// suite pins it so the copy assertions stay in one language; the tests that
+// care about the mapping itself override this per test.
+jest.mock('./src/app/infrastructure/locale/deviceLanguageTags', () => ({
+  __esModule: true,
+  getDeviceLanguageTags: jest.fn(() => ['pt-BR']),
+}));
+
 jest.mock('react-native-reanimated', () => {
   const { Animated, Easing } = require('react-native');
 

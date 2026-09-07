@@ -15,6 +15,9 @@ export interface AppPreferences {
   /** False until the first run has been walked through or skipped, which is
    * what tells a returning learner apart from a new one. */
   hasSeenOnboarding: boolean;
+  /** The account benefit is offered once after the learner has found enough
+   * words to understand its value. It remains optional. */
+  hasSeenSignInPrompt: boolean;
   learningLanguage: LearningLanguage;
   nativeLanguage: LearningLanguage;
   performanceProfile: PerformanceProfile;
@@ -24,6 +27,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   appearanceMode: 'dark',
   showDiagnostics: false,
   hasSeenOnboarding: false,
+  hasSeenSignInPrompt: false,
   learningLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.learningLanguage,
   nativeLanguage: DEFAULT_LEARNING_LANGUAGE_SETTINGS.nativeLanguage,
   performanceProfile: 'maximum-performance',
@@ -35,6 +39,12 @@ function pick<T extends string>(
   fallback: T,
 ): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function migrateLanguage(value: unknown): unknown {
+  // en-GB was selectable before English became a single product language.
+  // Keep returning learners on English instead of resetting their choice.
+  return value === 'en-GB' ? 'en-US' : value;
 }
 
 /**
@@ -65,18 +75,22 @@ export function sanitizeAppPreferences(
       typeof values.hasSeenOnboarding === 'boolean'
         ? values.hasSeenOnboarding
         : defaults.hasSeenOnboarding,
+    hasSeenSignInPrompt:
+      typeof values.hasSeenSignInPrompt === 'boolean'
+        ? values.hasSeenSignInPrompt
+        : defaults.hasSeenSignInPrompt,
     appearanceMode: pick(
       values.appearanceMode,
       appearanceModes,
       defaults.appearanceMode,
     ),
     learningLanguage: pick(
-      values.learningLanguage,
+      migrateLanguage(values.learningLanguage),
       learningLanguages,
       defaults.learningLanguage,
     ),
     nativeLanguage: pick(
-      values.nativeLanguage,
+      migrateLanguage(values.nativeLanguage),
       learningLanguages,
       defaults.nativeLanguage,
     ),

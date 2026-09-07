@@ -8,6 +8,7 @@ const stored: AppPreferences = {
   appearanceMode: 'light',
   showDiagnostics: true,
   hasSeenOnboarding: true,
+  hasSeenSignInPrompt: true,
   learningLanguage: 'es',
   nativeLanguage: 'en-US',
   performanceProfile: 'power-saving',
@@ -43,6 +44,19 @@ describe('sanitizeAppPreferences', () => {
     ).toEqual({
       ...DEFAULT_APP_PREFERENCES,
       appearanceMode: 'light',
+    });
+  });
+
+  it('migrates the removed UK English option to English', () => {
+    expect(
+      sanitizeAppPreferences({
+        learningLanguage: 'en-GB',
+        nativeLanguage: 'en-GB',
+      }),
+    ).toEqual({
+      ...DEFAULT_APP_PREFERENCES,
+      learningLanguage: 'en-US',
+      nativeLanguage: 'en-US',
     });
   });
 

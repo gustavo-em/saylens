@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
 import styled from 'styled-components/native';
 
+import {
+  APP_VERSION,
+  DIAGNOSTICS_ENABLED,
+} from '../../../../app/config/appMetadata';
 import {
   appearanceModes,
   type AppearanceMode,
@@ -18,6 +22,10 @@ import {
   type PerformanceProfile,
 } from '../../domain/PerformanceProfile';
 import type { AuthenticatedUser } from '../../application/ports/Authenticator';
+import type {
+  PractiseReminder,
+  PractiseReminderCapabilities,
+} from '../../application/ports/PractiseReminder';
 import type { LearningCopy } from '../localization/learningCopy';
 
 interface SettingsScreenProps {
@@ -30,6 +38,7 @@ interface SettingsScreenProps {
   onLearningLanguageChange: (language: LearningLanguage) => void;
   onNativeLanguageChange: (language: LearningLanguage) => void;
   onPerformanceProfileChange: (profile: PerformanceProfile) => void;
+  practiseReminder: PractiseReminder;
   onToggleDiagnostics: (enabled: boolean) => void;
   showDiagnostics: boolean;
   performanceCapabilities: PerformanceCapabilities;
@@ -58,6 +67,7 @@ export function SettingsScreen({
   onNativeLanguageChange,
   onPerformanceProfileChange,
   onToggleDiagnostics,
+  practiseReminder,
   showDiagnostics,
   performanceCapabilities,
   performanceProfile,
@@ -68,6 +78,26 @@ export function SettingsScreen({
   const nativeLanguage = languageSettings.nativeLanguage;
   const learningLanguage = languageSettings.learningLanguage;
   const [openPicker, setOpenPicker] = useState<OpenPicker>(null);
+  const [reminderHour, setReminderHour] = useState(REMINDER_HOURS[2]);
+  // Asked once, because the answer is a property of the phone rather than of
+  // this screen, and a button leading nowhere is worse than no button.
+  const [reminderTargets, setReminderTargets] =
+    useState<PractiseReminderCapabilities>({ alarm: false, calendar: false });
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    practiseReminder
+      .capabilities()
+      .then(targets => {
+        if (isCurrent) setReminderTargets(targets);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [practiseReminder]);
 
   const supportsBothProfiles =
     performanceCapabilities.supportedProfiles.includes('maximum-performance') &&
@@ -108,7 +138,7 @@ export function SettingsScreen({
                 <RowTitle>
                   {user
                     ? user.name ?? copy.account.profile
-                    : copy.account.google}
+                    : copy.account.signIn}
                 </RowTitle>
                 <RowNote>
                   {user
@@ -178,10 +208,88 @@ export function SettingsScreen({
             })}
           </Segmented>
 
+          <GroupLabel>{copy.settings.reminderSection}</GroupLabel>
+          <Group>
+            <Row $last>
+              <RowText>
+                <RowNote>
+                  {reminderTargets.alarm || reminderTargets.calendar
+                    ? copy.settings.reminderNote
+                    : copy.settings.reminderUnavailable}
+                </RowNote>
+                {reminderTargets.alarm || reminderTargets.calendar ? (
+                  <>
+                    <Segmented>
+                      {REMINDER_HOURS.map(hour => {
+                        const selected = reminderHour === hour;
+
+                        return (
+                          <Segment
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: selected }}
+                            key={hour}
+                            onPress={() => setReminderHour(hour)}
+                            testID={`reminder-hour-${hour}`}
+                            $selected={selected}
+                          >
+                            <SegmentLabel $selected={selected}>
+                              {`${String(hour).padStart(2, '0')}:00`}
+                            </SegmentLabel>
+                          </Segment>
+                        );
+                      })}
+                    </Segmented>
+                    <ReminderActions>
+                      {reminderTargets.alarm ? (
+                        <ReminderButton
+                          accessibilityRole="button"
+                          onPress={() =>
+                            practiseReminder
+                              .scheduleAlarm(
+                                reminderHour,
+                                0,
+                                copy.settings.reminderTitle,
+                              )
+                              .catch(() => undefined)
+                          }
+                          testID="reminder-alarm"
+                        >
+                          <ReminderButtonText>
+                            {copy.settings.reminderAlarm}
+                          </ReminderButtonText>
+                        </ReminderButton>
+                      ) : null}
+                      {reminderTargets.calendar ? (
+                        <ReminderButton
+                          accessibilityRole="button"
+                          onPress={() =>
+                            practiseReminder
+                              .scheduleCalendarEvent(
+                                reminderHour,
+                                0,
+                                copy.settings.reminderTitle,
+                                copy.settings.reminderDetail,
+                              )
+                              .catch(() => undefined)
+                          }
+                          testID="reminder-calendar"
+                        >
+                          <ReminderButtonText>
+                            {copy.settings.reminderCalendar}
+                          </ReminderButtonText>
+                        </ReminderButton>
+                      ) : null}
+                    </ReminderActions>
+                  </>
+                ) : null}
+              </RowText>
+            </Row>
+          </Group>
+
           <GroupLabel>{copy.settings.performanceSection}</GroupLabel>
           <Group>
             {supportsBothProfiles ? (
-              <Row>
+              <Row $last={!DIAGNOSTICS_ENABLED}>
                 <RowText>
                   <RowTitle>{copy.settings.maximumPerformanceTitle}</RowTitle>
                   {/* An option is chosen by what it costs, not by its name. */}
@@ -209,22 +317,28 @@ export function SettingsScreen({
               </Row>
             ) : null}
 
-            <Row $last>
-              <RowText>
-                <RowTitle>{copy.settings.diagnosticsTitle}</RowTitle>
-                <RowNote>{copy.settings.diagnosticsDescription}</RowNote>
-              </RowText>
-              <Switch
-                accessibilityRole="switch"
-                accessibilityState={{ checked: showDiagnostics }}
-                onPress={() => onToggleDiagnostics(!showDiagnostics)}
-                testID="settings-toggle-diagnostics"
-                $on={showDiagnostics}
-              >
-                <SwitchKnob $on={showDiagnostics} />
-              </Switch>
-            </Row>
+            {DIAGNOSTICS_ENABLED ? (
+              <Row $last>
+                <RowText>
+                  <RowTitle>{copy.settings.diagnosticsTitle}</RowTitle>
+                  <RowNote>{copy.settings.diagnosticsDescription}</RowNote>
+                </RowText>
+                <Switch
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: showDiagnostics }}
+                  onPress={() => onToggleDiagnostics(!showDiagnostics)}
+                  testID="settings-toggle-diagnostics"
+                  $on={showDiagnostics}
+                >
+                  <SwitchKnob $on={showDiagnostics} />
+                </Switch>
+              </Row>
+            ) : null}
           </Group>
+
+          <VersionText testID="settings-app-version">
+            {copy.settings.version(APP_VERSION)}
+          </VersionText>
         </Content>
       </SettingsSafeArea>
     </Container>
@@ -298,6 +412,30 @@ function LanguageRow({
     </>
   );
 }
+
+/** Times a practice session actually happens: after breakfast, at lunch, after
+ * work, before bed. A free-form picker would be a dependency and a decision. */
+const REMINDER_HOURS: readonly number[] = [8, 12, 19, 21];
+
+const ReminderActions = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const ReminderButton = styled.Pressable`
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  background-color: ${({ theme }) => theme.colors.cardElevated};
+`;
+
+const ReminderButtonText = styled.Text`
+  color: ${({ theme }) => theme.colors.accentText};
+  font-size: 13px;
+  font-weight: 700;
+`;
 
 const Container = styled.View`
   position: absolute;
@@ -499,4 +637,11 @@ const SwitchKnob = styled.View<{ $on: boolean }>`
   border-radius: 11px;
   background-color: #ffffff;
   margin-left: ${({ $on }) => ($on ? 18 : 0)}px;
+`;
+
+const VersionText = styled.Text`
+  margin-top: -8px;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12px;
+  text-align: center;
 `;

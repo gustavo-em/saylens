@@ -14,6 +14,9 @@ interface CameraScreenProps {
   isActive: boolean;
   languageSettings: LearningLanguageSettings;
   copy: LearningCopy;
+  /** What the learner has built, for the level standing over the scene. */
+  foundLabels: readonly string[];
+  matchedPronunciations: number;
   onOpenHistory: () => void;
   onOpenSettings: () => void;
   onPractiseSpeaking: (label: string) => void;
@@ -37,6 +40,8 @@ export function CameraScreen({
   isActive,
   languageSettings,
   copy,
+  foundLabels,
+  matchedPronunciations,
   onOpenHistory,
   onOpenSettings,
   onPractiseSpeaking,
@@ -70,6 +75,8 @@ export function CameraScreen({
     <CameraView
       renderCamera={renderCamera}
       copy={copy}
+      foundLabels={foundLabels}
+      matchedPronunciations={matchedPronunciations}
       onOpenHistory={onOpenHistory}
       onOpenSettings={onOpenSettings}
       onPractiseSpeaking={onPractiseSpeaking}

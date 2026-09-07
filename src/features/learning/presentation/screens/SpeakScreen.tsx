@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import LottieView from 'lottie-react-native';
 import Animated, {
   Easing,
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -15,6 +17,7 @@ import type { SpeechRecognizer } from '../../application/ports/SpeechRecognizer'
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
 import type { LearningLanguageSettings } from '../../domain/LearningLanguage';
 import {
+  getPronunciationStatus,
   isResting,
   type PronunciationProgressEntry,
 } from '../../domain/PronunciationProgress';
@@ -23,12 +26,21 @@ import {
   scoreAttempt,
   type PronunciationAttempt,
 } from '../../domain/PronunciationAttempt';
+import {
+  getExperience,
+  getLevelProgress,
+  MATCHED_WORD_POINTS,
+} from '../../domain/LearnerProgress';
 import type { LearningCopy } from '../localization/learningCopy';
+import voiceRipple from '../../../../assets/voiceRipple.json';
 import { PronunciationCelebration } from '../views/PronunciationCelebration';
 
 interface SpeakScreenProps {
   copy: LearningCopy;
+  /** Everything found so far, for the level standing at the top. */
+  foundLabels: readonly string[];
   label: string;
+  matchedPronunciations: number;
   languageSettings: LearningLanguageSettings;
   onAttempt: (label: string, matched: boolean) => void;
   onClose: () => void;
@@ -45,9 +57,9 @@ type Status = 'idle' | 'listening' | 'result' | 'blocked';
 /** How long a spoken word is expected to take. The recogniser stops on its own
  * when the learner goes quiet, so this only paces the countdown on screen. */
 const LISTEN_SECONDS = 5;
-/** How long the celebration stays before the camera comes back on its own.
+/** How long the celebration stays before the words screen opens on its own.
  * Long enough to read it, short enough that a learner on a roll is not kept
- * waiting for the next object. */
+ * waiting. */
 const CELEBRATION_SECONDS = 5;
 /**
  * Where each bar sits in the wave while the microphone is open, and how tall
@@ -147,6 +159,16 @@ function ListeningMic({
   onPress: () => void;
 }) {
   const beat = useSharedValue(0);
+  /**
+   * The slow breath the button takes while it waits.
+   *
+   * The screen has one thing to do and no other moving part until the
+   * microphone opens, so a still circle reads as decoration rather than as the
+   * action. This is deliberately half the speed and half the reach of the beat
+   * that comes after the tap: an invitation, not a heartbeat, and the two
+   * never overlap.
+   */
+  const invite = useSharedValue(0);
 
   useEffect(() => {
     if (!listening) {
@@ -158,24 +180,49 @@ function ListeningMic({
       withTiming(1, { duration: 760, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
+      undefined,
+      ReduceMotion.System,
     );
   }, [beat, listening]);
+
+  useEffect(() => {
+    if (listening || disabled) {
+      invite.value = withTiming(0, { duration: 240 });
+      return;
+    }
+
+    invite.value = withRepeat(
+      withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+      undefined,
+      ReduceMotion.System,
+    );
+  }, [disabled, invite, listening]);
 
   const buttonStyle = useAnimatedStyle(() => ({
     // A resting word dims its microphone rather than hiding it: the learner
     // should see that the word is still there, and why it cannot be tried.
     opacity: disabled ? 0.4 : 1,
-    transform: [{ scale: 1 + beat.value * 0.07 }],
+    transform: [{ scale: 1 + beat.value * 0.07 + invite.value * 0.035 }],
   }));
 
   const haloStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 * beat.value,
-    transform: [{ scale: 1 + beat.value * 0.5 }],
+    opacity: 0.35 * beat.value + 0.2 * invite.value,
+    transform: [{ scale: 1 + beat.value * 0.5 + invite.value * 0.34 }],
+  }));
+
+  // A second ring, a beat behind the first, so the wait reads as something
+  // travelling outwards rather than a circle changing size.
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: 0.16 * invite.value * (1 - invite.value) * 4,
+    transform: [{ scale: 1 + invite.value * 0.62 }],
   }));
 
   return (
     <MicSlot>
       <MicHalo pointerEvents="none" style={haloStyle} $listening={listening} />
+      <MicHalo pointerEvents="none" style={ringStyle} $listening={listening} />
       <MicButton
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
@@ -245,11 +292,85 @@ function Bar({
   return <BarShape style={style} />;
 }
 
+/**
+ * Where the learner stands, and what this word is worth.
+ *
+ * The bar is drawn twice: what has been earned, and — breathing beside it —
+ * the piece this attempt would add. The prize is shown before the attempt
+ * rather than reported after it, which is the difference between a score and
+ * a reason to press the microphone.
+ */
+function LevelPreview({
+  copy,
+  current,
+  projected,
+}: {
+  copy: LearningCopy;
+  current: ReturnType<typeof getLevelProgress>;
+  projected: ReturnType<typeof getLevelProgress> | null;
+}) {
+  const glow = useSharedValue(0);
+
+  useEffect(() => {
+    if (projected == null) return;
+
+    glow.value = withRepeat(
+      withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+      undefined,
+      ReduceMotion.System,
+    );
+  }, [glow, projected]);
+
+  const ghostStyle = useAnimatedStyle(() => ({
+    opacity: 0.3 + glow.value * 0.38,
+  }));
+
+  const held = toPercentage(current);
+  const levelsUp = projected != null && projected.level > current.level;
+  // A gain that crosses a level runs the rest of this bar out rather than
+  // pretending the next one has already started.
+  const gain =
+    projected == null
+      ? 0
+      : levelsUp
+      ? 100 - held
+      : Math.max(toPercentage(projected) - held, 0);
+
+  return (
+    <LevelBand testID="speak-level">
+      <LevelRow>
+        <LevelName>{copy.speak.levelNow(current.level)}</LevelName>
+        {projected != null ? (
+          <LevelReward numberOfLines={1}>
+            {levelsUp
+              ? copy.speak.levelRewardLevelUp(projected.level)
+              : copy.speak.levelReward(MATCHED_WORD_POINTS)}
+          </LevelReward>
+        ) : null}
+      </LevelRow>
+      <LevelTrack>
+        <LevelHeld style={{ width: `${held}%` }} />
+        <LevelGhost style={[ghostStyle, { width: `${gain}%` }]} />
+      </LevelTrack>
+    </LevelBand>
+  );
+}
+
+function toPercentage(progress: ReturnType<typeof getLevelProgress>) {
+  return Math.round(
+    (progress.intoLevel / Math.max(progress.levelSpan, 1)) * 100,
+  );
+}
+
 /** One task, one object: the word takes the middle of the screen and
  * everything else sits under it. */
 export function SpeakScreen({
   copy,
+  foundLabels,
   label,
+  matchedPronunciations,
   languageSettings,
   onAttempt,
   onClose,
@@ -304,8 +425,10 @@ export function SpeakScreen({
     };
   }, [level, speechRecognizer, status]);
 
-  /** A correct word earns its moment, and then the camera comes back on its
-   * own. Trying again, or leaving by either button, stops the countdown. */
+  /** A correct word earns its moment, and then the words screen opens on its
+   * own: the word just went up a level, and the place that shows it is where
+   * the learner is taken to see it. Trying again, or leaving by either button,
+   * stops the countdown. */
   useEffect(() => {
     if (!isCelebrating) {
       setReturningIn(null);
@@ -320,12 +443,12 @@ export function SpeakScreen({
       setReturningIn(left);
       if (left === 0) {
         clearInterval(timer);
-        onReturnToCamera();
+        onOpenHistory();
       }
     }, 250);
 
     return () => clearInterval(timer);
-  }, [isCelebrating, onReturnToCamera]);
+  }, [isCelebrating, onOpenHistory]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -380,9 +503,21 @@ export function SpeakScreen({
     } catch (error) {
       // A missing language pack is a dead end, not a bad attempt: retrying
       // would fail identically, so it is reported instead of scored.
-      if ((error as { code?: string })?.code === 'E_SPEECH_LANGUAGE') {
+      const code = (error as { code?: string })?.code;
+
+      if (code === 'E_SPEECH_LANGUAGE') {
         setStatus('blocked');
         setBlockedMessage(copy.speak.languageUnavailable);
+        return;
+      }
+
+      // Recognition is asked for on the device first. Reaching the network at
+      // all means there is no local model for this language, so off the network
+      // there is nothing left to try — and unlike a bad attempt, it says what
+      // would fix it.
+      if (code === 'E_SPEECH_NETWORK') {
+        setStatus('blocked');
+        setBlockedMessage(copy.speak.offline);
         return;
       }
 
@@ -393,6 +528,7 @@ export function SpeakScreen({
     }
   }, [
     copy.speak.languageUnavailable,
+    copy.speak.offline,
     copy.speak.permission,
     label,
     languageSettings.learningLanguage,
@@ -408,6 +544,19 @@ export function SpeakScreen({
       .speak(vocabulary.word, languageSettings.learningLanguage)
       .catch(() => undefined);
   }, [languageSettings.learningLanguage, pronunciationPlayer, vocabulary.word]);
+
+  // Where the learner stands, and where this one word would put them. A word
+  // already said right earns nothing a second time, so nothing is promised.
+  const alreadyMatched =
+    getPronunciationStatus(pronunciationProgress, label) === 'matched';
+  const currentLevel = getLevelProgress(
+    getExperience(foundLabels.length, matchedPronunciations),
+  );
+  const projectedLevel = alreadyMatched
+    ? null
+    : getLevelProgress(
+        getExperience(foundLabels.length, matchedPronunciations + 1),
+      );
 
   const heardBest = attempt?.heard[0] ?? '';
   // Where the spoken word parted from the written one. A percentage says how
@@ -431,6 +580,26 @@ export function SpeakScreen({
           </BackButton>
         </Header>
 
+        {isCelebrating ? null : (
+          /* A voice leaving a mouth. The screen asks the learner to make a
+             sound and, until they do, nothing on it makes one. */
+          <Ripple
+            autoPlay
+            loop
+            resizeMode="contain"
+            source={voiceRipple}
+            testID="speak-ripple"
+          />
+        )}
+
+        {isCelebrating ? null : (
+          <LevelPreview
+            copy={copy}
+            current={currentLevel}
+            projected={projectedLevel}
+          />
+        )}
+
         {isCelebrating ? (
           <PronunciationCelebration
             cameraLabel={copy.speak.backToCamera}
@@ -438,7 +607,7 @@ export function SpeakScreen({
             historyLabel={copy.speak.seeInHistory}
             onOpenHistory={onOpenHistory}
             onReturnToCamera={onReturnToCamera}
-            returningLabel={copy.speak.returningIn(
+            returningLabel={copy.speak.openingWordsIn(
               returningIn ?? CELEBRATION_SECONDS,
             )}
             title={copy.speak.celebration}
@@ -547,6 +716,60 @@ export function SpeakScreen({
     </Container>
   );
 }
+
+const Ripple = styled(LottieView)`
+  width: 86px;
+  height: 86px;
+  align-self: center;
+  margin: -6px 0px 2px;
+`;
+
+const LevelBand = styled.View`
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 10px 14px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: 14px;
+  background-color: ${({ theme }) => theme.colors.cardElevated};
+`;
+
+const LevelRow = styled.View`
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+`;
+
+const LevelName = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 13.5px;
+  font-weight: 800;
+`;
+
+const LevelReward = styled.Text`
+  flex-shrink: 1;
+  color: ${({ theme }) => theme.colors.accentText};
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const LevelTrack = styled.View`
+  flex-direction: row;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.colors.borderSubtle};
+`;
+
+const LevelHeld = styled.View`
+  height: 6px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
+
+const LevelGhost = styled(Animated.View)`
+  height: 6px;
+  background-color: ${({ theme }) => theme.colors.accent};
+`;
 
 const Stage = styled.View`
   flex: 1;

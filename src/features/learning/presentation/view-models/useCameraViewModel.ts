@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraAccess } from '../../application/ports/CameraAccess';
 import type { PronunciationPlayer } from '../../application/ports/PronunciationPlayer';
 import type { VocabularyRepository } from '../../application/ports/VocabularyRepository';
+import { displayLabel } from '../../domain/DetectedObject';
 import type { DetectionFrame } from '../../domain/DetectedObject';
 import {
   recordSample,
@@ -188,7 +189,7 @@ export function useCameraViewModel({
       detectionFrame?.objects.map(object => ({
         object,
         vocabulary: vocabularyRepository.findByLabel(
-          object.label,
+          displayLabel(object),
           languageSettings,
         ),
       })) ?? [],

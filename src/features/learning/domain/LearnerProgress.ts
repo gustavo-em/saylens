@@ -84,6 +84,10 @@ export function getStreakDays(progress: LearnerProgress, atMs: number): number {
   return days <= 1 ? progress.streakDays : 0;
 }
 
+/** What one more correct pronunciation adds, so a screen can show the prize
+ * before the attempt rather than only the result after it. */
+export const MATCHED_WORD_POINTS = XP_PER_MATCHED_WORD;
+
 export function getExperience(
   foundCount: number,
   matchedPronunciations: number,
@@ -124,6 +128,42 @@ export function getLevelProgress(experience: number) {
     intoLevel: experience - floor,
     levelSpan: ceiling - floor,
   };
+}
+
+/**
+ * The one thing to do next, and how many times to do it.
+ *
+ * Points are the currency but not the language anyone thinks in: "35 points to
+ * level 3" names no action. Both ways of earning are within reach of the words
+ * screen — find an object the camera has never seen, or say one already on the
+ * list correctly — so the hint picks whichever the learner can take right now
+ * and counts it in that unit.
+ */
+export interface NextLevelStep {
+  kind: 'find' | 'pronounce';
+  /** How many times over, in whatever unit `kind` names. */
+  remaining: number;
+  nextLevel: number;
+}
+
+export function getNextLevelStep(
+  progress: Pick<
+    ReturnType<typeof getLevelProgress>,
+    'intoLevel' | 'level' | 'levelSpan'
+  >,
+  practisableWords: number,
+): NextLevelStep {
+  const points = Math.max(progress.levelSpan - progress.intoLevel, 0);
+  const nextLevel = progress.level + 1;
+  const pronunciations = Math.max(Math.ceil(points / XP_PER_MATCHED_WORD), 1);
+  const finds = Math.max(Math.ceil(points / XP_PER_FOUND_OBJECT), 1);
+
+  // Saying words that are already on the screen is both the shorter route and
+  // the one that asks nothing of the room the learner happens to be in, so it
+  // wins whenever there are enough words left untried to finish the level.
+  return practisableWords >= pronunciations
+    ? { kind: 'pronounce', nextLevel, remaining: pronunciations }
+    : { kind: 'find', nextLevel, remaining: finds };
 }
 
 /** Stored progress is untrusted input, so anything malformed is dropped. */

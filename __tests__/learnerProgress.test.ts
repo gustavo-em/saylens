@@ -4,6 +4,7 @@ import {
   getExperience,
   getLevel,
   getLevelProgress,
+  getNextLevelStep,
   getStreakDays,
   recordFoundLabels,
   sanitizeLearnerProgress,
@@ -112,5 +113,37 @@ describe('the level curve fits the catalogue', () => {
 
     expect(spans).toEqual([...spans].sort((a, b) => a - b));
     expect(spans[0]).toBeLessThan(spans[spans.length - 1]);
+  });
+});
+
+describe('getNextLevelStep', () => {
+  const progress = { intoLevel: 10, level: 2, levelSpan: 50 };
+
+  it('counts the words left to say when there are enough to finish the level', () => {
+    // Forty points left, fifteen a word: three correct pronunciations.
+    expect(getNextLevelStep(progress, 5)).toEqual({
+      kind: 'pronounce',
+      nextLevel: 3,
+      remaining: 3,
+    });
+  });
+
+  it('counts objects to find when there is nothing left to practise', () => {
+    // Forty points left, ten an object.
+    expect(getNextLevelStep(progress, 0)).toEqual({
+      kind: 'find',
+      nextLevel: 3,
+      remaining: 4,
+    });
+  });
+
+  it('sends the learner out when practising alone cannot finish the level', () => {
+    expect(getNextLevelStep(progress, 2).kind).toBe('find');
+  });
+
+  it('never asks for nothing', () => {
+    expect(
+      getNextLevelStep({ intoLevel: 50, level: 2, levelSpan: 50 }, 0).remaining,
+    ).toBe(1);
   });
 });

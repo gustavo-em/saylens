@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   type LayoutChangeEvent,
   type StyleProp,
@@ -15,7 +21,10 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import styled, { useTheme } from 'styled-components/native';
 
@@ -25,7 +34,9 @@ import {
   languageCodes,
   languageFlags,
 } from '../../domain/LearningLanguage';
+import { displayLabel } from '../../domain/DetectedObject';
 import type { DetectedObject } from '../../domain/DetectedObject';
+import { getExperience, getLevelProgress } from '../../domain/LearnerProgress';
 import type { LearningCopy } from '../localization/learningCopy';
 import type { CameraViewportCallbacks } from '../models/CameraViewportCallbacks';
 import {
@@ -40,7 +51,10 @@ import type { CameraViewModel } from '../view-models/useCameraViewModel';
 
 interface CameraViewProps {
   copy: LearningCopy;
+  /** What the learner has built, for the level standing over the scene. */
+  foundLabels: readonly string[];
   isActive: boolean;
+  matchedPronunciations: number;
   onOpenHistory: () => void;
   onPractiseSpeaking: (label: string) => void;
   onOpenSettings: () => void;
@@ -64,9 +78,9 @@ interface ViewportSize {
 
 /** Half of one breath of the practise button, in milliseconds. */
 const PRACTISE_PULSE_MS = 900;
-/** The brand blue, and the lighter tone it breathes towards. */
-const PRACTISE_BASE = '#4153FB';
-const PRACTISE_LIT = '#6D7BFF';
+/** The accent indigo, and the lighter tone it breathes towards. */
+const PRACTISE_BASE = '#5E41D2';
+const PRACTISE_LIT = '#795FE3';
 const OBJECT_CARD_PERSPECTIVE = 900;
 /** A small lean back, so the card reads as standing on the scene rather than
  * printed on the screen. */
@@ -420,9 +434,139 @@ function InterpolatedObjectTarget({
   );
 }
 
+/**
+ * The level, standing over the scene.
+ *
+ * Everything else on this overlay is deliberately colourless, because the room
+ * behind the glass is the subject. This badge is the exception and earns it: it
+ * is the only thing on the camera that says the looking is adding up to
+ * something. It stays small, it stays in the corner, and it raises its voice
+ * only for the second after a word lands.
+ */
+function LevelBadge({
+  copy,
+  experience,
+  onPress,
+}: {
+  copy: LearningCopy;
+  experience: number;
+  onPress: () => void;
+}) {
+  const progress = getLevelProgress(experience);
+  const percentage = Math.round(
+    (progress.intoLevel / Math.max(progress.levelSpan, 1)) * 100,
+  );
+  const width = useSharedValue(0);
+  const pop = useSharedValue(0);
+  const gain = useSharedValue(0);
+  const previous = useRef({ experience, level: progress.level });
+  const [gained, setGained] = useState(0);
+  const [shownLevel, setShownLevel] = useState(progress.level);
+
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = { experience, level: progress.level };
+
+    // First paint: the bar fills to where the learner already stands, so the
+    // badge arrives alive rather than drawn.
+    if (before.experience === experience) {
+      width.value = withTiming(percentage, {
+        duration: 620,
+        easing: Easing.out(Easing.cubic),
+        reduceMotion: ReduceMotion.System,
+      });
+      return;
+    }
+
+    if (experience < before.experience) {
+      width.value = percentage;
+      setShownLevel(progress.level);
+      return;
+    }
+
+    setGained(experience - before.experience);
+    pop.value = withSequence(
+      withTiming(1, { duration: 170, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 460, easing: Easing.inOut(Easing.quad) }),
+    );
+    gain.value = withSequence(
+      withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 420 }),
+    );
+
+    // A word that crosses a level runs the old bar out to the end, changes the
+    // number, and fills the new one from empty. That moment is the whole
+    // reason the badge is here.
+    if (progress.level > before.level) {
+      setShownLevel(before.level);
+      width.value = withSequence(
+        withTiming(100, {
+          duration: 420,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        }),
+        withTiming(100, { duration: 220 }),
+        withTiming(0, { duration: 0 }),
+        withTiming(percentage, {
+          duration: 520,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        }),
+      );
+
+      const timer = setTimeout(() => setShownLevel(progress.level), 660);
+      return () => clearTimeout(timer);
+    }
+
+    width.value = withTiming(percentage, {
+      duration: 620,
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [experience, gain, percentage, pop, progress.level, width]);
+
+  const badgeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pop.value * 0.09 }],
+  }));
+  const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: pop.value * 0.9 }));
+  const gainStyle = useAnimatedStyle(() => ({
+    opacity: gain.value,
+    transform: [{ translateY: -16 * gain.value }],
+  }));
+
+  return (
+    <BadgeSlot>
+      <BadgeScale style={badgeStyle}>
+        <Badge
+          accessibilityLabel={copy.camera.levelBadge(shownLevel)}
+          accessibilityRole="button"
+          onPress={onPress}
+          testID="camera-level"
+        >
+          <LevelChip>
+            <LevelNumber>{shownLevel}</LevelNumber>
+          </LevelChip>
+          <BadgeTrack>
+            <BadgeFill style={fillStyle} />
+            <BadgeFlash pointerEvents="none" style={flashStyle} />
+          </BadgeTrack>
+        </Badge>
+      </BadgeScale>
+      {gained > 0 ? (
+        <GainText pointerEvents="none" style={gainStyle}>
+          {`+${gained}`}
+        </GainText>
+      ) : null}
+    </BadgeSlot>
+  );
+}
+
 export function CameraView({
   copy,
+  foundLabels,
   isActive,
+  matchedPronunciations,
   onOpenHistory,
   onPractiseSpeaking,
   onOpenSettings,
@@ -436,6 +580,23 @@ export function CameraView({
   const nativeCode = languageCodes[nativeLanguage];
   const learningCode = languageCodes[learningLanguage];
   const languagePairLabel = `${nativeCode} para ${learningCode}`;
+  /**
+   * Nothing that is empty greets anyone.
+   *
+   * A level of one over an empty bar, and a list with no words in it, mean
+   * something to someone who has been here before and nothing at all to
+   * someone who just arrived. They appear with the first word found, which is
+   * also the first moment they say anything true.
+   */
+  const hasFoundSomething = foundLabels.length > 0;
+  /**
+   * The room the system takes at the bottom of the screen.
+   *
+   * The overlay is a safe area for its top edge only, so nothing was reserving
+   * this: on a phone with the three-button navigation bar the two controls sat
+   * on top of it, with the words touching the system icons.
+   */
+  const insets = useSafeAreaInsets();
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportSize>({
     width: 0,
@@ -481,18 +642,31 @@ export function CameraView({
   const detectionFrame = viewModel.detectionFrame;
   // One object carries the card. The learner picks it by tapping a label, and
   // until then it is the nearest one, which is what the phone is pointed at.
+  //
+  // Being seen outranks being large. An object the tracker is only remembering
+  // keeps the bounds it had when it left the frame, so panning from a laptop
+  // to the keyboard in front of it left the laptop holding the card on size
+  // alone until it was forgotten, seconds after the camera had moved on. A
+  // remembered object still carries the card while it is the only thing there,
+  // which is the point of remembering it.
+  const subjectRank = (item: (typeof viewModel.detectionItems)[number]) => ({
+    isSeen: item.object.isMissing !== true,
+    area: item.object.bounds.width * item.object.bounds.height,
+  });
   const nearestId = viewModel.detectionItems.reduce<string | null>(
     (nearest, item) => {
-      const area = item.object.bounds.width * item.object.bounds.height;
       const nearestItem = viewModel.detectionItems.find(
         candidate => candidate.object.id === nearest,
       );
-      const nearestArea =
-        nearestItem == null
-          ? 0
-          : nearestItem.object.bounds.width * nearestItem.object.bounds.height;
+      if (nearestItem == null) return item.object.id;
 
-      return area > nearestArea ? item.object.id : nearest;
+      const candidate = subjectRank(item);
+      const incumbent = subjectRank(nearestItem);
+      if (candidate.isSeen !== incumbent.isSeen) {
+        return candidate.isSeen ? item.object.id : nearest;
+      }
+
+      return candidate.area > incumbent.area ? item.object.id : nearest;
     },
     null,
   );
@@ -545,7 +719,7 @@ export function CameraView({
                 hearLabel={copy.camera.hear}
                 key={object.id}
                 onHear={() => viewModel.onObjectPress(vocabulary)}
-                onPractise={() => onPractiseSpeaking(object.label)}
+                onPractise={() => onPractiseSpeaking(displayLabel(object))}
                 practiseLabel={copy.camera.practiseSpeaking}
                 targetStyle={targetStyle}
                 testID={`detected-object-${object.id}`}
@@ -619,7 +793,7 @@ export function CameraView({
                           <PractiseAction
                             accessibilityLabel={copy.camera.practiseSpeaking}
                             label={copy.camera.practise}
-                            onPress={() => onPractiseSpeaking(object.label)}
+                            onPress={() => onPractiseSpeaking(displayLabel(object))}
                             testID={`practise-object-${object.id}`}
                           />
                         </ObjectActions>
@@ -773,17 +947,19 @@ export function CameraView({
 
           {/* The three places a learner goes, where a thumb reaches them. */}
           <BottomBar>
-            <BarItem
-              accessibilityLabel={copy.history.title}
-              accessibilityRole="button"
-              onPress={onOpenHistory}
-              testID="camera-open-history"
-            >
-              <BarIcon>
-                <ListIcon color="#ffffff" size={23} />
-              </BarIcon>
-              <BarLabel numberOfLines={1}>{copy.history.title}</BarLabel>
-            </BarItem>
+            {hasFoundSomething ? (
+              <BarItem
+                accessibilityLabel={copy.history.title}
+                accessibilityRole="button"
+                onPress={onOpenHistory}
+                testID="camera-open-history"
+              >
+                <BarIcon>
+                  <ListIcon color="#ffffff" size={23} />
+                </BarIcon>
+                <BarLabel numberOfLines={1}>{copy.history.title}</BarLabel>
+              </BarItem>
+            ) : null}
 
             <BarItem
               accessibilityLabel={copy.tabs.settings}
@@ -1025,10 +1201,37 @@ const ActionLabel = styled.Text<{ $primary?: boolean }>`
   font-weight: 800;
 `;
 
-const Overlay = styled(SafeAreaView)<{ $landscape: boolean }>`
+/**
+ * The instruction, over the scene rather than in a bar.
+ *
+ * It sits where the eye already is, carries its own shadow so it survives a
+ * bright wall or a dark room, and never intercepts a touch.
+ */
+const PointHint = styled.View`
+  position: absolute;
+  inset: 0px;
+  align-items: center;
+  justify-content: center;
+`;
+
+const PointHintText = styled.Text`
+  padding: 0px 32px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  text-align: center;
+  text-shadow: 0px 2px 12px rgba(0, 0, 0, 0.85);
+`;
+
+const Overlay = styled(SafeAreaView)<{
+  $landscape: boolean;
+  $bottomInset: number;
+}>`
   flex: 1;
   padding-right: ${({ $landscape }) => ($landscape ? 154 : 0)}px;
-  padding-bottom: ${({ $landscape }) => ($landscape ? 16 : 26)}px;
+  padding-bottom: ${({ $landscape, $bottomInset }) =>
+    ($landscape ? 16 : 26) + $bottomInset}px;
   z-index: 2;
 `;
 
@@ -1043,6 +1246,80 @@ const Header = styled.View`
 
 /** Same 42dp box as the menu button so the two line up. The artwork carries
  * transparent margin, so it is drawn slightly larger and clipped to fill. */
+/**
+ * The badge and the room the "+10" flies through.
+ *
+ * The slot is not clipped, so the gain can leave the pill; the pill itself
+ * uses the same near-black glass as every other control here, and the colour
+ * is spent inside it rather than on it.
+ */
+const BadgeSlot = styled.View`
+  margin: 6px 0px 0px 8px;
+`;
+
+const BadgeScale = styled(Animated.View)``;
+
+const Badge = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.overlayGlassBorder};
+  background-color: ${({ theme }) => theme.colors.overlayGlass};
+`;
+
+const LevelChip = styled.View`
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background-color: ${({ theme }) => theme.colors.overlayAction};
+`;
+
+const LevelNumber = styled.Text`
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 16px;
+`;
+
+const BadgeTrack = styled.View`
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.22);
+`;
+
+/** Bright rather than brand-exact: this sits on near-black glass over moving
+ * video, where the fill colour itself would read as a dark smudge. */
+const BadgeFill = styled(Animated.View)`
+  height: 6px;
+  border-radius: 3px;
+  background-color: #a796ee;
+`;
+
+/** The amber wash over the bar for the instant a word lands. Warm against the
+ * violet, so the gain is a different colour from the total. */
+const BadgeFlash = styled(Animated.View)`
+  position: absolute;
+  inset: 0px;
+  border-radius: 3px;
+  background-color: #f59e0b;
+`;
+
+const GainText = styled(Animated.Text)`
+  position: absolute;
+  top: -2px;
+  left: 62px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 800;
+  text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.7);
+`;
+
 const HeaderMark = styled.View`
   width: 42px;
   height: 42px;
@@ -1133,7 +1410,7 @@ const PermissionButton = styled.Pressable<{ $disabled: boolean }>`
 `;
 
 const PermissionButtonText = styled.Text`
-  color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.onAccent};
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 1.2px;

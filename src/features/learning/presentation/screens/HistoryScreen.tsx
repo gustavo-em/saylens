@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import LottieView from 'lottie-react-native';
 import Animated, {
   Easing,
   ReduceMotion,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -24,12 +27,17 @@ import {
   type PronunciationProgressEntry,
   type PronunciationStatus,
 } from '../../domain/PronunciationProgress';
-import { getExperience, getLevelProgress } from '../../domain/LearnerProgress';
+import {
+  getExperience,
+  getLevelProgress,
+  getNextLevelStep,
+} from '../../domain/LearnerProgress';
 import { isResting } from '../../domain/PronunciationProgress';
 import { getWordsToReview } from '../../domain/ReviewQueue';
 import { getCountUpDurationMs, getCountUpValue } from '../animation/countUp';
 import type { ViewedObject } from '../../domain/ViewedObject';
 import type { LearningCopy } from '../localization/learningCopy';
+import successCelebration from '../../../../assets/successCelebration.json';
 
 interface HistoryScreenProps {
   copy: LearningCopy;
@@ -38,6 +46,13 @@ interface HistoryScreenProps {
   onClose: () => void;
   /** What the learner has built so far, shown at the top of their words. */
   foundLabels: readonly string[];
+  /** Where the level bar stood before the word that was just said landed, set
+   * only when the screen is being opened by that word. The bar then plays the
+   * gain instead of filling from nothing, which is the whole point of being
+   * brought here. */
+  celebratedFromExperience?: number | null;
+  /** Called once the gain has finished playing, so it is played once. */
+  onLevelCelebrationShown?: () => void;
   matchedPronunciations: number;
   streakDays: number;
   /** False until the stored words have been read back, so the screen can show
@@ -97,6 +112,8 @@ export function HistoryScreen({
   favorites,
   onClose,
   foundLabels,
+  celebratedFromExperience,
+  onLevelCelebrationShown,
   matchedPronunciations,
   streakDays,
   hasRestoredWords,
@@ -156,6 +173,20 @@ export function HistoryScreen({
   const level = getLevelProgress(
     getExperience(foundLabels.length, matchedPronunciations),
   );
+  // Only words that can be said today count towards the shorter route: one
+  // that is resting cannot be tried again until tomorrow.
+  const practisable = entries.filter(
+    ({ resting, status }) => !resting && status !== 'matched',
+  );
+  const nextStep = getNextLevelStep(level, practisable.length);
+  const takeNextStep = () => {
+    if (nextStep.kind === 'find' || practisable.length === 0) {
+      onClose();
+      return;
+    }
+
+    onPractiseSpeaking(practisable[0].entry.label);
+  };
 
   return (
     <Container>
@@ -225,21 +256,12 @@ export function HistoryScreen({
             tomorrow. */}
         <Progress>
           <ProgressItem>
-            <ProgressValue>{level.level}</ProgressValue>
-            <ProgressLabel>{copy.history.levelLabel}</ProgressLabel>
-            <LevelTrack>
-              <LevelFillBar
-                percentage={Math.round(
-                  (level.intoLevel / Math.max(level.levelSpan, 1)) * 100,
-                )}
-              />
-            </LevelTrack>
-            <ProgressHint numberOfLines={1}>
-              {copy.history.levelHint(
-                Math.max(level.levelSpan - level.intoLevel, 0),
-                level.level + 1,
-              )}
-            </ProgressHint>
+            <LevelMeter
+              copy={copy}
+              fromExperience={celebratedFromExperience ?? null}
+              level={level}
+              onCelebrated={onLevelCelebrationShown}
+            />
           </ProgressItem>
           <ProgressDivider />
           <ProgressItem>
@@ -248,9 +270,34 @@ export function HistoryScreen({
             <StreakWeek days={streakDays} />
           </ProgressItem>
         </Progress>
-        {/* A number on its own says nothing, so the screen says where it comes
-            from. */}
-        <ProgressSource>{copy.history.levelSource}</ProgressSource>
+        {/* A number on its own says nothing. This says where it came from and,
+            more to the point, the one thing to go and do about it. */}
+        <NextStepBand
+          accessibilityHint={copy.history.levelCta(nextStep.kind)}
+          accessibilityRole="button"
+          onPress={takeNextStep}
+          testID="history-next-level"
+        >
+          <NextStepText>
+            <NextStepTitle numberOfLines={2}>
+              {nextStep.kind === 'find'
+                ? copy.history.levelToFind(
+                    nextStep.remaining,
+                    nextStep.nextLevel,
+                  )
+                : copy.history.levelToPronounce(
+                    nextStep.remaining,
+                    nextStep.nextLevel,
+                  )}
+            </NextStepTitle>
+            <ProgressSource numberOfLines={1}>
+              {copy.history.levelSource}
+            </ProgressSource>
+          </NextStepText>
+          <NextStepAction>
+            {copy.history.levelCta(nextStep.kind)}
+          </NextStepAction>
+        </NextStepBand>
 
         {due.length > 0 ? (
           <DueBand
@@ -281,75 +328,84 @@ export function HistoryScreen({
           </EmptyState>
         ) : (
           <List showsVerticalScrollIndicator={false}>
-            {visibleEntries.map(({ entry, resting, status }) => {
+            {visibleEntries.map(({ entry, resting, status }, index) => {
               const vocabulary = vocabularyRepository.findByLabel(
                 entry.label,
                 languageSettings,
               );
 
               return (
-                <Row
-                  accessibilityHint={copy.history.tapToHear}
-                  accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${statusLabels[status]}`}
-                  accessibilityRole="button"
-                  key={entry.label}
-                  onPress={() =>
-                    pronunciationPlayer
-                      .speak(vocabulary.word, languageSettings.learningLanguage)
-                      .catch(() => undefined)
-                  }
-                  testID={`history-${entry.label}`}
-                >
-                  <StatusDot $status={status} />
-                  <RowText>
-                    <Word numberOfLines={1}>{vocabulary.word}</Word>
-                    <Translations numberOfLines={1}>
-                      {[
-                        vocabulary.meaning,
-                        ...vocabulary.translations
-                          .filter(
-                            translation =>
-                              translation.word !== vocabulary.meaning,
-                          )
-                          .map(translation => translation.word),
-                      ].join('  •  ')}
-                    </Translations>
-                  </RowText>
-                  <SeenAt>
-                    {resting
-                      ? copy.history.resting
-                      : formatSeenAt(copy, entry.seenAtMs)}
-                  </SeenAt>
-                  <FavoriteButton
-                    accessibilityLabel={copy.history.favorite}
+                // The list arrives rather than appears. Only the first handful
+                // are staggered: past that the wait would be longer than the
+                // scroll, and a learner with fifty words would watch a queue.
+                <Arriving index={index} key={entry.label}>
+                  <Row
+                    accessibilityHint={copy.history.tapToHear}
+                    accessibilityLabel={`${vocabulary.word}, ${vocabulary.meaning}. ${statusLabels[status]}`}
                     accessibilityRole="button"
-                    accessibilityState={{
-                      selected: isFavorite(favorites, entry.label),
-                    }}
-                    hitSlop={10}
-                    onPress={() => onToggleFavorite(entry.label)}
-                    testID={`history-favorite-${entry.label}`}
-                  >
-                    <FavoriteMark $active={isFavorite(favorites, entry.label)}>
-                      {isFavorite(favorites, entry.label) ? '★' : '☆'}
-                    </FavoriteMark>
-                  </FavoriteButton>
-                  <SpeakButton
-                    accessibilityLabel={copy.history.practise}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: resting }}
-                    hitSlop={8}
-                    onPress={
-                      resting
-                        ? undefined
-                        : () => onPractiseSpeaking(entry.label)
+                    onPress={() =>
+                      pronunciationPlayer
+                        .speak(
+                          vocabulary.word,
+                          languageSettings.learningLanguage,
+                        )
+                        .catch(() => undefined)
                     }
-                    testID={`history-speak-${entry.label}`}
-                    $resting={resting}
+                    testID={`history-${entry.label}`}
                   >
-                    <MicIcon color={theme.colors.accent} />
-                  </SpeakButton>
-                </Row>
+                    <StatusDot $status={status} />
+                    <RowText>
+                      <Word numberOfLines={1}>{vocabulary.word}</Word>
+                      <Translations numberOfLines={1}>
+                        {[
+                          vocabulary.meaning,
+                          ...vocabulary.translations
+                            .filter(
+                              translation =>
+                                translation.word !== vocabulary.meaning,
+                            )
+                            .map(translation => translation.word),
+                        ].join('  •  ')}
+                      </Translations>
+                    </RowText>
+                    <SeenAt>
+                      {resting
+                        ? copy.history.resting
+                        : formatSeenAt(copy, entry.seenAtMs)}
+                    </SeenAt>
+                    <FavoriteButton
+                      accessibilityLabel={copy.history.favorite}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: isFavorite(favorites, entry.label),
+                      }}
+                      hitSlop={10}
+                      onPress={() => onToggleFavorite(entry.label)}
+                      testID={`history-favorite-${entry.label}`}
+                    >
+                      <FavoriteMark
+                        $active={isFavorite(favorites, entry.label)}
+                      >
+                        {isFavorite(favorites, entry.label) ? '★' : '☆'}
+                      </FavoriteMark>
+                    </FavoriteButton>
+                    <SpeakButton
+                      accessibilityLabel={copy.history.practise}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: resting }}
+                      hitSlop={8}
+                      onPress={
+                        resting
+                          ? undefined
+                          : () => onPractiseSpeaking(entry.label)
+                      }
+                      testID={`history-speak-${entry.label}`}
+                      $resting={resting}
+                    >
+                      <MicIcon color={theme.colors.accentText} />
+                    </SpeakButton>
+                  </Row>
+                </Arriving>
               );
             })}
           </List>
@@ -448,7 +504,7 @@ const FavoriteButton = styled.Pressable`
 
 const FavoriteMark = styled.Text<{ $active: boolean }>`
   color: ${({ theme, $active }) =>
-    $active ? theme.colors.accent : theme.colors.muted};
+    $active ? theme.colors.accentText : theme.colors.muted};
   font-size: 18px;
   line-height: 22px;
 `;
@@ -461,20 +517,148 @@ const FavoriteMark = styled.Text<{ $active: boolean }>`
  * second, and anyone who asked their phone for less motion sees it arrive at
  * the total directly.
  */
+/** How long the bar takes to fill on an ordinary visit. */
+const FILL_MS = 900;
+/** The two halves of a level being crossed: the run to the end of the old
+ * level, and the run into the new one. The pause between them is what gives
+ * the number time to change in front of the learner. */
+const CROSS_MS = 620;
+const CROSS_HOLD_MS = 260;
+const REFILL_MS = 760;
+
 /**
- * The bar fills to where the learner stands, arriving with the count, and a
- * light travels across what has been earned so far.
+ * The level, its bar, and what is left to the next one.
+ *
+ * On an ordinary visit the bar fills from nothing to where the learner stands.
+ * Opened by a word that was just pronounced, it starts where the bar stood
+ * before that word and runs to where it stands now — and when the word crossed
+ * a level, it runs the old level out to the end, changes the number, and fills
+ * the new one from empty. The gain is the reason the learner was brought here,
+ * so it is shown rather than reported.
  */
-function LevelFillBar({ percentage }: { percentage: number }) {
-  const width = useSharedValue(0);
+function LevelMeter({
+  copy,
+  fromExperience,
+  level,
+  onCelebrated,
+}: {
+  copy: LearningCopy;
+  fromExperience: number | null;
+  level: ReturnType<typeof getLevelProgress>;
+  onCelebrated?: () => void;
+}) {
+  const percentage = toPercentage(level);
+  // Frozen on the first render. Reporting the gain clears it upstream, and a
+  // bar that restarted on that would play the gain twice.
+  const [opening] = useState(() =>
+    fromExperience == null ? null : getLevelProgress(fromExperience),
+  );
+  const hasLevelledUp = opening != null && opening.level < level.level;
+  const [shownLevel, setShownLevel] = useState(
+    hasLevelledUp ? opening.level : level.level,
+  );
+
+  return (
+    <>
+      <ProgressValue testID="history-level">{shownLevel}</ProgressValue>
+      <ProgressLabel>{copy.history.levelLabel}</ProgressLabel>
+      <LevelTrack>
+        <LevelFillBar
+          from={opening == null ? 0 : toPercentage(opening)}
+          onCelebrated={fromExperience == null ? undefined : onCelebrated}
+          onLevelReached={
+            hasLevelledUp ? () => setShownLevel(level.level) : undefined
+          }
+          percentage={percentage}
+        />
+      </LevelTrack>
+      {/* The one moment on this screen worth interrupting for. It plays the
+          celebration the app already owns rather than a second one, so a level
+          and a word said right feel like the same kind of win. */}
+      {hasLevelledUp && shownLevel === level.level ? (
+        <LevelBurst
+          autoPlay
+          loop={false}
+          resizeMode="contain"
+          source={successCelebration}
+          testID="history-level-burst"
+        />
+      ) : null}
+    </>
+  );
+}
+
+function toPercentage(progress: ReturnType<typeof getLevelProgress>) {
+  return Math.round(
+    (progress.intoLevel / Math.max(progress.levelSpan, 1)) * 100,
+  );
+}
+
+/**
+ * The bar itself, and a light that travels across what has been earned so far.
+ *
+ * It always starts at `from` and arrives at `percentage`. When `onLevelReached`
+ * is given, the two are on opposite sides of a level boundary and the bar goes
+ * the long way round: out to the end, a beat, then up from empty.
+ */
+function LevelFillBar({
+  from,
+  onCelebrated,
+  onLevelReached,
+  percentage,
+}: {
+  from: number;
+  onCelebrated?: () => void;
+  onLevelReached?: () => void;
+  percentage: number;
+}) {
+  const width = useSharedValue(from);
   const sheen = useSharedValue(0);
 
   useEffect(() => {
-    width.value = withTiming(percentage, {
-      duration: 900,
-      easing: Easing.out(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
-    });
+    const settle = (finished?: boolean) => {
+      'worklet';
+      if (finished === true && onCelebrated != null) runOnJS(onCelebrated)();
+    };
+
+    if (onLevelReached != null) {
+      width.value = withSequence(
+        withTiming(
+          100,
+          {
+            duration: CROSS_MS,
+            easing: Easing.out(Easing.cubic),
+            reduceMotion: ReduceMotion.System,
+          },
+          finished => {
+            if (finished === true) runOnJS(onLevelReached)();
+          },
+        ),
+        // Full for a beat, which is where the number changes.
+        withTiming(100, { duration: CROSS_HOLD_MS }),
+        withTiming(0, { duration: 0 }),
+        withTiming(
+          percentage,
+          {
+            duration: REFILL_MS,
+            easing: Easing.out(Easing.cubic),
+            reduceMotion: ReduceMotion.System,
+          },
+          settle,
+        ),
+      );
+    } else {
+      width.value = withTiming(
+        percentage,
+        {
+          duration: FILL_MS,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        },
+        settle,
+      );
+    }
+
     sheen.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
@@ -487,7 +671,10 @@ function LevelFillBar({ percentage }: { percentage: number }) {
       undefined,
       ReduceMotion.System,
     );
-  }, [percentage, sheen, width]);
+    // The bar plays what it was mounted with. Everything it reads here is
+    // fixed for the life of the screen, so it never replays.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
   const sheenStyle = useAnimatedStyle(() => ({
@@ -513,10 +700,97 @@ function StreakWeek({ days }: { days: number }) {
       {Array.from({ length: STREAK_WEEK_DAYS }, (_, index) => {
         const daysAgo = STREAK_WEEK_DAYS - 1 - index;
 
-        return <Day key={daysAgo} $filled={daysAgo < days} />;
+        return (
+          <StreakDay
+            filled={daysAgo < days}
+            index={index}
+            isToday={daysAgo === 0}
+            key={daysAgo}
+          />
+        );
       })}
     </Week>
   );
+}
+
+/**
+ * A row that arrives rather than appears.
+ *
+ * Only the first handful are staggered. Past that the wait would outlast the
+ * scroll, and someone with fifty words would sit watching a queue.
+ */
+function Arriving({ children, index }: { children: ReactNode; index: number }) {
+  const arrival = useSharedValue(0);
+
+  useEffect(() => {
+    arrival.value = withDelay(
+      Math.min(index, ROW_STAGGER_LIMIT) * ROW_STAGGER_MS,
+      withTiming(1, {
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        reduceMotion: ReduceMotion.System,
+      }),
+    );
+  }, [arrival, index]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: arrival.value,
+    transform: [{ translateY: (1 - arrival.value) * ROW_ARRIVAL_RISE }],
+  }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+/**
+ * One square of the week.
+ *
+ * The days land left to right, so the week reads as something that was built
+ * up rather than printed. Today keeps breathing while the streak is alive,
+ * which is the square the learner has to feed tomorrow.
+ */
+function StreakDay({
+  filled,
+  index,
+  isToday,
+}: {
+  filled: boolean;
+  index: number;
+  isToday: boolean;
+}) {
+  const arrival = useSharedValue(0);
+  const breath = useSharedValue(0);
+
+  useEffect(() => {
+    arrival.value = withDelay(
+      index * STREAK_DAY_STAGGER_MS,
+      withTiming(1, {
+        duration: 260,
+        easing: Easing.out(Easing.back(1.8)),
+        reduceMotion: ReduceMotion.System,
+      }),
+    );
+  }, [arrival, index]);
+
+  useEffect(() => {
+    if (!isToday || !filled) return;
+
+    breath.value = withRepeat(
+      withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+      undefined,
+      ReduceMotion.System,
+    );
+  }, [breath, filled, isToday]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.2 + arrival.value * 0.8,
+    transform: [
+      { scale: (0.6 + arrival.value * 0.4) * (1 + breath.value * 0.16) },
+    ],
+  }));
+
+  return <Day style={style} $filled={filled} />;
 }
 
 /** Rows that stand in for words while the stored ones are read back. */
@@ -587,6 +861,11 @@ function CountUp({ target }: { target: number }) {
 
 /** Seven days, one square each, ending today. */
 const STREAK_WEEK_DAYS = 7;
+/** How the week and the list arrive. */
+const STREAK_DAY_STAGGER_MS = 60;
+const ROW_STAGGER_MS = 45;
+const ROW_STAGGER_LIMIT = 7;
+const ROW_ARRIVAL_RISE = 14;
 /** Widths of the standing-in rows, so they do not look printed. */
 const SKELETON_WIDTHS = [128, 96, 142, 110, 120, 88];
 
@@ -596,7 +875,7 @@ const Week = styled.View`
   margin-top: 9px;
 `;
 
-const Day = styled.View<{ $filled: boolean }>`
+const Day = styled(Animated.View)<{ $filled: boolean }>`
   width: 11px;
   height: 11px;
   border-radius: 3px;
@@ -700,17 +979,55 @@ const LevelSheen = styled(Animated.View)`
   background-color: #ffffff;
 `;
 
-const ProgressHint = styled.Text`
-  margin-top: 7px;
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 11px;
-`;
-
 const ProgressSource = styled.Text`
-  margin-top: 10px;
+  margin-top: 2px;
   color: ${({ theme }) => theme.colors.muted};
   font-size: 11px;
   line-height: 15px;
+`;
+
+const LevelBurst = styled(LottieView)`
+  position: absolute;
+  pointer-events: none;
+  top: -34px;
+  left: -22px;
+  width: 132px;
+  height: 132px;
+`;
+
+/**
+ * What to do next, in the unit the doing happens in.
+ *
+ * Deliberately quieter than the review band above it: that one is a debt due
+ * today, this one is where the learner is heading. Both are pressable, and the
+ * urgent one keeps the filled pill.
+ */
+const NextStepBand = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 11px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
+  border-radius: 14px;
+  background-color: ${({ theme }) => theme.colors.cardElevated};
+`;
+
+const NextStepText = styled.View`
+  flex: 1;
+  min-width: 0px;
+`;
+
+const NextStepTitle = styled.Text`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 13.5px;
+  font-weight: 700;
+`;
+
+const NextStepAction = styled.Text`
+  color: ${({ theme }) => theme.colors.accentText};
+  font-size: 12.5px;
+  font-weight: 700;
 `;
 
 const StatusDot = styled.View<{ $status: PronunciationStatus }>`

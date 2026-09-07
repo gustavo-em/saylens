@@ -412,7 +412,7 @@ const PromptCard = styled.View`
 `;
 
 const PromptLabel = styled.Text`
-  color: ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.accentText};
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.2px;

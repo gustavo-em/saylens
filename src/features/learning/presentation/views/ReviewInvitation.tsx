@@ -116,7 +116,7 @@ export function ReviewInvitation({
               <Star
                 colour={
                   chosen != null && stars <= chosen
-                    ? theme.colors.accent
+                    ? theme.colors.accentText
                     : theme.colors.muted
                 }
                 filled={chosen != null && stars <= chosen}

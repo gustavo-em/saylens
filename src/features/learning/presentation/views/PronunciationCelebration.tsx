@@ -113,22 +113,26 @@ export function PronunciationCelebration({
         <Detail>{detail}</Detail>
       </Words>
 
+      {/* The countdown belongs to the button that does what the countdown
+          says. It used to sit under "back to the camera" while the screen let
+          go to the words list, so the panel promised one place and went to
+          another. */}
       <Actions style={contentStyle}>
         <PrimaryButton
           accessibilityRole="button"
-          onPress={onReturnToCamera}
-          testID="speak-celebration-camera"
+          onPress={onOpenHistory}
+          testID="speak-celebration-history"
         >
-          <PrimaryText>{cameraLabel}</PrimaryText>
+          <PrimaryText>{historyLabel}</PrimaryText>
           <ReturningText>{returningLabel}</ReturningText>
         </PrimaryButton>
 
         <SecondaryButton
           accessibilityRole="button"
-          onPress={onOpenHistory}
-          testID="speak-celebration-history"
+          onPress={onReturnToCamera}
+          testID="speak-celebration-camera"
         >
-          <SecondaryText>{historyLabel}</SecondaryText>
+          <SecondaryText>{cameraLabel}</SecondaryText>
         </SecondaryButton>
       </Actions>
     </Panel>

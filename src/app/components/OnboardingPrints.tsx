@@ -2,8 +2,10 @@ import type { ReactNode } from 'react';
 import Svg, {
   Circle,
   Defs,
+  Ellipse,
   LinearGradient,
   Path,
+  RadialGradient,
   Rect,
   Stop,
 } from 'react-native-svg';
@@ -169,9 +171,14 @@ export function PrintFrame({
   );
 }
 
-/** The room behind the card: a wall, a desk, a lamp and the laptop the card is
- * naming. Painted rather than photographed, because a print that ships in the
- * bundle should not weigh half a megabyte. */
+/**
+ * The room behind the card: a wall out of focus, a table in the light, and the
+ * plant the card is naming.
+ *
+ * Painted rather than photographed. A photograph of a table would weigh half a
+ * megabyte in the bundle, could only ever show one room, and would date the
+ * moment the card above it changed.
+ */
 function CameraScene() {
   return (
     <SceneLayer
@@ -183,30 +190,380 @@ function CameraScene() {
       width="100%"
     >
       <Defs>
-        <LinearGradient id="wall" x1="0" x2="0.7" y1="0" y2="1">
-          <Stop offset="0" stopColor="#4B4238" />
-          <Stop offset="0.55" stopColor="#2B2620" />
-          <Stop offset="1" stopColor="#17140F" />
+        <LinearGradient id="wall" x1="0" x2="0.35" y1="0" y2="1">
+          <Stop offset="0" stopColor="#F3EBDE" />
+          <Stop offset="0.6" stopColor="#E2D3BC" />
+          <Stop offset="1" stopColor="#D2BFA3" />
         </LinearGradient>
-        <LinearGradient id="desk" x1="0" x2="0" y1="0" y2="1">
-          <Stop offset="0" stopColor="#6B5A46" />
-          <Stop offset="0.45" stopColor="#46392C" />
-          <Stop offset="1" stopColor="#2A2119" />
+        <LinearGradient id="wood" x1="0" x2="0" y1="0" y2="1">
+          <Stop offset="0" stopColor="#D0A469" />
+          <Stop offset="0.45" stopColor="#B4854B" />
+          <Stop offset="1" stopColor="#8A6234" />
         </LinearGradient>
+        <LinearGradient id="pot" x1="0" x2="1" y1="0" y2="0">
+          <Stop offset="0" stopColor="#E5C69D" />
+          <Stop offset="0.55" stopColor="#C79C6D" />
+          <Stop offset="1" stopColor="#A2784B" />
+        </LinearGradient>
+        {/* Where the wall stops being in focus and the table begins. */}
+        <LinearGradient id="haze" x1="0" x2="0" y1="0" y2="1">
+          <Stop offset="0" stopColor="#D8C6A9" stopOpacity="0" />
+          <Stop offset="1" stopColor="#B98F58" stopOpacity="0.5" />
+        </LinearGradient>
+        {/* Light from the window pools on the table and fades, rather than
+            ending at an edge. */}
+        <RadialGradient cx="50%" cy="50%" id="pool" rx="50%" ry="50%">
+          <Stop offset="0" stopColor="#FFE9C4" stopOpacity="0.3" />
+          <Stop offset="1" stopColor="#FFE9C4" stopOpacity="0" />
+        </RadialGradient>
+        {/* A lens darkens what it does not point at. */}
+        <RadialGradient cx="50%" cy="44%" id="vignette" rx="70%" ry="60%">
+          <Stop offset="0.55" stopColor="#000000" stopOpacity="0" />
+          <Stop offset="1" stopColor="#000000" stopOpacity="0.34" />
+        </RadialGradient>
       </Defs>
+
+      <Rect fill="url(#wall)" height={318} width={PRINT_WIDTH} x={0} y={0} />
+      {/* A window off to the left, and furniture too far away to resolve. */}
+      <Ellipse cx={30} cy={62} fill="#FFFCF4" opacity={0.55} rx={88} ry={104} />
+      <Ellipse cx={206} cy={92} fill="#CBB89B" opacity={0.5} rx={44} ry={58} />
       <Rect
-        fill="url(#wall)"
+        fill="#B49470"
+        height={186}
+        opacity={0.34}
+        rx={28}
+        width={78}
+        x={172}
+        y={132}
+      />
+      <Rect fill="url(#haze)" height={70} width={PRINT_WIDTH} x={0} y={248} />
+
+      {/* The table, seen from just above its edge. */}
+      <Path d="M0 318Q116 292 232 312L232 470L0 470Z" fill="url(#wood)" />
+      <Path
+        d="M0 346Q116 322 232 340"
+        fill="none"
+        opacity={0.16}
+        stroke="#79501F"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M0 384Q116 362 232 378"
+        fill="none"
+        opacity={0.13}
+        stroke="#79501F"
+        strokeWidth={1.4}
+      />
+      <Path
+        d="M0 424Q116 404 232 418"
+        fill="none"
+        opacity={0.11}
+        stroke="#79501F"
+        strokeWidth={1.8}
+      />
+      {/* The near edge of the table falls out of focus too. */}
+      <Rect
+        fill="#5E4022"
+        height={44}
+        opacity={0.26}
+        width={PRINT_WIDTH}
+        x={0}
+        y={426}
+      />
+
+      {/* Where the window falls on the table, and the pot's own contact
+          shadow inside it. */}
+      <Ellipse cx={74} cy={370} fill="url(#pool)" rx={100} ry={52} />
+      <Ellipse
+        cx={116}
+        cy={351}
+        fill="#4A3018"
+        opacity={0.22}
+        rx={40}
+        ry={8.5}
+      />
+
+      <Path
+        d="M116 294Q69.4 277.6 45.4 267.9"
+        fill="none"
+        stroke="#24491E"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M86.9 283.6Q90.8 274.1 80.4 269.3Q77.2 280.3 86.9 283.6"
+        fill="#33602A"
+      />
+      <Path
+        d="M71.6 278.0Q62.7 277.1 61.3 286.9Q71.2 286.9 71.6 278.0"
+        fill="#2E5626"
+      />
+      <Path
+        d="M58.2 273.0Q62.8 265.5 55.1 259.3Q50.9 268.1 58.2 273.0"
+        fill="#33602A"
+      />
+      <Path
+        d="M46.8 268.5Q44.0 260.5 35.3 264.0Q39.3 272.4 46.8 268.5"
+        fill="#33602A"
+      />
+      <Path
+        d="M116 294Q98.6 262.3 91.7 233.8"
+        fill="none"
+        stroke="#24491E"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M105.4 272.8Q100.4 265.9 92.1 270.7Q98.4 277.8 105.4 272.8"
+        fill="#33602A"
+      />
+      <Path
+        d="M100.1 260.1Q112.1 259.0 109.7 246.0Q96.6 248.5 100.1 260.1"
+        fill="#33602A"
+      />
+      <Path
+        d="M95.6 247.7Q92.6 241.2 84.9 243.5Q89.0 250.4 95.6 247.7"
+        fill="#33602A"
+      />
+      <Path
+        d="M92.2 235.5Q97.0 228.6 89.2 223.7Q84.6 231.8 92.2 235.5"
+        fill="#2E5626"
+      />
+      <Path
+        d="M116 294Q135.1 261.8 139.6 234.0"
+        fill="none"
+        stroke="#24491E"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M127.3 272.6Q133.9 278.0 140.9 271.4Q132.9 266.2 127.3 272.6"
+        fill="#2E5626"
+      />
+      <Path
+        d="M132.6 259.9Q135.5 249.3 123.6 247.2Q121.6 259.0 132.6 259.9"
+        fill="#33602A"
+      />
+      <Path
+        d="M136.6 247.6Q143.0 251.6 147.9 244.8Q140.4 241.1 136.6 247.6"
+        fill="#33602A"
+      />
+      <Path
+        d="M139.3 235.7Q147.0 230.6 141.8 221.9Q133.8 228.3 139.3 235.7"
+        fill="#2E5626"
+      />
+      <Path
+        d="M116 294Q156.6 280.8 176.2 273.9"
+        fill="none"
+        stroke="#24491E"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M141.2 285.8Q151.1 281.5 147.5 270.0Q136.9 275.8 141.2 285.8"
+        fill="#2E5626"
+      />
+      <Path
+        d="M154.3 281.4Q153.5 292.5 165.6 292.3Q165.3 280.2 154.3 281.4"
+        fill="#2E5626"
+      />
+      <Path
+        d="M165.6 277.6Q171.9 274.6 168.5 267.7Q161.9 271.7 165.6 277.6"
+        fill="#33602A"
+      />
+      <Path
+        d="M175.1 274.4Q183.1 278.9 187.9 269.9Q178.6 265.8 175.1 274.4"
+        fill="#2E5626"
+      />
+      <Path
+        d="M116 294Q81.1 268.7 63.8 248.6"
+        fill="none"
+        stroke="#2F5F26"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M94.3 277.4Q102.9 272.2 97.8 262.3Q88.9 269.0 94.3 277.4"
+        fill="#478834"
+      />
+      <Path
+        d="M83.0 267.7Q76.6 263.6 71.5 270.3Q79.0 274.1 83.0 267.7"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M73.1 258.5Q79.4 254.8 75.9 247.5Q69.3 252.3 73.1 258.5"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M64.9 249.8Q65.3 242.5 57.2 241.1Q57.6 249.3 64.9 249.8"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M116 294Q94.4 262.0 95.4 236.8"
+        fill="none"
+        stroke="#2F5F26"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M103.9 273.0Q99.2 265.0 90.8 270.8Q96.8 279.1 103.9 273.0"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M99.1 260.9Q109.0 261.0 109.6 250.0Q98.6 251.0 99.1 260.9"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M96.2 249.3Q94.2 242.5 86.3 244.2Q89.4 251.5 96.2 249.3"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M95.4 238.4Q100.4 234.0 95.5 228.6Q90.5 233.9 95.4 238.4"
+        fill="#478834"
+      />
+      <Path
+        d="M116 294Q136.3 261.2 140.6 233.1"
+        fill="none"
+        stroke="#2F5F26"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M128.0 272.2Q136.5 276.9 142.3 267.8Q132.3 263.6 128.0 272.2"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M133.5 259.3Q134.9 249.9 124.5 248.0Q124.0 258.6 133.5 259.3"
+        fill="#478834"
+      />
+      <Path
+        d="M137.6 246.8Q143.2 250.8 147.9 244.9Q141.3 241.2 137.6 246.8"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M140.3 234.8Q146.3 231.3 142.0 225.0Q135.8 229.5 140.3 234.8"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M116 294Q147.9 275.5 160.6 262.7"
+        fill="none"
+        stroke="#2F5F26"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M135.5 282.1Q144.3 275.7 137.7 265.7Q128.7 273.6 135.5 282.1"
+        fill="#478834"
+      />
+      <Path
+        d="M145.3 275.4Q149.5 284.5 159.7 280.0Q154.0 270.4 145.3 275.4"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M153.4 269.2Q158.9 264.1 152.9 258.6Q147.5 264.7 153.4 269.2"
+        fill="#3F7A32"
+      />
+      <Path
+        d="M159.8 263.5Q166.5 264.1 166.7 256.8Q159.3 256.8 159.8 263.5"
+        fill="#478834"
+      />
+      <Path
+        d="M116 294Q95.1 268.7 92.8 248.9"
+        fill="none"
+        stroke="#3C7A2F"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M104.0 277.4Q110.8 274.0 107.6 266.1Q100.4 270.6 104.0 277.4"
+        fill="#79C255"
+      />
+      <Path
+        d="M98.7 267.8Q92.8 260.8 84.3 266.3Q91.6 273.5 98.7 267.8"
+        fill="#57A03F"
+      />
+      <Path
+        d="M95.0 258.7Q102.3 257.6 101.4 249.4Q93.4 251.4 95.0 258.7"
+        fill="#79C255"
+      />
+      <Path
+        d="M92.9 250.0Q97.3 244.5 91.3 239.3Q87.2 246.0 92.9 250.0"
+        fill="#79C255"
+      />
+      <Path
+        d="M116 294Q125.4 270.6 119.6 251.8"
+        fill="none"
+        stroke="#3C7A2F"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M120.6 278.6Q121.4 269.3 111.1 267.5Q111.3 278.0 120.6 278.6"
+        fill="#79C255"
+      />
+      <Path
+        d="M121.7 269.7Q129.0 270.5 129.5 262.4Q121.5 262.3 121.7 269.7"
+        fill="#57A03F"
+      />
+      <Path
+        d="M121.5 261.1Q119.2 253.5 110.8 256.1Q114.2 264.3 121.5 261.1"
+        fill="#57A03F"
+      />
+      <Path
+        d="M119.9 252.9Q122.6 248.1 117.6 244.5Q115.1 250.2 119.9 252.9"
+        fill="#57A03F"
+      />
+      <Path
+        d="M116 294Q135.9 269.7 143.2 249.1"
+        fill="none"
+        stroke="#3C7A2F"
+        strokeLinecap="round"
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M128.1 277.9Q134.1 283.8 141.1 277.5Q133.8 271.6 128.1 277.9"
+        fill="#57A03F"
+      />
+      <Path
+        d="M134.1 268.4Q138.1 260.3 129.2 255.9Q125.6 265.2 134.1 268.4"
+        fill="#57A03F"
+      />
+      <Path
+        d="M139.0 259.2Q144.2 264.3 150.6 259.1Q144.1 254.0 139.0 259.2"
+        fill="#57A03F"
+      />
+      <Path
+        d="M142.8 250.4Q149.9 247.8 146.5 240.2Q139.0 243.7 142.8 250.4"
+        fill="#79C255"
+      />
+
+      {/* Drawn after the leaves, so they rise from behind the rim. */}
+      <Path d="M87 300L145 300L138 344Q116 352 94 344Z" fill="url(#pot)" />
+      <Rect fill="#E2C098" height={12} rx={4} width={66} x={83} y={292} />
+      <Rect
+        fill="#A97F52"
+        height={2}
+        opacity={0.45}
+        width={66}
+        x={83}
+        y={302}
+      />
+      <Path
+        d="M93 308Q97 328 101 341"
+        fill="none"
+        opacity={0.32}
+        stroke="#F4E1C6"
+        strokeLinecap="round"
+        strokeWidth={3}
+      />
+
+      <Rect
+        fill="url(#vignette)"
         height={PRINT_HEIGHT}
         width={PRINT_WIDTH}
         x={0}
         y={0}
       />
-      <Circle cx={16} cy={62} fill="rgba(255, 226, 168, 0.10)" r={86} />
-      <Rect fill="url(#desk)" height={226} width={PRINT_WIDTH} x={0} y={244} />
-      <Path d="M58 262 L184 252 L196 350 L42 366 Z" fill="#1B1E24" />
-      <Path d="M66 270 L177 261 L187 344 L52 358 Z" fill="#2E3A4C" />
-      <Path d="M42 366 L196 350 L218 396 L26 416 Z" fill="#23262C" />
-      <Path d="M96 372 L172 364 L178 382 L88 391 Z" fill="#181A1F" />
     </SceneLayer>
   );
 }
@@ -220,7 +577,7 @@ export function CameraPrint({
 }: PrintProps) {
   const theme = useTheme();
   const vocabulary = vocabularyRepository.findByLabel(
-    'laptop',
+    'potted plant',
     languageSettings,
   );
 
@@ -281,11 +638,15 @@ export function CameraPrint({
 
       <CameraBar>
         <BarItem>
-          <ListIcon color="#ffffff" size={13} />
+          <BarIcon>
+            <ListIcon color="#ffffff" size={13} />
+          </BarIcon>
           <BarLabel numberOfLines={1}>{copy.history.title}</BarLabel>
         </BarItem>
         <BarItem>
-          <GearIcon color="#ffffff" size={13} />
+          <BarIcon>
+            <GearIcon color="#ffffff" size={13} />
+          </BarIcon>
           <BarLabel numberOfLines={1}>{copy.tabs.settings}</BarLabel>
         </BarItem>
       </CameraBar>
@@ -571,10 +932,10 @@ const CameraRoot = styled.View`
 
 const TargetFrame = styled.View`
   position: absolute;
-  left: 26px;
-  top: 244px;
-  width: 182px;
-  height: 158px;
+  left: 40px;
+  top: 200px;
+  width: 152px;
+  height: 168px;
 `;
 
 const Corner = styled.View<{ $bottom: boolean; $right: boolean }>`
@@ -651,7 +1012,7 @@ const PauseBar = styled.View`
 const ObjectCard = styled.View`
   position: absolute;
   left: 14px;
-  top: 62px;
+  top: 46px;
   width: 168px;
   padding: 10px;
   border-radius: 14px;
@@ -762,15 +1123,28 @@ const CameraBar = styled.View`
 
 const BarItem = styled.View`
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   max-width: 84px;
+`;
+
+const BarIcon = styled.View`
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.overlayGlassBorder};
+  background-color: ${({ theme }) => theme.colors.overlayGlass};
 `;
 
 const BarLabel = styled.Text`
   color: #ffffff;
   font-size: 8px;
   line-height: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  /* The label sits on the scene, not on a surface, so it carries its own
+     shadow to stay readable over a bright floor. */
+  text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
 `;
 
 /* ---------- shared for the two quiet screens ---------- */

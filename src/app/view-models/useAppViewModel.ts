@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { LearningLanguage } from '../../features/learning/domain/LearningLanguage';
+import {
+  defaultLearningLanguageFor,
+  matchLearningLanguage,
+  type LearningLanguage,
+} from '../../features/learning/domain/LearningLanguage';
 import type { PerformanceProfile } from '../../features/learning/domain/PerformanceProfile';
 import { useVisionCameraAccess } from '../../features/learning/infrastructure/camera/useVisionCameraAccess';
 import { getPerformanceCapabilities } from '../../features/learning/infrastructure/performance/getPerformanceCapabilities';
@@ -16,6 +20,7 @@ import {
 } from '../../features/learning/domain/FavoriteWord';
 import {
   EMPTY_LEARNER_PROGRESS,
+  getExperience,
   getStreakDays,
   recordFoundLabels,
   sanitizeLearnerProgress,
@@ -54,9 +59,25 @@ import {
   shouldInviteReview,
   type ReviewInvitationState,
 } from '../../features/learning/domain/ReviewInvitation';
+import { reportCloudFailure } from '../infrastructure/cloud/reportCloudFailure';
+import { withTimeout } from '../infrastructure/cloud/withTimeout';
+import { getCurrentDeviceRecord } from '../infrastructure/device/currentDeviceRecord';
+import { getDeviceLanguageTags } from '../infrastructure/locale/deviceLanguageTags';
 import { asyncStorageVisitStore } from '../infrastructure/usage/asyncStorageVisitStore';
 import type { AppTab } from '../navigation/AppTab';
 import type { AppearanceMode } from '../theme/theme';
+import type {
+  CloudLearningData,
+  CloudLearningStore,
+} from '../../features/learning/application/ports/CloudLearningStore';
+import {
+  mergeCloudLearningData,
+  sanitizeCloudLearningData,
+} from '../../features/learning/domain/CloudLearningData';
+
+/** How long anything a learner is waiting on will wait for the server before
+ * carrying on without it. */
+const CLOUD_WAIT_MS = 4000;
 
 export function useAppViewModel(
   preferencesStore: PreferencesStore,
@@ -67,8 +88,12 @@ export function useAppViewModel(
   reviewInvitationStore: ReviewInvitationStore,
   authenticator: Authenticator,
   usageReporter: UsageReporter,
+  cloudLearningStore: CloudLearningStore,
 ) {
   const [performanceCapabilities] = useState(getPerformanceCapabilities);
+  /** When this run of the app began. It is what the account records as the last
+   * time it was seen, so the answer is the same for every write of this run. */
+  const [openedAtMs] = useState(() => Date.now());
   const [activeTab, setActiveTab] = useState<AppTab>('camera');
   /** False until the stored words have been read back. Before that the list is
    * empty because nothing has loaded, not because nothing was found. */
@@ -78,15 +103,38 @@ export function useAppViewModel(
   const [isInvitingReview, setIsInvitingReview] = useState(false);
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [accountMessage, setAccountMessage] = useState<string | null>(null);
+  const [hasRestoredFavorites, setHasRestoredFavorites] = useState(false);
+  const [hasRestoredPronunciation, setHasRestoredPronunciation] =
+    useState(false);
+  const [hasRestoredLearnerProgress, setHasRestoredLearnerProgress] =
+    useState(false);
+  const [cloudSyncedUserId, setCloudSyncedUserId] = useState<string | null>(
+    null,
+  );
   /** Set when a round is opened for a particular set of words, such as the
    * ones due for review, and cleared when practice is opened at large. */
   const [reviewLabels, setReviewLabels] = useState<readonly string[] | null>(
     null,
   );
-  const [preferences, setPreferences] = useState<AppPreferences>(() => ({
-    ...DEFAULT_APP_PREFERENCES,
-    performanceProfile: performanceCapabilities.recommendedProfile,
-  }));
+  const [preferences, setPreferences] = useState<AppPreferences>(() => {
+    // The app opens in the language the phone is already set to, so the first
+    // screen is readable before anybody has been asked anything. It is only a
+    // starting point: the first step of the walk-through puts the choice in
+    // the learner's hands, and a stored choice overrides it on every later run.
+    const deviceLanguage = matchLearningLanguage(getDeviceLanguageTags());
+
+    return {
+      ...DEFAULT_APP_PREFERENCES,
+      performanceProfile: performanceCapabilities.recommendedProfile,
+      ...(deviceLanguage == null
+        ? {}
+        : {
+            nativeLanguage: deviceLanguage,
+            learningLanguage: defaultLearningLanguageFor(deviceLanguage),
+          }),
+    };
+  });
   // Preferences are only rendered once they have been read from storage, so the
   // theme never flashes and the detector is never configured with a profile the
   // user did not choose.
@@ -99,6 +147,13 @@ export function useAppViewModel(
   const [learnerProgress, setLearnerProgress] = useState<LearnerProgress>(
     EMPTY_LEARNER_PROGRESS,
   );
+  /** Where the level bar stood before the word that was just said landed, set
+   * only when a word is matched for the first time and cleared once the words
+   * screen has played the gain. Null the rest of the time, which is what tells
+   * an ordinary visit from an arrival. */
+  const [celebratedFromExperience, setCelebratedFromExperience] = useState<
+    number | null
+  >(null);
   const [speakLabel, setSpeakLabel] = useState<string | null>(null);
   // Practising can start from the camera or from history, and closing has to
   // land back where the learner came from.
@@ -150,7 +205,10 @@ export function useAppViewModel(
       .then(stored => {
         if (isCurrent) setFavorites(sanitizeFavorites(stored));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (isCurrent) setHasRestoredFavorites(true);
+      });
 
     return () => {
       isCurrent = false;
@@ -167,7 +225,10 @@ export function useAppViewModel(
           setPronunciationProgress(sanitizePronunciationProgress(stored));
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (isCurrent) setHasRestoredPronunciation(true);
+      });
 
     return () => {
       isCurrent = false;
@@ -184,6 +245,22 @@ export function useAppViewModel(
 
   const recordPronunciationResult = useCallback(
     (label: string, matched: boolean) => {
+      // Only the first time a word is matched earns anything, so only that
+      // takes a reading of where the bar was standing.
+      const isFirstMatch =
+        matched &&
+        getPronunciationStatus(pronunciationProgress, label) !== 'matched';
+
+      if (isFirstMatch) {
+        setCelebratedFromExperience(
+          getExperience(
+            learnerProgress.foundLabels.length,
+            pronunciationProgress.filter(entry => entry.status === 'matched')
+              .length,
+          ),
+        );
+      }
+
       if (matched) {
         // Asking right after something went right is the only honest moment
         // to ask; the rules for how often live in the domain.
@@ -210,28 +287,215 @@ export function useAppViewModel(
         return next;
       });
     },
-    [pronunciationProgressStore, reviewInvitation, saveReviewInvitation],
+    [
+      learnerProgress.foundLabels.length,
+      pronunciationProgress,
+      pronunciationProgressStore,
+      reviewInvitation,
+      saveReviewInvitation,
+    ],
+  );
+
+  const clearLevelCelebration = useCallback(
+    () => setCelebratedFromExperience(null),
+    [],
   );
 
   useEffect(() => authenticator.subscribe(setUser), [authenticator]);
 
-  const signInWithGoogle = useCallback(async () => {
-    setSignInError(null);
+  const authErrorMessage = useCallback(
+    (error: unknown) => {
+      const account = getLearningCopy(preferences.nativeLanguage).account;
+      const code = ((error as { code?: string }).code ?? '').toLowerCase();
 
-    try {
-      await authenticator.signInWithGoogle();
-    } catch (error) {
-      // Closing the Google sheet is a decision, not a failure, and the screen
-      // says nothing about it.
-      if ((error as Error).name === 'SignInCancelledError') return;
+      if (
+        code.includes('invalid-credential') ||
+        code.includes('wrong-password') ||
+        code.includes('user-not-found')
+      ) {
+        return account.invalidCredentials;
+      }
+      if (code.includes('invalid-email')) return account.invalidEmail;
+      if (code.includes('email-already-in-use'))
+        return account.emailAlreadyUsed;
+      if (code.includes('weak-password')) return account.weakPassword;
+      if (code.includes('network-request-failed')) return account.networkError;
+      if (code.includes('requires-recent-login')) {
+        return account.recentLoginRequired;
+      }
+      // Google can hand back a perfectly good token and Firebase still refuse
+      // it, which is a different problem with a different fix.
+      if (code.includes('operation-not-allowed')) {
+        return account.googleProviderDisabled;
+      }
+      if (code.includes('account-exists-with-different-credential')) {
+        return account.emailBelongsToAnotherSignIn;
+      }
 
-      setSignInError((error as Error).message);
-    }
-  }, [authenticator]);
+      // Google's own sign-in reports numbers rather than `auth/...` strings,
+      // so none of the codes above ever match one of its failures and every
+      // one of them used to read as the same shrug.
+      if (code === '10') return account.googleRejectedThisBuild;
+      if (code === '7') return account.networkError;
+      if (code === '12500' || code === 'play_services_not_available') {
+        return account.playServicesUnavailable;
+      }
+      if (code === '12502' || code === 'async_op_in_progress') {
+        return account.signInAlreadyRunning;
+      }
+
+      // Whatever is left is worth naming: a code the learner can read out is
+      // worth more to them than a sentence that says nothing.
+      return code === ''
+        ? account.unexpectedAuthError
+        : `${account.unexpectedAuthError} (${code})`;
+    },
+    [preferences.nativeLanguage],
+  );
+
+  const signIn = useCallback(
+    async (provider: 'apple' | 'google') => {
+      setSignInError(null);
+      setAccountMessage(null);
+
+      try {
+        if (provider === 'apple') {
+          await authenticator.signInWithApple();
+        } else {
+          await authenticator.signInWithGoogle();
+        }
+      } catch (error) {
+        // Closing an identity sheet is a decision, not a failure, and the screen
+        // says nothing about it.
+        if ((error as Error).name === 'SignInCancelledError') return;
+
+        setSignInError(authErrorMessage(error));
+      }
+    },
+    [authErrorMessage, authenticator],
+  );
+
+  const signInWithApple = useCallback(() => signIn('apple'), [signIn]);
+  const signInWithGoogle = useCallback(() => signIn('google'), [signIn]);
+
+  const signInWithEmail = useCallback(
+    async (email: string, password: string) => {
+      setSignInError(null);
+      setAccountMessage(null);
+      try {
+        await authenticator.signInWithEmail(email, password);
+      } catch (error) {
+        setSignInError(authErrorMessage(error));
+      }
+    },
+    [authErrorMessage, authenticator],
+  );
+
+  const createAccountWithEmail = useCallback(
+    async (email: string, password: string) => {
+      const account = getLearningCopy(preferences.nativeLanguage).account;
+      setSignInError(null);
+      setAccountMessage(null);
+
+      if (password.length < 6) {
+        setSignInError(account.weakPassword);
+        return;
+      }
+
+      try {
+        await authenticator.createAccountWithEmail(email, password);
+        setAccountMessage(account.verificationSent);
+      } catch (error) {
+        setSignInError(authErrorMessage(error));
+      }
+    },
+    [authErrorMessage, authenticator, preferences.nativeLanguage],
+  );
+
+  const sendPasswordReset = useCallback(
+    async (email: string) => {
+      const account = getLearningCopy(preferences.nativeLanguage).account;
+      setSignInError(null);
+      setAccountMessage(null);
+
+      if (!email.includes('@')) {
+        setSignInError(account.invalidEmail);
+        return;
+      }
+
+      try {
+        await authenticator.sendPasswordReset(email);
+        setAccountMessage(account.resetSent);
+      } catch (error) {
+        setSignInError(authErrorMessage(error));
+      }
+    },
+    [authErrorMessage, authenticator, preferences.nativeLanguage],
+  );
 
   const signOut = useCallback(async () => {
+    if (user != null && cloudSyncedUserId === user.id) {
+      // A last write before leaving is worth a moment, never a wait: with no
+      // signal this promise settles only when a connection comes back, and
+      // nobody is holding the phone until then. Firestore keeps the write.
+      await withTimeout(
+        cloudLearningStore
+          .save(user.id, {
+            schemaVersion: 3,
+            updatedAtMs: Date.now(),
+            device: getCurrentDeviceRecord(openedAtMs),
+            profile: {
+              displayName: user.name,
+              email: user.email,
+              providerIds: user.providerIds ?? [],
+              emailVerified: user.emailVerified ?? false,
+              createdAtMs: user.createdAtMs ?? null,
+              lastSignInAtMs: user.lastSignInAtMs ?? null,
+            },
+            preferences: {
+              appearanceMode: preferences.appearanceMode,
+              learningLanguage: preferences.learningLanguage,
+              nativeLanguage: preferences.nativeLanguage,
+            },
+            favorites,
+            learnerProgress,
+            pronunciationProgress,
+            viewedObjects,
+          })
+          .catch(error => reportCloudFailure('save on sign-out', error)),
+        CLOUD_WAIT_MS,
+      );
+    }
     await authenticator.signOut().catch(() => undefined);
-  }, [authenticator]);
+    setCloudSyncedUserId(null);
+  }, [
+    authenticator,
+    cloudLearningStore,
+    cloudSyncedUserId,
+    favorites,
+    learnerProgress,
+    openedAtMs,
+    pronunciationProgress,
+    preferences,
+    user,
+    viewedObjects,
+  ]);
+
+  const deleteAccount = useCallback(async () => {
+    if (user == null) return;
+
+    setSignInError(null);
+    setCloudSyncedUserId(null);
+    try {
+      // Erasing the cloud copy is attempted first, but an unreachable server
+      // must not stand between a learner and deleting their account: the
+      // deletion stays queued, and removing the account is what they asked for.
+      await withTimeout(cloudLearningStore.delete(user.id), CLOUD_WAIT_MS);
+      await authenticator.deleteAccount();
+    } catch (error) {
+      setSignInError(authErrorMessage(error));
+    }
+  }, [authErrorMessage, authenticator, cloudLearningStore, user]);
 
   const dismissReviewInvitation = useCallback(() => {
     setIsInvitingReview(false);
@@ -265,7 +529,10 @@ export function useAppViewModel(
       .then(stored => {
         if (isCurrent) setLearnerProgress(sanitizeLearnerProgress(stored));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (isCurrent) setHasRestoredLearnerProgress(true);
+      });
 
     return () => {
       isCurrent = false;
@@ -323,6 +590,127 @@ export function useAppViewModel(
       isCurrent = false;
     };
   }, [performanceCapabilities.supportedProfiles, preferencesStore]);
+
+  const learningSnapshot = useCallback(
+    (updatedAtMs: number, account: AuthenticatedUser): CloudLearningData => ({
+      schemaVersion: 3,
+      updatedAtMs,
+      device: getCurrentDeviceRecord(openedAtMs),
+      profile: {
+        displayName: account.name,
+        email: account.email,
+        providerIds: account.providerIds ?? [],
+        emailVerified: account.emailVerified ?? false,
+        createdAtMs: account.createdAtMs ?? null,
+        lastSignInAtMs: account.lastSignInAtMs ?? null,
+      },
+      preferences: {
+        appearanceMode: preferences.appearanceMode,
+        learningLanguage: preferences.learningLanguage,
+        nativeLanguage: preferences.nativeLanguage,
+      },
+      favorites,
+      learnerProgress,
+      pronunciationProgress,
+      viewedObjects,
+    }),
+    [
+      favorites,
+      learnerProgress,
+      openedAtMs,
+      preferences.appearanceMode,
+      preferences.learningLanguage,
+      preferences.nativeLanguage,
+      pronunciationProgress,
+      viewedObjects,
+    ],
+  );
+
+  const hasRestoredAllLearningData =
+    hasRestoredWords &&
+    hasRestoredFavorites &&
+    hasRestoredPronunciation &&
+    hasRestoredLearnerProgress;
+
+  useEffect(() => {
+    if (user == null) {
+      setCloudSyncedUserId(null);
+      return;
+    }
+    if (!hasRestoredAllLearningData || cloudSyncedUserId === user.id) {
+      return;
+    }
+
+    let isCurrent = true;
+    const userId = user.id;
+
+    cloudLearningStore
+      .load(userId)
+      .then(stored => {
+        if (!isCurrent) return;
+
+        const local = learningSnapshot(Date.now(), user);
+        const cloud = sanitizeCloudLearningData(stored, local);
+        const next =
+          cloud == null ? local : mergeCloudLearningData(local, cloud);
+        const saved = { ...next, updatedAtMs: Date.now() };
+
+        setCloudSyncedUserId(userId);
+        setFavorites([...saved.favorites]);
+        setLearnerProgress(saved.learnerProgress);
+        setPronunciationProgress([...saved.pronunciationProgress]);
+        setViewedObjects([...saved.viewedObjects]);
+        setPreferences(current => {
+          const nextPreferences = sanitizeAppPreferences(
+            { ...current, ...saved.preferences },
+            current,
+            performanceCapabilities.supportedProfiles,
+          );
+          preferencesStore.save(nextPreferences).catch(() => undefined);
+          return nextPreferences;
+        });
+
+        favoriteWordStore.save(saved.favorites).catch(() => undefined);
+        learnerProgressStore.save(saved.learnerProgress).catch(() => undefined);
+        pronunciationProgressStore
+          .save(saved.pronunciationProgress)
+          .catch(() => undefined);
+        viewedObjectStore.save(saved.viewedObjects).catch(() => undefined);
+
+        cloudLearningStore
+          .save(userId, saved)
+          .catch(error => reportCloudFailure('first save', error));
+      })
+      .catch(error => reportCloudFailure('load', error));
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    cloudLearningStore,
+    cloudSyncedUserId,
+    favoriteWordStore,
+    hasRestoredAllLearningData,
+    learnerProgressStore,
+    learningSnapshot,
+    pronunciationProgressStore,
+    performanceCapabilities.supportedProfiles,
+    preferencesStore,
+    user,
+    viewedObjectStore,
+  ]);
+
+  useEffect(() => {
+    if (user == null || cloudSyncedUserId !== user.id) return;
+
+    const timeout = setTimeout(() => {
+      cloudLearningStore
+        .save(user.id, learningSnapshot(Date.now(), user))
+        .catch(error => reportCloudFailure('save', error));
+    }, 1200);
+
+    return () => clearTimeout(timeout);
+  }, [cloudLearningStore, cloudSyncedUserId, learningSnapshot, user]);
 
   const hasSettledAfterRestore = useRef(false);
 
@@ -425,6 +813,28 @@ export function useAppViewModel(
     [updatePreference],
   );
 
+  useEffect(() => {
+    if (
+      !isRestored ||
+      !preferences.hasSeenOnboarding ||
+      preferences.hasSeenSignInPrompt ||
+      user != null ||
+      learnerProgress.foundLabels.length < 10
+    ) {
+      return;
+    }
+
+    updatePreference('hasSeenSignInPrompt', true);
+    setActiveTab('account');
+  }, [
+    isRestored,
+    learnerProgress.foundLabels.length,
+    preferences.hasSeenOnboarding,
+    preferences.hasSeenSignInPrompt,
+    updatePreference,
+    user,
+  ]);
+
   return {
     activeTab,
     appearanceMode: preferences.appearanceMode,
@@ -468,10 +878,18 @@ export function useAppViewModel(
     pronunciationStatusOf: (label: string) =>
       getPronunciationStatus(pronunciationProgress, label),
     recordPronunciationResult,
+    celebratedFromExperience,
+    clearLevelCelebration,
     user,
+    accountMessage,
     signInError,
+    signInWithApple,
+    signInWithEmail,
     signInWithGoogle,
+    createAccountWithEmail,
+    sendPasswordReset,
     signOut,
+    deleteAccount,
     isInvitingReview,
     acceptReviewInvitation,
     declineReviewInvitation,

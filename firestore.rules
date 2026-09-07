@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function nullableShortString(value, maximumLength) {
+      return value == null || (value is string && value.size() <= maximumLength);
+    }
+
+    function nullableTimestampMs(value) {
+      return value == null || (value is int && value >= 0);
+    }
+
+    function validProfile(profile) {
+      return profile is map
+        && profile.keys().hasOnly([
+          'displayName',
+          'email',
+          'providerIds',
+          'emailVerified',
+          'createdAtMs',
+          'lastSignInAtMs'
+        ])
+        && nullableShortString(profile.displayName, 120)
+        && nullableShortString(profile.email, 320)
+        && profile.providerIds is list
+        && profile.providerIds.size() <= 10
+        && profile.emailVerified is bool
+        && nullableTimestampMs(profile.createdAtMs)
+        && nullableTimestampMs(profile.lastSignInAtMs);
+    }
+
+    function validPreferences(preferences) {
+      return preferences is map
+        && preferences.keys().hasOnly([
+          'appearanceMode',
+          'learningLanguage',
+          'nativeLanguage'
+        ])
+        && preferences.appearanceMode in ['system', 'light', 'dark']
+        && preferences.learningLanguage in ['pt-BR', 'en-US', 'es']
+        && preferences.nativeLanguage in ['pt-BR', 'en-US', 'es'];
+    }
+
+    /**
+     * Where the account was last used. It is a single record overwritten by the
+     * most recent device, never a log, and it holds nothing read from the
+     * hardware: a build number, a platform, an OS version and a locale.
+     */
+    function validDevice(device) {
+      return device is map
+        && device.keys().hasOnly([
+          'lastSeenAtMs',
+          'appVersion',
+          'platform',
+          'osVersion',
+          'locale'
+        ])
+        && device.lastSeenAtMs is int
+        && device.lastSeenAtMs >= 0
+        && device.appVersion is string
+        && device.appVersion.size() <= 40
+        && device.platform in ['ios', 'android', 'other']
+        && device.osVersion is string
+        && device.osVersion.size() <= 40
+        && nullableShortString(device.locale, 40);
+    }
+
+    function validLearnerProgress(progress) {
+      return progress is map
+        && progress.keys().hasOnly([
+          'foundLabels',
+          'streakDays',
+          'lastFoundDayMs'
+        ])
+        && progress.foundLabels is list
+        && progress.foundLabels.size() <= 200
+        && progress.streakDays is int
+        && progress.streakDays >= 0
+        && progress.lastFoundDayMs is int
+        && progress.lastFoundDayMs >= 0;
+    }
+
+    /**
+     * Version 2 is still accepted because a build without the device record is
+     * still on phones, and locking it out would silently stop those learners
+     * syncing. Version 3 must carry the record; version 2 must not.
+     */
+    function validUserDocument(data) {
+      return data.keys().hasOnly([
+          'schemaVersion',
+          'updatedAtMs',
+          'serverUpdatedAt',
+          'profile',
+          'preferences',
+          'device',
+          'favorites',
+          'learnerProgress',
+          'pronunciationProgress',
+          'viewedObjects'
+        ])
+        && data.schemaVersion in [2, 3]
+        && (data.schemaVersion == 2
+          ? !('device' in data.keys())
+          : validDevice(data.device))
+        && data.updatedAtMs is int
+        && data.updatedAtMs >= 0
+        && data.serverUpdatedAt is timestamp
+        && validProfile(data.profile)
+        && validPreferences(data.preferences)
+        && data.favorites is list
+        && data.favorites.size() <= 200
+        && validLearnerProgress(data.learnerProgress)
+        && data.pronunciationProgress is list
+        && data.pronunciationProgress.size() <= 200
+        && data.viewedObjects is list
+        && data.viewedObjects.size() <= 15;
+    }
+
+    match /users/{userId} {
+      allow read, delete: if owns(userId);
+      allow create, update: if owns(userId)
+        && validUserDocument(request.resource.data);
+    }
+  }
+}

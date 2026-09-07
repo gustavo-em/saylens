@@ -3,6 +3,8 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
 import App from '../src/app/App';
+import { getDeviceLanguageTags } from '../src/app/infrastructure/locale/deviceLanguageTags';
+import { lightTheme } from '../src/app/theme/theme';
 
 // This file drives whole screens, and the count that rolls up on the words
 // screen would leave state updates landing after each act block. The curve
@@ -28,16 +30,54 @@ jest.mock(
   }),
 );
 
+jest.mock('@invertase/react-native-apple-authentication', () => {
+  const ReactModule = require('react');
+  const { Pressable } = jest.requireActual('react-native');
+  const AppleButton = (props: Record<string, unknown>) =>
+    ReactModule.createElement(Pressable, props);
+  AppleButton.Style = { BLACK: 'Black' };
+  AppleButton.Type = { CONTINUE: 'Continue' };
+  return { AppleButton };
+});
+
+jest.mock(
+  '../src/features/learning/infrastructure/cloud/firestoreLearningStore',
+  () => ({
+    firestoreLearningStore: {
+      load: jest.fn(async () => null),
+      save: jest.fn(async () => undefined),
+      delete: jest.fn(async () => undefined),
+    },
+  }),
+);
+
 jest.mock(
   '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
   () => ({
     firebaseAuthenticator: {
+      signInWithApple: jest.fn(async () => ({
+        id: 'learner-1',
+        name: 'Gustavo',
+        email: 'gustavo@example.com',
+      })),
+      signInWithEmail: jest.fn(async () => ({
+        id: 'learner-1',
+        name: null,
+        email: 'gustavo@example.com',
+      })),
+      createAccountWithEmail: jest.fn(async () => ({
+        id: 'learner-1',
+        name: null,
+        email: 'gustavo@example.com',
+      })),
+      sendPasswordReset: jest.fn(async () => undefined),
       signInWithGoogle: jest.fn(async () => ({
         id: 'learner-1',
         name: 'Gustavo',
         email: 'gustavo@example.com',
       })),
       signOut: jest.fn(async () => undefined),
+      deleteAccount: jest.fn(async () => undefined),
       subscribe: jest.fn(() => () => undefined),
     },
   }),
@@ -104,9 +144,22 @@ const mockUsageReporter = jest.requireMock(
 const mockAuthenticator = jest.requireMock(
   '../src/features/learning/infrastructure/auth/firebaseAuthenticator',
 ).firebaseAuthenticator as {
+  signInWithApple: jest.Mock;
+  signInWithEmail: jest.Mock;
+  createAccountWithEmail: jest.Mock;
+  sendPasswordReset: jest.Mock;
   signInWithGoogle: jest.Mock;
   signOut: jest.Mock;
+  deleteAccount: jest.Mock;
   subscribe: jest.Mock;
+};
+
+const mockCloudLearningStore = jest.requireMock(
+  '../src/features/learning/infrastructure/cloud/firestoreLearningStore',
+).firestoreLearningStore as {
+  load: jest.Mock;
+  save: jest.Mock;
+  delete: jest.Mock;
 };
 
 const mockSpeechRecognizer = jest.requireMock(
@@ -159,6 +212,7 @@ jest.mock(
         ReactModule.useEffect(() => {
           if (!isActive) return;
 
+          let delivered = 0;
           const result = {
             objects: [
               {
@@ -173,13 +227,21 @@ jest.mock(
             inferenceTimeMs: 45,
           };
 
-          // The tracker only shows a layer once a label has landed on the same
-          // place four times, so the fake detector delivers four results the
-          // way the real one would.
-          onDetections(result);
-          onDetections(result);
-          onDetections(result);
-          onDetections(result);
+          // The tracker asks for a few readings and for the time a real
+          // detector would take to produce them, so the fake one delivers
+          // four results with the clock moving between them. Four in the same
+          // millisecond is what six workers finishing together looks like,
+          // and the tracker is right to refuse it.
+          const startedAtMs = Date.now();
+          const clock = jest
+            .spyOn(Date, 'now')
+            .mockImplementation(() => startedAtMs + delivered * 150);
+
+          for (delivered = 0; delivered < 4; delivered += 1) {
+            onDetections(result);
+          }
+
+          clock.mockRestore();
         }, [isActive, onDetections]);
 
         return ReactModule.createElement(MockView, {
@@ -192,6 +254,9 @@ jest.mock(
   },
 );
 
+/** What the celebration counts down before it opens the words screen. */
+const CELEBRATION_MS = 5000;
+
 function pressableWithTestID(
   renderer: ReactTestRenderer.ReactTestRenderer,
   testID: string,
@@ -203,6 +268,23 @@ function pressableWithTestID(
   if (pressable == null) throw new Error(`No pressable for ${testID}`);
 
   return pressable;
+}
+
+/**
+ * Answers the step the walk-through opens on. Nothing past it moves until a
+ * learning language has been tapped, so every test that wants a later step
+ * goes through here first.
+ */
+async function chooseOnboardingLanguages(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  learningLanguage = 'en-US',
+) {
+  await ReactTestRenderer.act(() => {
+    pressableWithTestID(
+      renderer,
+      `onboarding-learning-${learningLanguage}`,
+    ).props.onPress();
+  });
 }
 
 async function layOutCamera(renderer: ReactTestRenderer.ReactTestRenderer) {
@@ -243,7 +325,14 @@ describe('App', () => {
     mockSpeechRecognizer.stop.mockReset().mockResolvedValue(undefined);
     mockSpeechRecognizer.level.mockReset().mockResolvedValue(0);
     mockSpeechRecognizer.cancel.mockReset().mockResolvedValue(undefined);
+    mockCloudLearningStore.load.mockReset().mockResolvedValue(null);
+    mockCloudLearningStore.save.mockReset().mockResolvedValue(undefined);
+    mockCloudLearningStore.delete.mockReset().mockResolvedValue(undefined);
+    mockAuthenticator.signOut.mockClear();
     mockAuthenticator.signInWithGoogle.mockClear();
+    mockAuthenticator.signInWithEmail.mockClear();
+    mockAuthenticator.createAccountWithEmail.mockClear();
+    mockAuthenticator.sendPasswordReset.mockClear();
     mockUsageReporter.screenOpened.mockClear();
     mockUsageReporter.speakingStarted.mockClear();
   });
@@ -351,7 +440,9 @@ describe('App', () => {
       renderer!.root.findByProps({ testID: 'appearance-light' }).props
         .accessibilityState.checked,
     ).toBe(true);
-    expect(JSON.stringify(renderer!.toJSON())).toContain('#EFF5FD');
+    expect(JSON.stringify(renderer!.toJSON())).toContain(
+      lightTheme.colors.background,
+    );
   });
 
   it('restores the saved preferences on the next launch', async () => {
@@ -585,6 +676,64 @@ describe('App', () => {
     expect(mockPronunciationPlayer.speak).toHaveBeenCalledWith('Botella', 'es');
   });
 
+  it('keeps working, and lets go, when the account cannot be reached', async () => {
+    mockAuthenticator.subscribe.mockImplementationOnce(
+      (listen: (user: unknown) => void) => {
+        listen({
+          id: 'learner-1',
+          name: 'Gustavo',
+          email: 'gustavo@example.com',
+        });
+
+        return () => undefined;
+      },
+    );
+    // What a device with no signal sees: the read fails, and the write is never
+    // acknowledged because there is nobody there to acknowledge it.
+    mockCloudLearningStore.load.mockRejectedValueOnce({
+      code: 'firestore/unavailable',
+    });
+    mockCloudLearningStore.save.mockReturnValue(new Promise(() => undefined));
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+
+    // The camera is what the app is for, and it never needed the network.
+    expect(
+      renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
+    ).toBe(true);
+
+    await pressCameraMenuItem(renderer!, 'camera-open-history');
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Garrafa');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'history-close').props.onPress();
+    });
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'settings-open-account').props.onPress();
+    });
+
+    // Signing out waits a moment for the last write and then leaves anyway. A
+    // promise that never settles must not be the thing standing between a
+    // learner and their own account.
+    jest.useFakeTimers();
+    const leaving = ReactTestRenderer.act(async () => {
+      pressableWithTestID(renderer!, 'sign-in-sign-out').props.onPress();
+      await Promise.resolve();
+      jest.advanceTimersByTime(5000);
+    });
+
+    await leaving;
+    jest.useRealTimers();
+
+    expect(mockAuthenticator.signOut).toHaveBeenCalled();
+  });
+
   it('offers the profile in settings once someone has signed in', async () => {
     mockAuthenticator.subscribe.mockImplementationOnce(
       (listen: (user: unknown) => void) => {
@@ -610,6 +759,40 @@ describe('App', () => {
     expect(settingsTree).toContain('Gustavo');
     expect(settingsTree).toContain('gustavo@example.com');
     expect(settingsTree).not.toContain('Continuar com o Google');
+  });
+
+  it('signs in with email and password from the account screen', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await layOutCamera(renderer!);
+    await pressCameraMenuItem(renderer!, 'camera-open-settings');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'settings-open-account').props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'sign-in-email').props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ testID: 'sign-in-email-input' })
+        .props.onChangeText('learner@example.com');
+      renderer!.root
+        .findByProps({ testID: 'sign-in-password-input' })
+        .props.onChangeText('secret12');
+    });
+    await ReactTestRenderer.act(async () => {
+      pressableWithTestID(renderer!, 'sign-in-email-submit').props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(mockAuthenticator.signInWithEmail).toHaveBeenCalledWith(
+      'learner@example.com',
+      'secret12',
+    );
   });
 
   it('practises a detected word and comes back to the camera', async () => {
@@ -645,6 +828,18 @@ describe('App', () => {
   });
 
   it('marks the outcome of a pronunciation in history and filters by it', async () => {
+    // Two words already found, and the bottle below makes three: thirty points,
+    // ten short of the second level. Saying it right is what crosses it, which
+    // is what the words screen is opened to show.
+    await AsyncStorage.setItem(
+      PROGRESS_KEY,
+      JSON.stringify({
+        foundLabels: ['cup', 'chair'],
+        streakDays: 1,
+        lastFoundDayMs: 0,
+      }),
+    );
+
     let renderer: ReactTestRenderer.ReactTestRenderer;
 
     await ReactTestRenderer.act(() => {
@@ -663,6 +858,9 @@ describe('App', () => {
       pressableWithTestID(renderer!, 'history-speak-bottle').props.onPress();
     });
 
+    // The celebration counts itself down, so the clock is taken over before it
+    // starts rather than after, when its interval already exists.
+    jest.useFakeTimers();
     await ReactTestRenderer.act(async () => {
       pressableWithTestID(renderer!, 'speak-listen').props.onPress();
       await Promise.resolve();
@@ -674,20 +872,30 @@ describe('App', () => {
     // celebration offers both ways out.
     const celebrated = JSON.stringify(renderer!.toJSON());
     expect(celebrated).toContain('Parabéns!');
-    expect(celebrated).toContain('Voltando em 5s');
+    // The word just went up a level, so the celebration is on its way to the
+    // screen that shows it rather than back to the camera.
+    expect(celebrated).toContain('Abrindo suas palavras em 5s');
     renderer!.root.findByProps({ testID: 'speak-celebration-camera' });
 
-    await ReactTestRenderer.act(() => {
-      pressableWithTestID(
-        renderer!,
-        'speak-celebration-history',
-      ).props.onPress();
+    // Nothing is pressed: the countdown runs out and the words screen is where
+    // it lands, because that is where the word that was just earned shows up.
+    await ReactTestRenderer.act(async () => {
+      jest.advanceTimersByTime(CELEBRATION_MS + 500);
     });
+    jest.useRealTimers();
 
     expect(
       renderer!.root.findByProps({ testID: 'history-filter-matched' }).props
         .accessibilityLabel,
     ).toBe('Acertei, 1');
+    // The bar opens on the level the learner arrived with rather than the one
+    // they have already been given, so the crossing happens in front of them.
+    expect(
+      renderer!.root.findByProps({ testID: 'history-level' }).props.children,
+    ).toBe(1);
+    // The level underneath really is the second one: the hint counts towards
+    // the third. The number above it catches up when the bar gets there.
+    expect(JSON.stringify(renderer!.toJSON())).toContain('para o nível 3');
     expect(JSON.stringify(renderer!.toJSON())).toContain('#3FCB86');
 
     await ReactTestRenderer.act(() => {
@@ -777,15 +985,39 @@ describe('App', () => {
     });
 
     const firstStep = JSON.stringify(renderer!.toJSON());
-    expect(firstStep).toContain('Aponte para qualquer coisa');
-    // The detector's limits are declared where the camera is promised.
-    expect(firstStep).toContain('O reconhecimento não é perfeito e pode errar');
+    // The languages come before anything is explained, so everything after
+    // them is in the pair the learner chose.
+    expect(firstStep).toContain('Escolha seus idiomas');
+    // There is no way past that step, and no way out of it either.
+    expect(
+      renderer!.root.findAllByProps({ testID: 'onboarding-skip' }),
+    ).toHaveLength(0);
+    expect(
+      pressableWithTestID(renderer!, 'onboarding-advance').props.disabled,
+    ).toBe(true);
     // The detector does not run behind a screen that covers it.
     expect(
       renderer!.root.findByProps({ testID: 'camera-preview' }).props.isActive,
     ).toBe(false);
 
-    // Three taps to reach the fourth step.
+    await chooseOnboardingLanguages(renderer!);
+
+    expect(
+      pressableWithTestID(renderer!, 'onboarding-advance').props.disabled,
+    ).toBe(false);
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
+    });
+
+    const cameraStep = JSON.stringify(renderer!.toJSON());
+    expect(cameraStep).toContain('Aponte para qualquer coisa');
+    // The detector's limits are declared where the camera is promised.
+    expect(cameraStep).toContain(
+      'O reconhecimento não é perfeito e pode errar',
+    );
+
+    // Three more taps to reach the last step.
     for (let taps = 0; taps < 3; taps += 1) {
       await ReactTestRenderer.act(() => {
         pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
@@ -825,6 +1057,12 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
+    // Leaving opens up as soon as the languages are answered.
+    await chooseOnboardingLanguages(renderer!);
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
+    });
+
     await ReactTestRenderer.act(() => {
       pressableWithTestID(renderer!, 'onboarding-skip').props.onPress();
     });
@@ -843,17 +1081,76 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
+    await chooseOnboardingLanguages(renderer!);
+
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({ testID: 'onboarding-pages' })
         .props.onMomentumScrollEnd({
-          nativeEvent: { contentOffset: { x: 750 * 3 } },
+          nativeEvent: { contentOffset: { x: 750 * 4 } },
         });
     });
 
     expect(
       renderer!.root.findAllByProps({ testID: 'onboarding-google' }),
     ).not.toHaveLength(0);
+  });
+
+  it('opens in the language the device is already set to', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+    // A phone asking for Japanese first and Spanish after it opens in Spanish
+    // rather than in a default nobody chose.
+    (getDeviceLanguageTags as jest.Mock).mockReturnValueOnce([
+      'ja-JP',
+      'es-MX',
+    ]);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Elige tus idiomas');
+  });
+
+  it('keeps the two languages apart and follows the choice at once', async () => {
+    await AsyncStorage.removeItem(PREFERENCES_KEY);
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+
+    // The device is set to Portuguese, so English is what it offers to learn.
+    // Claiming English as the language already spoken trades the two places
+    // instead of leaving both on English.
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-native-en-US').props.onPress();
+    });
+
+    const afterSwap = JSON.stringify(renderer!.toJSON());
+    expect(afterSwap).toContain('Choose your languages');
+
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
+    });
+
+    // Swapping is not the same as answering: the step still waits for what the
+    // learner came to learn.
+    expect(JSON.stringify(renderer!.toJSON())).toContain(
+      'Choose your languages',
+    );
+
+    await chooseOnboardingLanguages(renderer!, 'pt-BR');
+    await ReactTestRenderer.act(() => {
+      pressableWithTestID(renderer!, 'onboarding-advance').props.onPress();
+    });
+
+    expect(
+      JSON.parse((await AsyncStorage.getItem(PREFERENCES_KEY)) ?? '{}'),
+    ).toMatchObject({ nativeLanguage: 'en-US', learningLanguage: 'pt-BR' });
   });
 
   it('offers the account from the last step of the first run', async () => {
@@ -865,11 +1162,13 @@ describe('App', () => {
       renderer = ReactTestRenderer.create(<App />);
     });
 
+    await chooseOnboardingLanguages(renderer!);
+
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({ testID: 'onboarding-pages' })
         .props.onMomentumScrollEnd({
-          nativeEvent: { contentOffset: { x: 750 * 3 } },
+          nativeEvent: { contentOffset: { x: 750 * 4 } },
         });
     });
 

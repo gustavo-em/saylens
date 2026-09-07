@@ -5,6 +5,7 @@ import styled, { ThemeProvider } from 'styled-components/native';
 
 import { VisionCameraViewport } from '../features/learning/infrastructure/camera/VisionCameraViewport';
 import { systemPronunciationPlayer } from '../features/learning/infrastructure/pronunciation/systemPronunciationPlayer';
+import { systemPractiseReminder } from '../features/learning/infrastructure/reminders/systemPractiseReminder';
 import { localVocabularyRepository } from '../features/learning/infrastructure/vocabulary/localVocabularyRepository';
 import type { CameraViewportCallbacks } from '../features/learning/presentation/models/CameraViewportCallbacks';
 import { asyncStorageFavoriteWordStore } from '../features/learning/infrastructure/favorites/asyncStorageFavoriteWordStore';
@@ -19,6 +20,7 @@ import { AppSplash } from './components/AppSplash';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { firebaseAuthenticator } from '../features/learning/infrastructure/auth/firebaseAuthenticator';
 import { firebaseUsageReporter } from '../features/learning/infrastructure/usage/firebaseUsageReporter';
+import { firestoreLearningStore } from '../features/learning/infrastructure/cloud/firestoreLearningStore';
 import { ReviewInvitation } from '../features/learning/presentation/views/ReviewInvitation';
 import { systemAppReviewPrompter } from '../features/learning/infrastructure/review/systemAppReviewPrompter';
 import { SpeakScreen } from '../features/learning/presentation/screens/SpeakScreen';
@@ -30,6 +32,7 @@ import { asyncStorageReviewInvitationStore } from './infrastructure/review/async
 import { getPerformanceProfileSettings } from '../features/learning/domain/PerformanceProfile';
 import { getAppTheme } from './theme/theme';
 import { useAppViewModel } from './view-models/useAppViewModel';
+import { DIAGNOSTICS_ENABLED } from './config/appMetadata';
 
 type AppViewModel = ReturnType<typeof useAppViewModel>;
 
@@ -70,6 +73,8 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
         isActive={viewModel.cameraIsActive}
         languageSettings={viewModel.languageSettings}
         copy={viewModel.copy}
+        foundLabels={viewModel.foundLabels}
+        matchedPronunciations={viewModel.matchedPronunciations}
         onObjectsSeen={viewModel.recordViewedLabels}
         onOpenHistory={() => viewModel.selectTab('history')}
         onOpenSettings={() => viewModel.selectTab('settings')}
@@ -84,7 +89,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
               ? viewModel.copy.settings.maximumPerformanceTitle
               : viewModel.copy.settings.powerSavingTitle,
         }}
-        showDiagnostics={viewModel.showDiagnostics}
+        showDiagnostics={DIAGNOSTICS_ENABLED && viewModel.showDiagnostics}
         pronunciationPlayer={systemPronunciationPlayer}
         renderCamera={renderCamera}
         vocabularyRepository={localVocabularyRepository}
@@ -96,8 +101,10 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           languageSettings={viewModel.languageSettings}
           onClose={() => viewModel.selectTab('camera')}
           pronunciationPlayer={systemPronunciationPlayer}
+          celebratedFromExperience={viewModel.celebratedFromExperience}
           favorites={viewModel.favorites}
           foundLabels={viewModel.foundLabels}
+          onLevelCelebrationShown={viewModel.clearLevelCelebration}
           hasRestoredWords={viewModel.hasRestoredWords}
           matchedPronunciations={viewModel.matchedPronunciations}
           streakDays={viewModel.streakDays}
@@ -128,7 +135,9 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
       {viewModel.activeTab === 'speak' && viewModel.speakLabel != null ? (
         <SpeakScreen
           copy={viewModel.copy}
+          foundLabels={viewModel.foundLabels}
           label={viewModel.speakLabel}
+          matchedPronunciations={viewModel.matchedPronunciations}
           languageSettings={viewModel.languageSettings}
           onAttempt={viewModel.recordPronunciationResult}
           onClose={() => viewModel.selectTab(viewModel.speakReturnTab)}
@@ -154,9 +163,15 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
 
       {viewModel.activeTab === 'account' ? (
         <SignInScreen
+          accountMessage={viewModel.accountMessage}
           copy={viewModel.copy}
           onClose={() => viewModel.selectTab('settings')}
+          onCreateAccountWithEmail={viewModel.createAccountWithEmail}
+          onDeleteAccount={viewModel.deleteAccount}
+          onSignInWithApple={viewModel.signInWithApple}
+          onSignInWithEmail={viewModel.signInWithEmail}
           onSignInWithGoogle={viewModel.signInWithGoogle}
+          onSendPasswordReset={viewModel.sendPasswordReset}
           onSignOut={viewModel.signOut}
           signInError={viewModel.signInError}
           user={viewModel.user}
@@ -174,6 +189,7 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           onLearningLanguageChange={viewModel.changeLearningLanguage}
           onNativeLanguageChange={viewModel.changeNativeLanguage}
           onPerformanceProfileChange={viewModel.changePerformanceProfile}
+          practiseReminder={systemPractiseReminder}
           onToggleDiagnostics={viewModel.toggleDiagnostics}
           showDiagnostics={viewModel.showDiagnostics}
           performanceCapabilities={viewModel.performanceCapabilities}
@@ -190,6 +206,13 @@ function AppContent({ viewModel }: { viewModel: AppViewModel }) {
           copy={viewModel.copy}
           languageSettings={viewModel.languageSettings}
           onFinish={viewModel.finishOnboarding}
+          onLearningLanguageChange={viewModel.changeLearningLanguage}
+          onNativeLanguageChange={viewModel.changeNativeLanguage}
+          onOpenEmail={() => {
+            viewModel.finishOnboarding();
+            viewModel.selectTab('account');
+          }}
+          onSignInWithApple={viewModel.signInWithApple}
           onSignInWithGoogle={viewModel.signInWithGoogle}
           signInError={viewModel.signInError}
           user={viewModel.user}
@@ -232,6 +255,7 @@ export default function App() {
     asyncStorageReviewInvitationStore,
     firebaseAuthenticator,
     firebaseUsageReporter,
+    firestoreLearningStore,
   );
 
   return (

@@ -29,10 +29,39 @@ export interface LearningCopy {
   account: {
     title: string;
     subtitle: string;
+    apple: string;
     google: string;
+    signIn: string;
+    email: string;
+    password: string;
+    continueWithEmail: string;
+    signInWithEmail: string;
+    createWithEmail: string;
+    createAccount: string;
+    alreadyHaveAccount: string;
+    forgotPassword: string;
+    resetSent: string;
+    verificationSent: string;
+    invalidCredentials: string;
+    invalidEmail: string;
+    emailAlreadyUsed: string;
+    weakPassword: string;
+    networkError: string;
+    recentLoginRequired: string;
+    googleRejectedThisBuild: string;
+    googleProviderDisabled: string;
+    emailBelongsToAnotherSignIn: string;
+    playServicesUnavailable: string;
+    signInAlreadyRunning: string;
+    unexpectedAuthError: string;
     profile: string;
     signedInNote: string;
     signOut: string;
+    deleteAccount: string;
+    deleteQuestion: string;
+    deleteWarning: string;
+    deleteConfirm: string;
+    cancel: string;
     back: string;
     later: string;
     benefit: string;
@@ -43,6 +72,7 @@ export interface LearningCopy {
     next: string;
     start: string;
     stepOf: (current: number, total: number) => string;
+    languages: OnboardingStepCopy;
     camera: OnboardingStepCopy;
     speak: OnboardingStepCopy;
     words: OnboardingStepCopy;
@@ -67,15 +97,21 @@ export interface LearningCopy {
     silence: string;
     unavailable: string;
     languageUnavailable: string;
+    /** Recognition that needs a connection this device does not have, which is
+     * a different dead end from a language it cannot speak at all. */
+    offline: string;
     permission: string;
     again: string;
     listen: string;
     countdown: (seconds: number) => string;
+    levelNow: (level: number) => string;
+    levelReward: (points: number) => string;
+    levelRewardLevelUp: (level: number) => string;
     celebration: string;
     celebrationDetail: (word: string) => string;
     backToCamera: string;
     seeInHistory: string;
-    returningIn: (seconds: number) => string;
+    openingWordsIn: (seconds: number) => string;
     /** What was heard, and how to say the part that missed. */
     heardLabel: string;
     guide: (hint: string) => string;
@@ -114,7 +150,9 @@ export interface LearningCopy {
     streakLabel: string;
     /** What a level is and how far the next one is, because a number on its
      * own tells a learner nothing. */
-    levelHint: (remaining: number, nextLevel: number) => string;
+    levelToFind: (words: number, nextLevel: number) => string;
+    levelToPronounce: (words: number, nextLevel: number) => string;
+    levelCta: (kind: 'find' | 'pronounce') => string;
     levelSource: string;
     empty: string;
     tapToHear: string;
@@ -168,6 +206,8 @@ export interface LearningCopy {
     pronunciationLabel: string;
     practiseSpeaking: string;
     hear: string;
+    levelBadge: (level: number) => string;
+    pointHint: string;
     practise: string;
     tapToChangeLanguages: string;
     menu: string;
@@ -193,6 +233,13 @@ export interface LearningCopy {
     nativeLanguageDescription: string;
     learningLanguageTitle: string;
     learningLanguageDescription: string;
+    reminderSection: string;
+    reminderNote: string;
+    reminderAlarm: string;
+    reminderCalendar: string;
+    reminderTitle: string;
+    reminderDetail: string;
+    reminderUnavailable: string;
     performanceSection: string;
     performanceTitle: string;
     performanceDescription: string;
@@ -204,6 +251,7 @@ export interface LearningCopy {
     diagnosticsDescription: string;
     diagnosticsOn: string;
     diagnosticsOff: string;
+    version: (version: string) => string;
     /** What a setting costs the device, so an option is chosen by its price
      * rather than by its name. */
     coresNote: (cores: number) => string;
@@ -213,20 +261,17 @@ export interface LearningCopy {
 const languageNames: Record<LanguageBase, Record<LearningLanguage, string>> = {
   'pt-BR': {
     'pt-BR': 'Português (Brasil)',
-    'en-US': 'Inglês (EUA)',
-    'en-GB': 'Inglês (Reino Unido)',
+    'en-US': 'Inglês',
     es: 'Espanhol',
   },
   en: {
     'pt-BR': 'Portuguese (Brazil)',
-    'en-US': 'English (US)',
-    'en-GB': 'English (UK)',
+    'en-US': 'English',
     es: 'Spanish',
   },
   es: {
     'pt-BR': 'Portugués (Brasil)',
-    'en-US': 'Inglés (EE. UU.)',
-    'en-GB': 'Inglés (Reino Unido)',
+    'en-US': 'Inglés',
     es: 'Español',
   },
 };
@@ -237,20 +282,17 @@ const shortLanguageNames: Record<
 > = {
   'pt-BR': {
     'pt-BR': 'Português',
-    'en-US': 'Inglês (EUA)',
-    'en-GB': 'Inglês (RU)',
+    'en-US': 'Inglês',
     es: 'Espanhol',
   },
   en: {
     'pt-BR': 'Portuguese',
-    'en-US': 'English (US)',
-    'en-GB': 'English (UK)',
+    'en-US': 'English',
     es: 'Spanish',
   },
   es: {
     'pt-BR': 'Portugués',
-    'en-US': 'Inglés (EE. UU.)',
-    'en-GB': 'Inglés (RU)',
+    'en-US': 'Inglés',
     es: 'Español',
   },
 };
@@ -265,10 +307,44 @@ const copies: Record<
       title: 'Sua conta',
       subtitle:
         'Entre para guardar suas palavras e continuar em outro aparelho.',
+      apple: 'Continuar com a Apple',
       google: 'Continuar com o Google',
+      signIn: 'Entrar ou criar conta',
+      email: 'E-mail',
+      password: 'Senha',
+      continueWithEmail: 'Continuar com e-mail',
+      signInWithEmail: 'Entrar com e-mail',
+      createWithEmail: 'Criar conta com e-mail',
+      createAccount: 'Criar uma conta',
+      alreadyHaveAccount: 'Já tenho uma conta',
+      forgotPassword: 'Esqueci minha senha',
+      resetSent: 'Enviamos o link para redefinir sua senha.',
+      verificationSent: 'Conta criada. Enviamos a verificação por e-mail.',
+      invalidCredentials: 'E-mail ou senha incorretos.',
+      invalidEmail: 'Digite um e-mail válido.',
+      emailAlreadyUsed: 'Este e-mail já tem uma conta.',
+      weakPassword: 'Use uma senha com pelo menos 6 caracteres.',
+      networkError: 'Sem conexão. Tente novamente.',
+      recentLoginRequired: 'Entre novamente antes de excluir sua conta.',
+      googleRejectedThisBuild:
+        'O Google recusou esta versão do app. É configuração nossa, não a sua conta.',
+      googleProviderDisabled:
+        'A entrada com o Google ainda não está ligada neste app. É configuração nossa.',
+      emailBelongsToAnotherSignIn:
+        'Este e-mail já entra por outro caminho. Use aquele, e depois dá para juntar os dois.',
+      playServicesUnavailable:
+        'Este aparelho precisa do Google Play Services atualizado para entrar com o Google.',
+      signInAlreadyRunning: 'Já tem um login em andamento. Espere um instante.',
+      unexpectedAuthError: 'Não foi possível entrar. Tente novamente.',
       profile: 'Ver meu perfil',
       signedInNote: 'Suas palavras estão guardadas na sua conta.',
       signOut: 'Sair da conta',
+      deleteAccount: 'Excluir minha conta',
+      deleteQuestion: 'Excluir sua conta?',
+      deleteWarning:
+        'Os dados salvos na nuvem serão apagados. As palavras deste aparelho continuam aqui.',
+      deleteConfirm: 'Excluir definitivamente',
+      cancel: 'Cancelar',
       back: 'Voltar',
       later: 'Agora não',
       benefit: 'Suas palavras, sequência e nível ficam salvos na sua conta.',
@@ -279,6 +355,10 @@ const copies: Record<
       next: 'Próximo',
       start: 'Começar',
       stepOf: (current, total) => `Passo ${current} de ${total}`,
+      languages: {
+        title: 'Escolha seus idiomas',
+        body: 'Começamos no idioma do seu celular. Você pode trocar quando quiser, nas configurações.',
+      },
       camera: {
         title: 'Aponte para qualquer coisa',
         body: 'A câmera reconhece o objeto e mostra a palavra, a tradução e uma frase para usar.',
@@ -294,7 +374,7 @@ const copies: Record<
       },
       account: {
         title: 'Guarde seu progresso',
-        body: 'Entre com o Google para levar suas palavras para outro aparelho. Dá para fazer isso depois, nos ajustes.',
+        body: 'Entre para levar suas palavras para outro aparelho. Dá para fazer isso depois, nos ajustes.',
       },
     },
     review: {
@@ -317,15 +397,20 @@ const copies: Record<
       unavailable: 'Este aparelho não tem reconhecimento de fala.',
       languageUnavailable:
         'O reconhecimento de fala não tem este idioma instalado neste aparelho.',
+      offline:
+        'Você está sem conexão e este aparelho ainda não baixou o pacote deste idioma. Conecte-se uma vez para baixá-lo.',
       permission: 'Preciso da permissão do microfone para ouvir você.',
       again: 'Tentar de novo',
       listen: 'Ouvir a palavra',
       countdown: seconds => `Ouvindo… ${seconds}s`,
+      levelNow: level => `Nível ${level}`,
+      levelReward: points => `+${points} pontos se acertar`,
+      levelRewardLevelUp: level => `Acerte e chega ao nível ${level}`,
       celebration: 'Parabéns!',
       celebrationDetail: word => `Você pronunciou “${word}” corretamente.`,
       backToCamera: 'Voltar para a câmera',
-      seeInHistory: 'Ver no histórico',
-      returningIn: seconds => `Voltando em ${seconds}s`,
+      seeInHistory: 'Ver minhas palavras',
+      openingWordsIn: seconds => `Abrindo suas palavras em ${seconds}s`,
       heardLabel: 'Ouvi',
       guide: hint => `Tente assim: ${hint}`,
       stop: 'Terminei de falar',
@@ -374,8 +459,15 @@ const copies: Record<
       resting: 'Descansando',
       levelLabel: 'Nível',
       streakLabel: 'Dias seguidos',
-      levelHint: (remaining, nextLevel) =>
-        `${remaining} pontos para o nível ${nextLevel}`,
+      levelToFind: (words, nextLevel) =>
+        words === 1
+          ? `Falta 1 objeto novo para o nível ${nextLevel}`
+          : `Faltam ${words} objetos novos para o nível ${nextLevel}`,
+      levelToPronounce: (words, nextLevel) =>
+        words === 1
+          ? `Falta 1 pronúncia certa para o nível ${nextLevel}`
+          : `Faltam ${words} pronúncias certas para o nível ${nextLevel}`,
+      levelCta: kind => (kind === 'find' ? 'Procurar' : 'Treinar'),
       levelSource: '10 pontos por objeto novo, 15 por pronúncia certa',
       restingUntil:
         'Você errou três vezes seguidas. Esta palavra volta amanhã.',
@@ -442,6 +534,8 @@ const copies: Record<
       pronunciationLabel: 'PRONÚNCIA',
       practiseSpeaking: 'Praticar a fala',
       hear: 'Ouvir',
+      levelBadge: level => `Nível ${level}`,
+      pointHint: 'Aponte para um objeto.',
       practise: 'Falar',
       tapToChangeLanguages: 'Toque para escolher os idiomas.',
       menu: 'Opções',
@@ -497,6 +591,7 @@ const copies: Record<
         'Mostra taxa do detector, latência e memória sobre a câmera.',
       diagnosticsOn: 'Ligado',
       diagnosticsOff: 'Desligado',
+      version: version => `Versão ${version}`,
       coresNote: cores => `${cores} núcleos do processador`,
     },
   },
@@ -505,10 +600,44 @@ const copies: Record<
     account: {
       title: 'Your account',
       subtitle: 'Sign in to keep your words and carry on from another phone.',
+      apple: 'Continue with Apple',
       google: 'Continue with Google',
+      signIn: 'Sign in or create account',
+      email: 'Email',
+      password: 'Password',
+      continueWithEmail: 'Continue with email',
+      signInWithEmail: 'Sign in with email',
+      createWithEmail: 'Create account with email',
+      createAccount: 'Create an account',
+      alreadyHaveAccount: 'I already have an account',
+      forgotPassword: 'Forgot my password',
+      resetSent: 'We sent you a password reset link.',
+      verificationSent: 'Account created. We sent a verification email.',
+      invalidCredentials: 'Incorrect email or password.',
+      invalidEmail: 'Enter a valid email address.',
+      emailAlreadyUsed: 'This email already has an account.',
+      weakPassword: 'Use a password with at least 6 characters.',
+      networkError: 'No connection. Try again.',
+      recentLoginRequired: 'Sign in again before deleting your account.',
+      googleRejectedThisBuild:
+        'Google turned this build of the app away. That is our setup, not your account.',
+      googleProviderDisabled:
+        'Signing in with Google is not switched on for this app yet. That is our setup.',
+      emailBelongsToAnotherSignIn:
+        'This email already signs in another way. Use that one, and the two can be joined afterwards.',
+      playServicesUnavailable:
+        'This device needs an up-to-date Google Play Services to sign in with Google.',
+      signInAlreadyRunning: 'A sign-in is already running. Give it a moment.',
+      unexpectedAuthError: 'Could not sign in. Try again.',
       profile: 'View my profile',
       signedInNote: 'Your words are kept with your account.',
       signOut: 'Sign out',
+      deleteAccount: 'Delete my account',
+      deleteQuestion: 'Delete your account?',
+      deleteWarning:
+        'Cloud data will be erased. Words stored on this phone will stay here.',
+      deleteConfirm: 'Delete permanently',
+      cancel: 'Cancel',
       back: 'Back',
       later: 'Not now',
       benefit: 'Your words, streak and level are kept with your account.',
@@ -519,6 +648,10 @@ const copies: Record<
       next: 'Next',
       start: 'Start',
       stepOf: (current, total) => `Step ${current} of ${total}`,
+      languages: {
+        title: 'Choose your languages',
+        body: 'We start in the language your phone is set to. Change it whenever you like, in settings.',
+      },
       camera: {
         title: 'Point at anything',
         body: 'The camera recognises the object and shows the word, the translation and a sentence to use it in.',
@@ -534,7 +667,7 @@ const copies: Record<
       },
       account: {
         title: 'Keep your progress',
-        body: 'Sign in with Google to carry your words to another phone. You can do this later, in settings.',
+        body: 'Sign in to carry your words to another phone. You can do this later, in settings.',
       },
     },
     review: {
@@ -557,15 +690,20 @@ const copies: Record<
       unavailable: 'This device has no speech recognition.',
       languageUnavailable:
         'Speech recognition does not have this language installed on this device.',
+      offline:
+        'You are offline and this device has not downloaded this language pack yet. Connect once to download it.',
       permission: 'I need microphone permission to hear you.',
       again: 'Try again',
       listen: 'Hear the word',
       countdown: seconds => `Listening… ${seconds}s`,
+      levelNow: level => `Level ${level}`,
+      levelReward: points => `+${points} points if you get it right`,
+      levelRewardLevelUp: level => `Get it right and reach level ${level}`,
       celebration: 'Well done!',
       celebrationDetail: word => `You pronounced “${word}” correctly.`,
       backToCamera: 'Back to the camera',
-      seeInHistory: 'See it in history',
-      returningIn: seconds => `Going back in ${seconds}s`,
+      seeInHistory: 'See my words',
+      openingWordsIn: seconds => `Opening your words in ${seconds}s`,
       heardLabel: 'I heard',
       guide: hint => `Try it like this: ${hint}`,
       stop: 'Done speaking',
@@ -613,8 +751,15 @@ const copies: Record<
       resting: 'Resting',
       levelLabel: 'Level',
       streakLabel: 'Days in a row',
-      levelHint: (remaining, nextLevel) =>
-        `${remaining} points to level ${nextLevel}`,
+      levelToFind: (words, nextLevel) =>
+        words === 1
+          ? `1 new object to reach level ${nextLevel}`
+          : `${words} new objects to reach level ${nextLevel}`,
+      levelToPronounce: (words, nextLevel) =>
+        words === 1
+          ? `1 word said right to reach level ${nextLevel}`
+          : `${words} words said right to reach level ${nextLevel}`,
+      levelCta: kind => (kind === 'find' ? 'Go find' : 'Practise'),
       levelSource: '10 points per new object, 15 per correct pronunciation',
       restingUntil: 'Three misses in a row. This word comes back tomorrow.',
       empty: 'Point the camera at an object to start your history.',
@@ -678,6 +823,8 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIATION',
       practiseSpeaking: 'Practise speaking',
       hear: 'Hear',
+      levelBadge: level => `Level ${level}`,
+      pointHint: 'Point at an object.',
       practise: 'Speak',
       tapToChangeLanguages: 'Tap to choose the languages.',
       menu: 'Options',
@@ -734,6 +881,7 @@ const copies: Record<
         'Shows detector rate, latency and memory over the camera.',
       diagnosticsOn: 'On',
       diagnosticsOff: 'Off',
+      version: version => `Version ${version}`,
       coresNote: cores => `${cores} processor cores`,
     },
   },
@@ -742,10 +890,45 @@ const copies: Record<
     account: {
       title: 'Tu cuenta',
       subtitle: 'Entra para guardar tus palabras y seguir en otro teléfono.',
+      apple: 'Continuar con Apple',
       google: 'Continuar con Google',
+      signIn: 'Entrar o crear una cuenta',
+      email: 'Correo electrónico',
+      password: 'Contraseña',
+      continueWithEmail: 'Continuar con correo',
+      signInWithEmail: 'Entrar con correo',
+      createWithEmail: 'Crear cuenta con correo',
+      createAccount: 'Crear una cuenta',
+      alreadyHaveAccount: 'Ya tengo una cuenta',
+      forgotPassword: 'Olvidé mi contraseña',
+      resetSent: 'Enviamos el enlace para cambiar tu contraseña.',
+      verificationSent: 'Cuenta creada. Enviamos un correo de verificación.',
+      invalidCredentials: 'Correo o contraseña incorrectos.',
+      invalidEmail: 'Escribe un correo válido.',
+      emailAlreadyUsed: 'Este correo ya tiene una cuenta.',
+      weakPassword: 'Usa una contraseña de al menos 6 caracteres.',
+      networkError: 'Sin conexión. Inténtalo de nuevo.',
+      recentLoginRequired: 'Entra de nuevo antes de eliminar tu cuenta.',
+      googleRejectedThisBuild:
+        'Google rechazó esta versión de la app. Es configuración nuestra, no tu cuenta.',
+      googleProviderDisabled:
+        'Entrar con Google todavía no está activado en esta app. Es configuración nuestra.',
+      emailBelongsToAnotherSignIn:
+        'Este correo ya entra por otra vía. Usa esa, y después se pueden unir las dos.',
+      playServicesUnavailable:
+        'Este dispositivo necesita Google Play Services actualizado para entrar con Google.',
+      signInAlreadyRunning:
+        'Ya hay un inicio de sesión en curso. Espera un momento.',
+      unexpectedAuthError: 'No fue posible entrar. Inténtalo de nuevo.',
       profile: 'Ver mi perfil',
       signedInNote: 'Tus palabras se guardan en tu cuenta.',
       signOut: 'Cerrar sesión',
+      deleteAccount: 'Eliminar mi cuenta',
+      deleteQuestion: '¿Eliminar tu cuenta?',
+      deleteWarning:
+        'Los datos de la nube se borrarán. Las palabras de este teléfono seguirán aquí.',
+      deleteConfirm: 'Eliminar definitivamente',
+      cancel: 'Cancelar',
       back: 'Volver',
       later: 'Ahora no',
       benefit: 'Tus palabras, racha y nivel se guardan en tu cuenta.',
@@ -756,6 +939,10 @@ const copies: Record<
       next: 'Siguiente',
       start: 'Empezar',
       stepOf: (current, total) => `Paso ${current} de ${total}`,
+      languages: {
+        title: 'Elige tus idiomas',
+        body: 'Empezamos en el idioma de tu teléfono. Puedes cambiarlo cuando quieras, en la configuración.',
+      },
       camera: {
         title: 'Apunta a cualquier cosa',
         body: 'La cámara reconoce el objeto y muestra la palabra, la traducción y una frase para usarla.',
@@ -771,7 +958,7 @@ const copies: Record<
       },
       account: {
         title: 'Guarda tu progreso',
-        body: 'Entra con Google para llevar tus palabras a otro aparato. Puedes hacerlo después, en la configuración.',
+        body: 'Entra para llevar tus palabras a otro aparato. Puedes hacerlo después, en la configuración.',
       },
     },
     review: {
@@ -794,15 +981,20 @@ const copies: Record<
       unavailable: 'Este dispositivo no tiene reconocimiento de voz.',
       languageUnavailable:
         'El reconocimiento de voz no tiene este idioma instalado en este dispositivo.',
+      offline:
+        'Estás sin conexión y este dispositivo aún no descargó el paquete de este idioma. Conéctate una vez para descargarlo.',
       permission: 'Necesito permiso del micrófono para escucharte.',
       again: 'Intentar de nuevo',
       listen: 'Escuchar la palabra',
       countdown: seconds => `Escuchando… ${seconds}s`,
+      levelNow: level => `Nivel ${level}`,
+      levelReward: points => `+${points} puntos si aciertas`,
+      levelRewardLevelUp: level => `Acierta y llegas al nivel ${level}`,
       celebration: '¡Felicidades!',
       celebrationDetail: word => `Pronunciaste “${word}” correctamente.`,
       backToCamera: 'Volver a la cámara',
-      seeInHistory: 'Ver en el historial',
-      returningIn: seconds => `Volviendo en ${seconds}s`,
+      seeInHistory: 'Ver mis palabras',
+      openingWordsIn: seconds => `Abriendo tus palabras en ${seconds}s`,
       heardLabel: 'Escuché',
       guide: hint => `Inténtalo así: ${hint}`,
       stop: 'Terminé de hablar',
@@ -851,8 +1043,15 @@ const copies: Record<
       restingUntil: 'Tres fallos seguidos. Esta palabra vuelve mañana.',
       levelLabel: 'Nivel',
       streakLabel: 'Días seguidos',
-      levelHint: (remaining, nextLevel) =>
-        `${remaining} puntos para el nivel ${nextLevel}`,
+      levelToFind: (words, nextLevel) =>
+        words === 1
+          ? `Falta 1 objeto nuevo para el nivel ${nextLevel}`
+          : `Faltan ${words} objetos nuevos para el nivel ${nextLevel}`,
+      levelToPronounce: (words, nextLevel) =>
+        words === 1
+          ? `Falta 1 pronunciación correcta para el nivel ${nextLevel}`
+          : `Faltan ${words} pronunciaciones correctas para el nivel ${nextLevel}`,
+      levelCta: kind => (kind === 'find' ? 'Buscar' : 'Practicar'),
       levelSource: '10 puntos por objeto nuevo, 15 por pronunciación correcta',
       empty: 'Apunta la cámara a un objeto para empezar tu historial.',
       tapToHear: 'Toca para escucharlo de nuevo.',
@@ -916,6 +1115,8 @@ const copies: Record<
       pronunciationLabel: 'PRONUNCIACIÓN',
       practiseSpeaking: 'Practicar el habla',
       hear: 'Escuchar',
+      levelBadge: level => `Nivel ${level}`,
+      pointHint: 'Apunta a un objeto.',
       practise: 'Hablar',
       tapToChangeLanguages: 'Toca para elegir los idiomas.',
       menu: 'Opciones',
@@ -972,6 +1173,7 @@ const copies: Record<
         'Muestra tasa del detector, latencia y memoria sobre la cámara.',
       diagnosticsOn: 'Activado',
       diagnosticsOff: 'Desactivado',
+      version: version => `Versión ${version}`,
       coresNote: cores => `${cores} núcleos del procesador`,
     },
   },

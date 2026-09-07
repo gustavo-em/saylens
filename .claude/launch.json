@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "live-metrics",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "metrics"],
+      "port": 4599
+    }
+  ]
+}

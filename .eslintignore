@@ -1,0 +1,18 @@
+node_modules/
+
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/.cxx/
+android/app/build/
+modules/**/android/.cxx/
+modules/**/android/build/
+
+# Vendored CocoaPods checkouts. They carry their own JavaScript, written
+# against toolchains this project does not configure, and linting it crashes
+# rules that assume this app's dialect.
+ios/Pods/
+ios/build/
+
+coverage/
+reports/

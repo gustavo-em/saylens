@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lesingo detector, live</title>
+<style>
+  :root {
+    --ground: #14121c;
+    --panel: #1c1928;
+    --line: #2e2a3b;
+    --ink: #f7f4ee;
+    --muted: #8c86a3;
+    --throughput: #7de0b0;
+    --latency: #9d84ff;
+    --mark: #5e41d2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.4 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    width: 100vw;
+    height: 100vh;
+    padding: 40px 48px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  header { display: flex; align-items: baseline; gap: 20px; }
+  .device { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; }
+  .chip { font-size: 22px; color: var(--muted); }
+  .live {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 18px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #4a4460;
+  }
+  .dot.on { background: var(--throughput); }
+  .readouts { display: flex; gap: 24px; }
+  .card {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px 28px;
+  }
+  .card h2 {
+    margin: 0 0 10px;
+    font-size: 18px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .value { font-size: 68px; font-weight: 680; letter-spacing: -0.03em; line-height: 1; }
+  .unit { font-size: 24px; font-weight: 500; color: var(--muted); margin-left: 10px; }
+  .card.throughput .value { color: var(--throughput); }
+  .card.latency .value { color: var(--latency); }
+  .chart {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    position: relative;
+    min-height: 0;
+  }
+  canvas { width: 100%; height: 100%; display: block; }
+  .legend {
+    /* Left of the plot, clear of the latency axis labels on the right. */
+    position: absolute; top: 18px; left: 92px;
+    display: flex; gap: 24px; font-size: 17px; color: var(--muted);
+  }
+  .key { display: flex; align-items: center; gap: 9px; }
+  .swatch { width: 22px; height: 4px; border-radius: 2px; }
+  .waiting {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-size: 22px; color: var(--muted);
+  }
+  .waiting[hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="device" id="device">Android</span>
+    <span class="chip" id="chip"></span>
+    <span class="live"><span class="dot" id="dot"></span><span>ao vivo</span></span>
+  </header>
+
+  <section class="readouts">
+    <div class="card throughput">
+      <h2>Inferências por segundo</h2>
+      <div><span class="value" id="fps">—</span><span class="unit">/s</span></div>
+    </div>
+    <div class="card latency">
+      <h2>Latência da última inferência</h2>
+      <div><span class="value" id="latency">—</span><span class="unit">ms</span></div>
+    </div>
+  </section>
+
+  <section class="chart">
+    <canvas id="canvas"></canvas>
+    <div class="legend">
+      <span class="key"><span class="swatch" style="background:#7de0b0"></span>inferências/s</span>
+      <span class="key"><span class="swatch" style="background:#9d84ff"></span>latência (ms)</span>
+    </div>
+    <div class="waiting" id="waiting">Aguardando o detector…</div>
+  </section>
+</main>
+
+<script>
+const META = __DEVICE_META__;
+document.getElementById('device').textContent = META.label;
+document.getElementById('chip').textContent = META.chip;
+
+/** How much wall clock the chart shows at once. */
+const WINDOW_MS = 90_000;
+
+const readings = [];
+const canvas = document.getElementById('canvas');
+const context = canvas.getContext('2d');
+
+function resize() {
+  const ratio = window.devicePixelRatio || 1;
+  const box = canvas.getBoundingClientRect();
+  canvas.width = Math.round(box.width * ratio);
+  canvas.height = Math.round(box.height * ratio);
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+/**
+ * A ceiling that only ever climbs, so the line does not jump every time a
+ * reading happens to be the new maximum.
+ */
+function ceilingFor(values, step) {
+  const highest = values.length === 0 ? 0 : Math.max(...values);
+
+  // A multiple of four steps, so the four gridlines always land on round
+  // numbers rather than on 11.25 and 3.75.
+  const band = step * 4;
+  return Math.max(band, Math.ceil((highest * 1.25) / band) * band);
+}
+
+function drawSeries(points, colour, box, top, now) {
+  if (points.length === 0) return;
+
+  const x = at => box.left + box.width * (1 - (now - at) / WINDOW_MS);
+  const y = value => box.top + box.height * (1 - value / top);
+
+  context.beginPath();
+  points.forEach((point, index) => {
+    const px = x(point.at);
+    const py = y(point.value);
+    if (index === 0) {
+      context.moveTo(px, py);
+      return;
+    }
+    // A curve through the midpoints keeps a five-second sample rate from
+    // looking like a staircase on video.
+    const previous = points[index - 1];
+    const midX = (x(previous.at) + px) / 2;
+    context.bezierCurveTo(midX, y(previous.value), midX, py, px, py);
+  });
+
+  context.strokeStyle = colour;
+  context.lineWidth = 3.5;
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+  context.stroke();
+
+  const last = points[points.length - 1];
+  context.beginPath();
+  context.arc(x(last.at), y(last.value), 7, 0, Math.PI * 2);
+  context.fillStyle = colour;
+  context.fill();
+}
+
+function draw() {
+  const now = Date.now();
+  const box = {
+    left: 76,
+    top: 30,
+    width: canvas.clientWidth - 76 - 76,
+    height: canvas.clientHeight - 30 - 46,
+  };
+
+  context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+  const visible = readings.filter(reading => now - reading.at <= WINDOW_MS);
+  const fpsTop = ceilingFor(visible.map(r => r.fps), 5);
+  const latencyTop = ceilingFor(visible.map(r => r.latencyMs), 200);
+
+  context.strokeStyle = '#2e2a3b';
+  context.lineWidth = 1;
+  context.font = '15px ui-sans-serif, -apple-system, sans-serif';
+  context.fillStyle = '#8c86a3';
+
+  for (let step = 0; step <= 4; step += 1) {
+    const y = box.top + (box.height * step) / 4;
+    context.beginPath();
+    context.moveTo(box.left, y);
+    context.lineTo(box.left + box.width, y);
+    context.stroke();
+
+    const share = 1 - step / 4;
+    context.textAlign = 'right';
+    context.fillStyle = '#7de0b0';
+    context.fillText((fpsTop * share).toFixed(0), box.left - 14, y + 5);
+    context.textAlign = 'left';
+    context.fillStyle = '#9d84ff';
+    context.fillText((latencyTop * share).toFixed(0), box.left + box.width + 14, y + 5);
+  }
+
+  context.fillStyle = '#8c86a3';
+  context.textAlign = 'center';
+  for (let seconds = 0; seconds <= 90; seconds += 30) {
+    const x = box.left + box.width * (1 - seconds / 90);
+    context.fillText(seconds === 0 ? 'agora' : `-${seconds}s`, x, box.top + box.height + 28);
+  }
+
+  drawSeries(
+    visible.map(r => ({ at: r.at, value: r.latencyMs })),
+    '#9d84ff', box, latencyTop, now,
+  );
+  drawSeries(
+    visible.map(r => ({ at: r.at, value: r.fps })),
+    '#7de0b0', box, fpsTop, now,
+  );
+
+  requestAnimationFrame(draw);
+}
+
+const events = new EventSource('/events');
+events.onmessage = message => {
+  const reading = JSON.parse(message.data);
+  readings.push(reading);
+  if (readings.length > 600) readings.shift();
+
+  document.getElementById('fps').textContent = reading.fps.toFixed(1);
+  document.getElementById('latency').textContent = reading.latencyMs.toFixed(0);
+  document.getElementById('dot').classList.add('on');
+  document.getElementById('waiting').hidden = true;
+};
+
+resize();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lesingo · métricas ao vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #F5F2EC;
+    --surface: #FCFCFB;
+    --ink: #14171C;
+    --ink-soft: #4B5361;
+    --ink-faint: #8A93A2;
+    --rule: #DCD5C8;
+    --grid: #E4DED2;
+    --accent: #3A44E8;
+
+    --throughput: #2a78d6;
+    --latency: #eb6834;
+    --cpu: #4a3aa7;
+    --heat: #e34948;
+    --live: #1baf7a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --ground: #0D1014;
+      --surface: #1A1A19;
+      --ink: #EEF1F6;
+      --ink-soft: #A8B2C0;
+      --ink-faint: #6C7686;
+      --rule: #232932;
+      --grid: #2A313B;
+      --accent: #7C86FF;
+
+      --throughput: #3987e5;
+      --latency: #d95926;
+      --cpu: #9085e9;
+      --heat: #e66767;
+      --live: #199e70;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 28px 24px 48px;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Bricolage Grotesque", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .beacon { width: 8px; height: 8px; border-radius: 999px; background: var(--ink-faint); }
+  .beacon.on { background: var(--live); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .beacon.on { animation: none; } }
+
+  .subline {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; color: var(--ink-faint); margin: 0 0 26px;
+  }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 16px 18px;
+  }
+
+  .tile-label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 10px;
+    display: flex; align-items: center; gap: 7px;
+  }
+
+  .swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+  .tile-value {
+    font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: baseline; gap: 6px;
+  }
+
+  .tile-value small { font-size: 13px; font-weight: 400; color: var(--ink-faint); letter-spacing: 0; }
+
+  .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 16px 18px 10px;
+  }
+
+  .card h2 { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 2px; }
+  .card p { margin: 0 0 10px; font-size: 12px; color: var(--ink-faint); font-family: "JetBrains Mono", monospace; }
+
+  .plot { position: relative; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0;
+    transform: translate(-50%, -100%);
+    background: var(--ink); color: var(--ground);
+    padding: 6px 9px; border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px; line-height: 1.45; white-space: nowrap;
+    transition: opacity 90ms linear; z-index: 2;
+  }
+
+  .empty {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; color: var(--ink-faint);
+    padding: 46px 0; text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .charts { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Métricas ao vivo</h1>
+    <span class="status"><span class="beacon" id="beacon"></span><span id="status">procurando aparelho…</span></span>
+  </header>
+  <p class="subline" id="subline">—</p>
+
+  <div class="tiles">
+    <div class="tile">
+      <p class="tile-label"><span class="swatch" style="background: var(--throughput)"></span>Vazão</p>
+      <p class="tile-value"><span id="v-fps">—</span><small>inf/s</small></p>
+    </div>
+    <div class="tile">
+      <p class="tile-label"><span class="swatch" style="background: var(--latency)"></span>Latência</p>
+      <p class="tile-value"><span id="v-ms">—</span><small>ms</small></p>
+    </div>
+    <div class="tile">
+      <p class="tile-label"><span class="swatch" style="background: var(--cpu)"></span>CPU do app</p>
+      <p class="tile-value"><span id="v-cpu">—</span><small>%</small></p>
+    </div>
+    <div class="tile">
+      <p class="tile-label"><span class="swatch" style="background: var(--heat)"></span>Temperatura</p>
+      <p class="tile-value"><span id="v-temp">—</span><small>°C</small></p>
+    </div>
+  </div>
+
+  <div class="charts">
+    <section class="card">
+      <h2>Vazão do detector</h2>
+      <p>inferências por segundo</p>
+      <div class="plot" id="p-fps"></div>
+    </section>
+    <section class="card">
+      <h2>Latência por inferência</h2>
+      <p>milissegundos</p>
+      <div class="plot" id="p-ms"></div>
+    </section>
+    <section class="card">
+      <h2>CPU do processo</h2>
+      <p>por cento — 100% é um núcleo</p>
+      <div class="plot" id="p-cpu"></div>
+    </section>
+    <section class="card">
+      <h2>Temperatura do processador</h2>
+      <p>graus celsius</p>
+      <div class="plot" id="p-temp"></div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = 520, H = 190, PAD_L = 46, PAD_R = 14, PAD_T = 10, PAD_B = 26;
+  /** How much history a chart shows. */
+  const WINDOW_MS = 5 * 60 * 1000;
+
+  const state = { detector: [], system: [], meta: {} };
+
+  function el(name, attrs) {
+    const node = document.createElementNS(NS, name);
+    for (const [key, value] of Object.entries(attrs)) {
+      node.setAttribute(key, value);
+    }
+    return node;
+  }
+
+  function niceTicks(min, max) {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
+      return [0, 1];
+    }
+    const raw = (max - min) / 4;
+    const magnitude = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10]
+      .map(m => m * magnitude)
+      .find(candidate => candidate >= raw) ?? magnitude * 10;
+
+    const start = Math.floor(min / step) * step;
+    const ticks = [];
+    for (let value = start; value <= max + step / 2; value += step) {
+      ticks.push(Number(value.toFixed(6)));
+    }
+    return ticks;
+  }
+
+  class Chart {
+    constructor(mount, colour, format) {
+      this.colour = colour;
+      this.format = format;
+      this.svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img' });
+      this.tip = document.createElement('div');
+      this.tip.className = 'tip';
+      mount.append(this.svg, this.tip);
+      this.points = [];
+
+      this.svg.addEventListener('pointermove', event => this.hover(event));
+      this.svg.addEventListener('pointerleave', () => {
+        this.tip.style.opacity = 0;
+        this.crosshair?.setAttribute('opacity', 0);
+      });
+    }
+
+    hover(event) {
+      if (this.points.length === 0) return;
+
+      const box = this.svg.getBoundingClientRect();
+      const scale = W / box.width;
+      const x = (event.clientX - box.left) * scale;
+      let nearest = this.points[0];
+      for (const point of this.points) {
+        if (Math.abs(point.x - x) < Math.abs(nearest.x - x)) nearest = point;
+      }
+
+      this.crosshair.setAttribute('x1', nearest.x);
+      this.crosshair.setAttribute('x2', nearest.x);
+      this.crosshair.setAttribute('opacity', 1);
+
+      const clock = new Date(nearest.atMs).toLocaleTimeString('pt-BR');
+      this.tip.innerHTML = `<div><b>${this.format(nearest.value)}</b></div><div>${clock}</div>`;
+      this.tip.style.opacity = 1;
+      this.tip.style.left = `${nearest.x / scale}px`;
+      this.tip.style.top = `${PAD_T / scale - 8}px`;
+    }
+
+    render(samples) {
+      this.svg.replaceChildren();
+      this.points = [];
+
+      const now = Date.now();
+      const visible = samples.filter(
+        sample => Number.isFinite(sample.value) && now - sample.atMs <= WINDOW_MS,
+      );
+
+      if (visible.length === 0) {
+        const note = el('text', {
+          x: W / 2, y: H / 2, 'text-anchor': 'middle',
+          fill: 'var(--ink-faint)', 'font-size': 12,
+          'font-family': 'JetBrains Mono, monospace',
+        });
+        note.textContent = 'sem leituras ainda';
+        this.svg.appendChild(note);
+        return;
+      }
+
+      const innerW = W - PAD_L - PAD_R;
+      const innerH = H - PAD_T - PAD_B;
+      const values = visible.map(sample => sample.value);
+      const low = Math.min(...values);
+      const high = Math.max(...values);
+      const ticks = niceTicks(Math.min(low, low * 0.9), high * 1.05);
+      const floor = ticks[0];
+      const ceiling = ticks.at(-1);
+      const span = ceiling - floor || 1;
+
+      const oldest = now - WINDOW_MS;
+      const x = atMs => PAD_L + (innerW * (atMs - oldest)) / WINDOW_MS;
+      const y = value => PAD_T + innerH - (innerH * (value - floor)) / span;
+
+      for (const tick of ticks) {
+        this.svg.appendChild(el('line', {
+          x1: PAD_L, x2: W - PAD_R, y1: y(tick), y2: y(tick),
+          stroke: 'var(--grid)', 'stroke-width': 1,
+        }));
+        const label = el('text', {
+          x: PAD_L - 9, y: y(tick) + 4, 'text-anchor': 'end',
+          fill: 'var(--ink-faint)', 'font-size': 10.5,
+          'font-family': 'JetBrains Mono, monospace',
+        });
+        label.textContent = tick;
+        this.svg.appendChild(label);
+      }
+
+      const path = visible
+        .map((sample, index) => `${index ? 'L' : 'M'}${x(sample.atMs)} ${y(sample.value)}`)
+        .join(' ');
+      this.svg.appendChild(el('path', {
+        d: path, fill: 'none', stroke: this.colour, 'stroke-width': 2,
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+      }));
+
+      for (const sample of visible) {
+        this.points.push({ x: x(sample.atMs), atMs: sample.atMs, value: sample.value });
+      }
+
+      const last = visible.at(-1);
+      this.svg.appendChild(el('circle', {
+        cx: x(last.atMs), cy: y(last.value), r: 4.5, fill: this.colour,
+        stroke: 'var(--surface)', 'stroke-width': 2,
+      }));
+
+      const scale = el('text', {
+        x: PAD_L, y: H - 8, fill: 'var(--ink-faint)', 'font-size': 10.5,
+        'font-family': 'JetBrains Mono, monospace',
+      });
+      scale.textContent = '5 min atrás';
+      this.svg.appendChild(scale);
+
+      const nowLabel = el('text', {
+        x: W - PAD_R, y: H - 8, 'text-anchor': 'end',
+        fill: 'var(--ink-faint)', 'font-size': 10.5,
+        'font-family': 'JetBrains Mono, monospace',
+      });
+      nowLabel.textContent = 'agora';
+      this.svg.appendChild(nowLabel);
+
+      this.crosshair = el('line', {
+        y1: PAD_T, y2: PAD_T + innerH, stroke: 'var(--ink-faint)',
+        'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0,
+      });
+      this.svg.appendChild(this.crosshair);
+    }
+  }
+
+  const charts = {
+    fps: new Chart(document.getElementById('p-fps'), 'var(--throughput)', v => `${v.toFixed(1)} inf/s`),
+    ms: new Chart(document.getElementById('p-ms'), 'var(--latency)', v => `${Math.round(v)} ms`),
+    cpu: new Chart(document.getElementById('p-cpu'), 'var(--cpu)', v => `${Math.round(v)}%`),
+    temp: new Chart(document.getElementById('p-temp'), 'var(--heat)', v => `${v.toFixed(1)} °C`),
+  };
+
+  function text(id, value) {
+    document.getElementById(id).textContent = value;
+  }
+
+  function render() {
+    charts.fps.render(state.detector.map(s => ({ atMs: s.atMs, value: s.inferencesPerSecond })));
+    charts.ms.render(state.detector.map(s => ({ atMs: s.atMs, value: s.latencyMs })));
+    charts.cpu.render(state.system.map(s => ({ atMs: s.atMs, value: s.cpuPercent })));
+    charts.temp.render(state.system.map(s => ({ atMs: s.atMs, value: s.temperature })));
+
+    const detector = state.detector.at(-1);
+    const system = state.system.at(-1);
+    const fresh = detector != null && Date.now() - detector.atMs < 20000;
+
+    text('v-fps', fresh ? detector.inferencesPerSecond.toFixed(1) : '—');
+    text('v-ms', fresh ? Math.round(detector.latencyMs) : '—');
+    text('v-cpu', system?.cpuPercent == null ? '—' : Math.round(system.cpuPercent));
+    text('v-temp', system?.temperature == null ? '—' : system.temperature.toFixed(1));
+
+    const meta = state.meta;
+    const beacon = document.getElementById('beacon');
+    beacon.classList.toggle('on', meta.device != null);
+    text('status', meta.device == null ? 'sem aparelho' : `${meta.device.model} ligado`);
+
+    const parts = [];
+    if (meta.workers != null) {
+      parts.push(`${meta.workers} workers de ${meta.cores} núcleos`);
+    }
+    if (system?.residentMb != null) parts.push(`${Math.round(system.residentMb)} MB residentes`);
+    if (meta.camera != null) parts.push(meta.camera);
+    if (meta.device == null) parts.push('conecte o cabo e destrave a tela');
+    else if (!fresh) parts.push('abra a tela da câmera para o detector reportar');
+    text('subline', parts.join('  ·  ') || '—');
+  }
+
+  const stream = new EventSource('/stream');
+  stream.addEventListener('snapshot', event => {
+    const payload = JSON.parse(event.data);
+    state.detector = payload.detector;
+    state.system = payload.system;
+    state.meta = payload.meta;
+    render();
+  });
+  stream.addEventListener('detector', event => {
+    state.detector.push(JSON.parse(event.data));
+    render();
+  });
+  stream.addEventListener('system', event => {
+    state.system.push(JSON.parse(event.data));
+    render();
+  });
+  stream.addEventListener('meta', event => {
+    state.meta = JSON.parse(event.data);
+    render();
+  });
+
+  // The window slides even when nothing new arrives, so a stalled reading is
+  // visible as a line that stops rather than one that freezes in place.
+  setInterval(render, 1000);
+  render();
+</script>
+</body>
+</html>

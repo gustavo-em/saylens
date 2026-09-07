@@ -207,6 +207,7 @@ final class DetectorWorkerPool {
         TrackedObject(
           object: RecognizedObject(
             label: label,
+            refinedLabel: object.refinedLabel,
             score: label == object.label ? object.score : previous.object.score,
             boundingBox: Self.blend(
               previous.object.boundingBox,

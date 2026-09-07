@@ -15,33 +15,90 @@ const MAX_PREDICTION_HORIZON_MS = 180;
  */
 const MISSING_TRACK_RETENTION_MS = 800;
 /**
+ * How long a card that is already on screen survives losing its object.
+ *
+ * Reaching for the practise button puts a hand between the camera and the
+ * thing being named, so the detector loses it at exactly the moment the
+ * learner is trying to press it. Eight hundred milliseconds was shorter than
+ * that reach. An unconfirmed track keeps the shorter retention above, so noise
+ * still clears fast — this only protects something the learner can see.
+ */
+const CONFIRMED_TRACK_RETENTION_MS = 2200;
+/**
  * What a detection has to do before it earns a card.
  *
  * A small model is confidently wrong now and then — a microwave read as a
  * toilet, an earphone read as a bird — and a learner remembers the wrong word
- * far longer than the right one. Two things have to hold: the same label has
- * to keep landing on the same place for four readings, and the model has to
- * have been sure of it on average, well above the floor it needed to be
- * reported at all.
+ * far longer than the right one. So a track has to hold the same label on the
+ * same place before anything is said about it.
  *
- * Three quarters is deliberately strict. It loses genuine objects in poor
- * light and at a distance, and that is the trade: a learner forgives an app
- * that says nothing far more easily than one that teaches them the wrong
- * word.
+ * How long it has to hold depends on how sure the model was. One flat bar on
+ * confidence could not express that, and stacking a second bar above the
+ * detector's own floor was worse than strict: an object the model read
+ * steadily at seven tenths could sit in perfect light forever and never earn a
+ * word, because no amount of holding still raised the mean. The camera had to
+ * be waved about until a reading happened to spike.
+ *
+ * Persistence is separate evidence from score. A wrong name is unstable — it
+ * flickers between labels and places, so it never gathers readings. A quiet,
+ * steady, middling reading is usually a real object the model is simply not
+ * loud about. So the two trade against each other: the surer the model, the
+ * sooner it is believed; the less sure, the longer it has to keep saying the
+ * same thing about the same place.
+ *
+ * Each rung asks for readings and for time, because readings alone are not a
+ * fixed amount of waiting. The detector's rate moves with how warm the phone
+ * is — the same eight-core device was measured at 8.6 readings per second cold
+ * and 5.7 warm — so a rung counted only in readings made a card appear in half
+ * a second on a cool phone and in three quarters of a second on the same phone
+ * ten minutes later. The floor holds the wait steady where the readings are
+ * cheap, and the count still governs where they are dear.
+ *
+ * The floors are the waits the old counts produced at ten readings a second,
+ * and the counts are what that same wait buys at five. So a fast detector
+ * waits exactly as long as it always did, and a slow one stops being punished
+ * for being slow: the top rung falls from 600 ms to 400 ms on a phone managing
+ * five readings a second, and the bottom from 2.2 s to 1.4 s.
  *
  * Tracks are matched within a label, so a detector that cannot decide between
  * two names never accumulates the readings for either, and nothing is shown
  * until it settles.
  */
-const MIN_HITS_TO_CONFIRM = 4;
-const MIN_CONFIRMED_CONFIDENCE = 0.75;
+const CONFIRMATION_LADDER = [
+  { meanConfidence: 0.75, minHits: 3, minVisibleMs: 300 },
+  { meanConfidence: 0.58, minHits: 5, minVisibleMs: 600 },
+  { meanConfidence: 0.45, minHits: 8, minVisibleMs: 1000 },
+] as const;
 const VELOCITY_SMOOTHING = 0.55;
+/**
+ * The shortest gap that counts as time passing.
+ *
+ * The detector delivers around ten results a second, but several workers can
+ * land theirs inside the same millisecond. Dividing a displacement by that gap
+ * gave velocities two orders of magnitude too large, and the projection below
+ * then threw the box clean off the screen and back on the next reading. The
+ * floor is a real frame interval rather than one millisecond, so a bunched
+ * pair of readings reads as one step rather than as a sprint.
+ */
+const MIN_VELOCITY_INTERVAL_MS = 40;
+/**
+ * The fastest an object is allowed to be believed to move: about a quarter of
+ * the frame every hundred milliseconds. Past that it is a box that jumped to a
+ * different object, or a weak reading wobbling in place — never something the
+ * card should chase.
+ */
+const MAX_VELOCITY_PER_MS = 0.0008;
 
-/** Enough readings, and enough certainty across them. */
-function isConfirmed(track: ObjectTrack) {
-  return (
-    track.hits >= MIN_HITS_TO_CONFIRM &&
-    track.confidenceSum / track.hits >= MIN_CONFIRMED_CONFIDENCE
+/** Enough readings, held for long enough, for how sure the model was. */
+function isConfirmed(track: ObjectTrack, nowMs: number) {
+  const meanConfidence = track.confidenceSum / track.hits;
+  const visibleForMs = nowMs - track.firstSeenAtMs;
+
+  return CONFIRMATION_LADDER.some(
+    step =>
+      meanConfidence >= step.meanConfidence &&
+      track.hits >= step.minHits &&
+      visibleForMs >= step.minVisibleMs,
   );
 }
 /**
@@ -63,10 +120,14 @@ interface MotionVector {
 interface ObjectTrack {
   confidence: number;
   hits: number;
+  /** When this track was first seen, which is what the time floor measures. */
+  firstSeenAtMs: number;
   /** Mean confidence across the readings that built this track. */
   confidenceSum: number;
   id: string;
   label: string;
+  /** The last display name the classifier gave this track, if it gave one. */
+  refinedLabel: string | undefined;
   lastObservedBounds: NormalizedBounds;
   lastSeenAtMs: number;
   velocity: MotionVector;
@@ -114,19 +175,18 @@ function calculateVelocity(
     y: (currentBounds.y - previous.lastObservedBounds.y) / elapsedMs,
   };
 
+  const blend = (before: number, now: number) =>
+    clamp(
+      before * VELOCITY_SMOOTHING + now * (1 - VELOCITY_SMOOTHING),
+      -MAX_VELOCITY_PER_MS,
+      MAX_VELOCITY_PER_MS,
+    );
+
   return {
-    height:
-      previous.velocity.height * VELOCITY_SMOOTHING +
-      currentVelocity.height * (1 - VELOCITY_SMOOTHING),
-    width:
-      previous.velocity.width * VELOCITY_SMOOTHING +
-      currentVelocity.width * (1 - VELOCITY_SMOOTHING),
-    x:
-      previous.velocity.x * VELOCITY_SMOOTHING +
-      currentVelocity.x * (1 - VELOCITY_SMOOTHING),
-    y:
-      previous.velocity.y * VELOCITY_SMOOTHING +
-      currentVelocity.y * (1 - VELOCITY_SMOOTHING),
+    height: blend(previous.velocity.height, currentVelocity.height),
+    width: blend(previous.velocity.width, currentVelocity.width),
+    x: blend(previous.velocity.x, currentVelocity.x),
+    y: blend(previous.velocity.y, currentVelocity.y),
   };
 }
 
@@ -225,7 +285,7 @@ export class DetectionMotionTracker {
       const id = matchingTrack?.id ?? `${object.label}-${this.nextTrackId++}`;
       const elapsedMs = Math.max(
         nowMs - (matchingTrack?.lastSeenAtMs ?? nowMs),
-        1,
+        MIN_VELOCITY_INTERVAL_MS,
       );
       const bounds = matchingTrack
         ? smoothBounds(matchingTrack.lastObservedBounds, object.bounds)
@@ -236,9 +296,13 @@ export class DetectionMotionTracker {
       const track: ObjectTrack = {
         confidence: object.confidence,
         confidenceSum: (matchingTrack?.confidenceSum ?? 0) + object.confidence,
+        firstSeenAtMs: matchingTrack?.firstSeenAtMs ?? nowMs,
         hits: (matchingTrack?.hits ?? 0) + 1,
         id,
         label: object.label,
+        // A frame the classifier skipped keeps the name the track already
+        // had, so a box does not lose its word between namings.
+        refinedLabel: object.refinedLabel ?? matchingTrack?.refinedLabel,
         lastObservedBounds: bounds,
         lastSeenAtMs: nowMs,
         velocity,
@@ -246,12 +310,16 @@ export class DetectionMotionTracker {
 
       matchedTrackIds.add(id);
       nextTracks.set(id, track);
-      if (!isConfirmed(track)) return;
+      if (!isConfirmed(track, nowMs)) return;
 
       trackedObjects.push({
         ...object,
         id,
         bounds: projectBounds(bounds, velocity, predictionHorizonMs),
+        isMissing: false,
+        // Only one box per frame is named now, so the emitted object reads the
+        // track's name rather than this frame's, which is usually absent.
+        refinedLabel: track.refinedLabel,
       });
     });
 
@@ -259,10 +327,13 @@ export class DetectionMotionTracker {
       if (matchedTrackIds.has(track.id)) return;
 
       const missingForMs = nowMs - track.lastSeenAtMs;
-      if (missingForMs > MISSING_TRACK_RETENTION_MS) return;
+      const retentionMs = isConfirmed(track, nowMs)
+        ? CONFIRMED_TRACK_RETENTION_MS
+        : MISSING_TRACK_RETENTION_MS;
+      if (missingForMs > retentionMs) return;
 
       nextTracks.set(track.id, track);
-      if (!isConfirmed(track)) return;
+      if (!isConfirmed(track, nowMs)) return;
 
       trackedObjects.push({
         bounds: projectBounds(
@@ -272,7 +343,9 @@ export class DetectionMotionTracker {
         ),
         confidence: track.confidence,
         id: track.id,
+        isMissing: true,
         label: track.label,
+        refinedLabel: track.refinedLabel,
       });
     });
 

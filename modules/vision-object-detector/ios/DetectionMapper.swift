@@ -33,7 +33,8 @@ enum DetectionMapper {
       // the model file, and a box under a placeholder is what says the model
       // found something the metadata failed to name.
       return RecognizedObject(
-        label: firstSynonym(of: read) ?? category.categoryName ?? "object",
+        label: category.categoryName ?? "object",
+        refinedLabel: firstSynonym(of: read),
         score: category.score,
         boundingBox: detection.boundingBox
       )
@@ -48,6 +49,7 @@ enum DetectionMapper {
     let detections = objects.map { object in
       NativeDetection(
         label: object.label,
+        refinedLabel: object.refinedLabel,
         score: Double(object.score),
         boundingBox: NativeDetectionBox(
           left: Double(object.boundingBox.minX),
@@ -88,7 +90,12 @@ private func firstSynonym(of label: String?) -> String? {
 /// upright frame's pixels, with the origin at the top left, which is the space
 /// both MediaPipe and the JavaScript contract use.
 struct RecognizedObject {
+  /// The detector's own name, which identity is built on. Stable across
+  /// frames because it comes from a small set of classes.
   let label: String
+  /// What the classifier called the same box. Better and less stable, so it
+  /// is carried for display rather than used to match a box to its track.
+  let refinedLabel: String?
   let score: Float
   let boundingBox: CGRect
 }

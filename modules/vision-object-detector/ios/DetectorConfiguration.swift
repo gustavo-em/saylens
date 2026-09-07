@@ -30,8 +30,13 @@ enum DetectorConstants {
   /// How many objects a single frame may report, and how sure the model has to
   /// be about one. Both match Android, so a difference between the platforms
   /// is a difference in hardware rather than in what was asked of the model.
+  ///
+  /// The threshold is a floor, not a decision: whatever is dropped here can
+  /// never be recovered, and the model reads plenty of real objects in the
+  /// fifties. The interface decides what earns a word, and it weighs a
+  /// middling reading that holds still against a loud one that does not.
   static let maximumResults = 5
-  static let scoreThreshold: Float = 0.65
+  static let scoreThreshold: Float = 0.4
 
   /**
    Naming what the detector found.

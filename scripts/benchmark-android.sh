@@ -37,4 +37,5 @@ adb shell top -b -n 1 | grep -E "PID|saylens" || true
 
 echo
 echo "=== Process memory ==="
-adb shell dumpsys meminfo "$APP_PACKAGE"
+# The J6 needs longer than the 10s default to walk its own heap.
+adb shell dumpsys -t 40 meminfo "$APP_PACKAGE"

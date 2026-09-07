@@ -100,6 +100,8 @@ export function mapNativeDetectionBatch(
   const objects = batch.detections
     .map<DetectedObject>((detection, index) => {
       const label = detection.label.trim().replaceAll('_', ' ') || 'object';
+      const refinedLabel =
+        detection.refinedLabel?.trim().replaceAll('_', ' ') || undefined;
       const rotatedBox = rotateBox(
         detection.boundingBox,
         batch.frameWidth,
@@ -110,6 +112,7 @@ export function mapNativeDetectionBatch(
       return {
         id: `${label}-${index}`,
         label,
+        refinedLabel,
         confidence: clamp(detection.score, 0, 1),
         bounds: normalizeBox(rotatedBox),
       };

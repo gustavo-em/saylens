@@ -114,18 +114,76 @@ concurrent detector workers changed.
 Eight workers did not produce a reliable sustained throughput gain and made
 each result roughly 150–250 ms older. That extra staleness makes a moving layer
 feel less attached to the camera image, so six workers are the measured optimum
-for the eight-core J6: a completed detection every 75–97 ms while leaving two
-cores available to the camera and UI pipelines.
+for the eight-core J6 taken on throughput alone: a completed detection every
+75–97 ms while leaving two cores available to the camera and UI pipelines.
+
+Four was shipped briefly and reverted the same day. Measured here on
+2026-09-04: four workers settle at 6.8–6.9 inferences/s with 545–571 ms of
+latency once the phone is warm, against 9.2 and 590–690 ms for six. Four wins
+on the latency of a single inference and still feels slower to use, because a
+learner does not wait for one inference. The tracker earns a card in
+detections — `CONFIRMATION_LADDER` asks for 4, 7 or 11 hits depending on how
+sure the model was — so a third fewer detections per second is a third longer
+before a new word appears. Pointing from a laptop to a keyboard took about two
+seconds to catch up.
+
+Read that as a constraint on the whole file: every number here is a throughput
+budget the interface spends in detections, not in milliseconds.
 
 A seventh GPU worker was also tested. MediaPipe's GPU path crashed inside
 `libmediapipe_tasks_jni.so` with `SIGBUS` on the J6's 32-bit graphics stack, so
 the low-end capability gate continues to disable the GPU delegate.
 
 The low-end profile now derives its CPU worker count from the processors
-reported by Android, capped at six. All J6 workers are prewarmed sequentially:
+reported by Android, capped at four. All J6 workers are prewarmed sequentially:
 creating new MediaPipe detector instances while existing instances were already
 running inference also produced a native `SIGBUS` on its 32-bit runtime. This
 costs roughly two seconds at startup but keeps continuous detection stable.
+
+The classifier is prewarmed on the same terms, and was not always. Built lazily
+on the first detection instead, it broke the rule above — a new graph starting
+while the other workers were mid-inference — and took the process down with
+`SIGBUS` (`BUS_ADRERR`) inside `Graph.startRunningGraph`. Measured on
+2026-09-04: that build died after about 90 seconds of continuous detection,
+while one that prewarms both models ran 344 seconds without a signal. No graph
+may be built on the frame path.
+
+## Six workers against three, 2026-09-05
+
+Measured on the same J6, same scene, both runs started with the CPU at 35 °C
+after the phone had been idle for hours. Single runs, so directional.
+
+|                            | Six workers | Three workers |
+| -------------------------- | ----------- | ------------- |
+| Detector throughput        | 7.6-9.3/s   | 6.8-7.1/s     |
+| Latency per inference      | 560-913 ms  | 395-444 ms    |
+| Process CPU                | 504%        | 331%          |
+| Resident memory            | 367 MB      | 247 MB        |
+| CPU temperature after 40 s | 49.0 °C     | 45.4 °C       |
+
+Three workers give up a fifth of the throughput and take back two fifths of the
+latency, a third of the CPU and a third of the memory. They are also steady:
+across the seven windows the three-worker throughput moves 0.3 while the
+six-worker throughput moves 1.7 and trends down as the phone warms.
+
+The throughput is given up without costing the learner anything, because the
+tracker's rungs now carry a time floor: a card is earned in 435 ms at 6.9
+readings per second, against 465 ms at the 8.6 readings six workers managed
+while cold.
+
+## What temperature does to the same build
+
+Measured on 2026-09-04 and 2026-09-05 with the identical six-worker APK, same
+scene:
+
+| CPU temperature                 | Throughput | Latency     |
+| ------------------------------- | ---------- | ----------- |
+| 35.5 °C at the start of the run | 7.6-9.3/s  | 560-913 ms  |
+| 49.6 °C, warmed by earlier runs | 5.6-6.2/s  | 947-1210 ms |
+
+A third of the throughput and 40% of the latency move with temperature alone.
+A configuration measured on a cold phone is not the configuration the learner
+uses, and forty seconds at 504% CPU is enough to leave the cold state.
 
 ## Reproduce
 

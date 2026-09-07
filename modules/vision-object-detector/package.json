@@ -1,20 +1,20 @@
 {
-  "name": "react-native-saylens-object-detector",
+  "name": "react-native-lesingo-object-detector",
   "version": "0.0.0",
-  "description": "On-device object detection for SayLens",
+  "description": "On-device object detection for Lesingo",
   "main": "src/index",
   "react-native": "src/index",
   "codegenConfig": {
-    "name": "SayLensObjectDetectorSpec",
+    "name": "LesingoObjectDetectorSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.saylensobjectdetector"
+      "javaPackageName": "com.lesingoobjectdetector"
     }
   },
   "author": "Gustavo Rosa <59415818+gustavo-em@users.noreply.github.com> (https://github.com/gustavo-em)",
   "license": "UNLICENSED",
-  "homepage": "https://github.com/gustavo-em/SayLens#readme",
+  "homepage": "https://github.com/gustavo-em/Lesingo#readme",
   "peerDependencies": {
     "react-native": "*",
     "react-native-nitro-modules": "0.37.0",

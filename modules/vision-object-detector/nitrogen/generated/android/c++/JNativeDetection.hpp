@@ -12,9 +12,10 @@
 
 #include "JNativeDetectionBox.hpp"
 #include "NativeDetectionBox.hpp"
+#include <optional>
 #include <string>
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   using namespace facebook;
 
@@ -23,7 +24,7 @@ namespace margelo::nitro::saylensobjectdetector {
    */
   struct JNativeDetection final: public jni::JavaClass<JNativeDetection> {
   public:
-    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/saylensobjectdetector/NativeDetection;";
+    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/lesingoobjectdetector/NativeDetection;";
 
   public:
     /**
@@ -35,12 +36,15 @@ namespace margelo::nitro::saylensobjectdetector {
       static const auto clazz = javaClassStatic();
       static const auto fieldLabel = clazz->getField<jni::JString>("label");
       jni::local_ref<jni::JString> label = this->getFieldValue(fieldLabel);
+      static const auto fieldRefinedLabel = clazz->getField<jni::JString>("refinedLabel");
+      jni::local_ref<jni::JString> refinedLabel = this->getFieldValue(fieldRefinedLabel);
       static const auto fieldScore = clazz->getField<double>("score");
       double score = this->getFieldValue(fieldScore);
       static const auto fieldBoundingBox = clazz->getField<JNativeDetectionBox>("boundingBox");
       jni::local_ref<JNativeDetectionBox> boundingBox = this->getFieldValue(fieldBoundingBox);
       return NativeDetection(
         label->toStdString(),
+        refinedLabel != nullptr ? std::make_optional(refinedLabel->toStdString()) : std::nullopt,
         score,
         boundingBox->toCpp()
       );
@@ -52,16 +56,17 @@ namespace margelo::nitro::saylensobjectdetector {
      */
     [[maybe_unused]]
     static jni::local_ref<JNativeDetection::javaobject> fromCpp(const NativeDetection& value) {
-      using JSignature = JNativeDetection(jni::alias_ref<jni::JString>, double, jni::alias_ref<JNativeDetectionBox>);
+      using JSignature = JNativeDetection(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<JNativeDetectionBox>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         jni::make_jstring(value.label),
+        value.refinedLabel.has_value() ? jni::make_jstring(value.refinedLabel.value()) : nullptr,
         value.score,
         JNativeDetectionBox::fromCpp(value.boundingBox)
       );
     }
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector

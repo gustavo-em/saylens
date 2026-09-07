@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ViewedObjectStore } from '../../application/ports/ViewedObjectStore';
 
-const STORAGE_KEY = 'saylens.viewed-objects.v1';
+const STORAGE_KEY = 'lesingo.viewed-objects.v1';
 
 export const asyncStorageViewedObjectStore: ViewedObjectStore = {
   async load() {

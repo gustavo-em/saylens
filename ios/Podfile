@@ -1,3 +1,4 @@
+project 'Lesingo.xcodeproj'
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -5,12 +6,18 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# Dynamic frameworks must compile React Native and Hermes together. Mixing
+# RN 0.87's precompiled React.framework with a dynamic Hermes framework can
+# build successfully but abort at launch because their CDP symbols differ.
+ENV['RCT_USE_RN_DEP'] = '0'
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+ENV['RCT_BUILD_HERMES_FROM_SOURCE'] = 'true'
 
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-# Firebase resolves through Swift Package Manager, whose products each carry
-# their own copy of the SDK unless the pods are linked dynamically.
+# Firebase's SPM products and MediaPipe both vendor Google support libraries.
+# Dynamic pods keep those private copies in separate Mach-O images.
 use_frameworks! :linkage => :dynamic
 
 # MediaPipe ships as a static binary, which CocoaPods refuses to carry inside a
@@ -20,7 +27,7 @@ STATIC_PODS = %w[
   MediaPipeTasksVision
   MediaPipeTasksCommon
   MediaPipeTasksText
-  SayLensObjectDetector
+  LesingoObjectDetector
 ].freeze
 
 pre_install do |installer|
@@ -35,7 +42,7 @@ pre_install do |installer|
   end
 end
 
-target 'SayLens' do
+target 'Lesingo' do
   config = use_native_modules!
 
   # Google Sign-In reaches Firebase through AppCheckCore, which is Swift and so
@@ -56,5 +63,123 @@ target 'SayLens' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # NitroModules imports cxxreact as a Clang module. With dynamic frameworks,
+    # cxxreact's transitive jserrorhandler headers are not propagated into the
+    # Swift compiler invocation, so expose that framework's public headers.
+    installer.pods_project.targets.each do |pod_target|
+      if pod_target.name == 'React-timing'
+        # React_Fabric consumes these primitives textually. Treating this
+        # header-only pod as a separate Clang module makes its C++ declarations
+        # invisible while Swift imports React_Fabric.
+        pod_target.build_configurations.each do |build_config|
+          build_config.build_settings['DEFINES_MODULE'] = 'NO'
+        end
+      end
+
+      if pod_target.name == 'VisionCamera'
+        # Whole-module optimization crashes Swift 6.2.1 while emitting this pod
+        # ("Global is external, but doesn't have external or weak linkage").
+        # Optimizing one file at a time keeps -O and gets through code
+        # generation, so release builds are still optimized.
+        pod_target.build_configurations.each do |build_config|
+          next unless build_config.name == 'Release'
+
+          build_config.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+        end
+      end
+
+      next unless %w[NitroModules VisionCameraWorklets].include?(pod_target.name)
+
+      pod_target.build_configurations.each do |build_config|
+        search_paths = Array(build_config.build_settings['HEADER_SEARCH_PATHS'])
+        search_paths << '$(inherited)' if search_paths.empty?
+        search_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-jserrorhandler/React_jserrorhandler.framework/Headers"'
+        search_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspector/jsinspector_modern.framework/Headers"'
+        search_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectorcdp/jsinspector_moderncdp.framework/Headers"'
+        search_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectornetwork/jsinspector_modernnetwork.framework/Headers"'
+        search_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-jsinspectortracing/jsinspector_moderntracing.framework/Headers"'
+        build_config.build_settings['HEADER_SEARCH_PATHS'] = search_paths.uniq
+
+      end
+    end
+
+    # CocoaPods imports every public cxxreact header from its generated umbrella
+    # when NitroModules' Swift/C++ bridge asks only for ReactNativeVersion.h.
+    # Two implementation headers are not standalone: the inl file must follow
+    # JsArgumentHelpers.h, and TraceSection.h relies on compilation-unit state.
+    # Keep them reachable through their owning headers without eagerly parsing
+    # them as part of the cxxreact Clang module.
+    cxxreact_umbrella = installer.sandbox.root +
+      'Target Support Files/React-cxxreact/React-cxxreact-umbrella.h'
+    if File.exist?(cxxreact_umbrella)
+      umbrella_contents = File.read(cxxreact_umbrella)
+      umbrella_contents.delete_prefix!("#import \"JsArgumentHelpers-inl.h\"\n")
+      umbrella_contents.gsub!("#import \"JsArgumentHelpers-inl.h\"\n", '')
+      umbrella_contents.gsub!("#import \"SystraceSection.h\"\n", '')
+      umbrella_contents.gsub!("#import \"TraceSection.h\"\n", '')
+      File.write(cxxreact_umbrella, umbrella_contents)
+    end
+
+    # React_Fabric's generated umbrella traverses hundreds of C++ headers. A
+    # different header can pull in the timing primitives under an inferred
+    # submodule before EventLogger.h sees them, making HighResTimeStamp hidden.
+    # Import the primitives first so the declaration belongs to the top-level
+    # React_Fabric module.
+    fabric_umbrella = installer.sandbox.root +
+      'Target Support Files/React-Fabric/React-Fabric-umbrella.h'
+    if File.exist?(fabric_umbrella)
+      umbrella_contents = File.read(fabric_umbrella)
+      timing_import = "#import <react/timing/primitives.h>\n"
+      unless umbrella_contents.include?(timing_import)
+        first_public_import = '#import "AnimatedModule.h"'
+        umbrella_contents.sub!(
+          first_public_import,
+          "#{timing_import}#{first_public_import}"
+        )
+        File.write(fabric_umbrella, umbrella_contents)
+      end
+    end
+
+    # Nitro's generated umbrella eagerly imports its view implementation
+    # headers while compiling the Swift API. Those headers are C++-only and
+    # bring the entire React_Fabric module into Swift even though none of the
+    # Nitro Swift sources use them. Keep the headers public for direct C++
+    # includes, but do not parse them as part of the Swift umbrella module.
+    nitro_umbrella = installer.sandbox.root +
+      'Target Support Files/NitroModules/NitroModules-umbrella.h'
+    if File.exist?(nitro_umbrella)
+      umbrella_contents = File.read(nitro_umbrella)
+      %w[
+        CachedProp.hpp
+        RawPropsCompat.hpp
+        ReactProp.hpp
+        ViewComponentDescriptor.hpp
+        ViewPropsHolderState.hpp
+      ].each do |header|
+        umbrella_contents.gsub!("#import \"#{header}\"\n", '')
+      end
+      File.write(nitro_umbrella, umbrella_contents)
+    end
+
+    # Vision Camera 5.2.2's generated preview component predates RN 0.87's
+    # runtime assertion that every RCTViewComponentView subclass must install
+    # its concrete default props before the first updateProps call.
+    vision_camera_component = File.expand_path(
+      '../react-native-vision-camera/nitrogen/generated/ios/c++/views/HybridPreviewViewComponent.mm',
+      config[:reactNativePath]
+    )
+    if File.exist?(vision_camera_component)
+      component_contents = File.read(vision_camera_component)
+      default_props = '    _props = HybridPreviewViewShadowNode::defaultSharedProps();'
+      unless component_contents.include?(default_props)
+        component_contents.sub!(
+          "  if (self = [super init]) {\n",
+          "  if (self = [super init]) {\n#{default_props}\n"
+        )
+        File.write(vision_camera_component, component_contents)
+      end
+    end
+
   end
 end

@@ -10,21 +10,39 @@ import NitroModules
 /**
  * Represents an instance of `NativeDetection`, backed by a C++ struct.
  */
-public typealias NativeDetection = margelo.nitro.saylensobjectdetector.NativeDetection
+public typealias NativeDetection = margelo.nitro.lesingoobjectdetector.NativeDetection
 
 public extension NativeDetection {
-  private typealias bridge = margelo.nitro.saylensobjectdetector.bridge.swift
+  private typealias bridge = margelo.nitro.lesingoobjectdetector.bridge.swift
 
   /**
    * Create a new instance of `NativeDetection`.
    */
-  init(label: String, score: Double, boundingBox: NativeDetectionBox) {
-    self.init(std.string(label), score, boundingBox)
+  init(label: String, refinedLabel: String?, score: Double, boundingBox: NativeDetectionBox) {
+    self.init(std.string(label), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = refinedLabel {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }(), score, boundingBox)
   }
 
   @inline(__always)
   var label: String {
     return String(self.__label)
+  }
+  
+  @inline(__always)
+  var refinedLabel: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__refinedLabel) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__refinedLabel)
+        return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
   }
   
   @inline(__always)

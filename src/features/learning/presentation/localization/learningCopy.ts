@@ -463,7 +463,7 @@ const copies: Record<
       subtitle: 'Ajuste a experiência sem sair do modo de aprendizagem.',
       appearanceSection: 'Aparência',
       appearanceTitle: 'Tema do aplicativo',
-      appearanceDescription: 'Escolha como o SayLens aparece para você.',
+      appearanceDescription: 'Escolha como o Lesingo aparece para você.',
       lightMode: 'Claro',
       darkMode: 'Escuro',
       languagesSection: 'Idiomas',
@@ -472,6 +472,16 @@ const copies: Record<
       learningLanguageTitle: 'Quero aprender',
       learningLanguageDescription:
         'Idioma das palavras, pronúncias e exemplos.',
+      reminderSection: 'Lembrete de treino',
+      reminderNote:
+        'Escolha um horário e leve para o relógio ou para a agenda do próprio celular.',
+      reminderAlarm: 'Criar alarme',
+      reminderCalendar: 'Pôr na agenda',
+      reminderTitle: 'Treinar no Lesingo',
+      reminderDetail:
+        'Alguns minutos apontando a câmera mantêm a sequência viva.',
+      reminderUnavailable:
+        'Este aparelho não tem um relógio ou uma agenda que aceitem isso.',
       performanceSection: 'Desempenho',
       performanceTitle: 'Perfil do dispositivo',
       performanceDescription:
@@ -689,7 +699,7 @@ const copies: Record<
       subtitle: 'Tune the experience without leaving learning mode.',
       appearanceSection: 'Appearance',
       appearanceTitle: 'App theme',
-      appearanceDescription: 'Choose how SayLens looks for you.',
+      appearanceDescription: 'Choose how Lesingo looks for you.',
       lightMode: 'Light',
       darkMode: 'Dark',
       languagesSection: 'Languages',
@@ -699,6 +709,16 @@ const copies: Record<
       learningLanguageTitle: 'I want to learn',
       learningLanguageDescription:
         'Language used for words, pronunciations, and examples.',
+      reminderSection: 'Practice reminder',
+      reminderNote:
+        'Pick a time and hand it to the phone’s own clock or calendar.',
+      reminderAlarm: 'Set an alarm',
+      reminderCalendar: 'Add to calendar',
+      reminderTitle: 'Practise on Lesingo',
+      reminderDetail:
+        'A few minutes pointing the camera keeps the streak alive.',
+      reminderUnavailable:
+        'This phone has no clock or calendar that can take it.',
       performanceSection: 'Performance',
       performanceTitle: 'Device profile',
       performanceDescription:
@@ -917,7 +937,7 @@ const copies: Record<
       subtitle: 'Ajusta la experiencia sin salir del modo de aprendizaje.',
       appearanceSection: 'Apariencia',
       appearanceTitle: 'Tema de la aplicación',
-      appearanceDescription: 'Elige cómo se muestra SayLens.',
+      appearanceDescription: 'Elige cómo se muestra Lesingo.',
       lightMode: 'Claro',
       darkMode: 'Oscuro',
       languagesSection: 'Idiomas',
@@ -927,6 +947,16 @@ const copies: Record<
       learningLanguageTitle: 'Quiero aprender',
       learningLanguageDescription:
         'Idioma de las palabras, pronunciaciones y ejemplos.',
+      reminderSection: 'Recordatorio de práctica',
+      reminderNote:
+        'Elige una hora y pásala al reloj o al calendario del propio teléfono.',
+      reminderAlarm: 'Crear alarma',
+      reminderCalendar: 'Poner en el calendario',
+      reminderTitle: 'Practicar en Lesingo',
+      reminderDetail:
+        'Unos minutos apuntando la cámara mantienen la racha viva.',
+      reminderUnavailable:
+        'Este teléfono no tiene un reloj ni un calendario que lo acepten.',
       performanceSection: 'Rendimiento',
       performanceTitle: 'Perfil del dispositivo',
       performanceDescription:

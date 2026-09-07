@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { LearnerProgressStore } from '../../application/ports/LearnerProgressStore';
 
-const STORAGE_KEY = 'saylens.progress.v1';
+const STORAGE_KEY = 'lesingo.progress.v1';
 
 export const asyncStorageLearnerProgressStore: LearnerProgressStore = {
   async load() {

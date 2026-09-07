@@ -29,7 +29,7 @@ sleep "$MEASUREMENT_SECONDS"
 echo
 echo "=== Detector and camera ==="
 adb logcat -d | grep -E \
-  "SayLensDetector|SayLens camera|AndroidRuntime: FATAL" || true
+  "LesingoDetector|Lesingo camera|AndroidRuntime: FATAL" || true
 
 echo
 echo "=== Process CPU snapshot ==="

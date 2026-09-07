@@ -1,6 +1,6 @@
 ///
 /// DetectorWorkerPool.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// Holds the workers, hands each frame to the first idle one, and keeps the
 /// newest finished result until someone asks for it. The camera calls in at

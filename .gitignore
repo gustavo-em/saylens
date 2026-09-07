@@ -59,4 +59,9 @@ reports/
 vendor/bundle/
 
 # Firebase project keys: the file belongs to whoever builds the app.
-ios/SayLens/GoogleService-Info.plist
+ios/Lesingo/GoogleService-Info.plist
+android/app/google-services.json
+
+# Firebase Admin service-account keys are server-only and must never enter the app.
+**/*firebase-adminsdk*.json
+**/service-account*.json

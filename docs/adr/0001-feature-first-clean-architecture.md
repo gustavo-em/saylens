@@ -6,7 +6,7 @@
 
 ## Context
 
-SayLens combines high-frequency camera data, an Android native detector,
+Lesingo combines high-frequency camera data, an Android native detector,
 English-learning rules, speech, and interactive React Native UI. Organizing the
 repository only by technical type would make one user journey span unrelated
 top-level folders and make platform details easy to leak into business rules.

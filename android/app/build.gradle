@@ -94,7 +94,7 @@ def releaseSetting = { String name ->
     return project.hasProperty(name) ? project.property(name) : null
 }
 
-def uploadStoreFile = releaseSetting('SAYLENS_UPLOAD_STORE_FILE')
+def uploadStoreFile = releaseSetting('LESINGO_UPLOAD_STORE_FILE')
 def hasUploadKey = uploadStoreFile != null && !uploadStoreFile.toString().isEmpty()
 
 /**
@@ -115,7 +115,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.gustavoem.saylens"
+    namespace "com.gustavoem.lesingo"
     defaultConfig {
         applicationId "com.gustavoem.saylens"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -138,9 +138,9 @@ android {
                 storeFile rootProject.file("../${uploadStoreFile}").exists()
                     ? rootProject.file("../${uploadStoreFile}")
                     : file(uploadStoreFile)
-                storePassword releaseSetting('SAYLENS_UPLOAD_STORE_PASSWORD')
-                keyAlias releaseSetting('SAYLENS_UPLOAD_KEY_ALIAS')
-                keyPassword releaseSetting('SAYLENS_UPLOAD_KEY_PASSWORD')
+                storePassword releaseSetting('LESINGO_UPLOAD_STORE_PASSWORD')
+                keyAlias releaseSetting('LESINGO_UPLOAD_KEY_ALIAS')
+                keyPassword releaseSetting('LESINGO_UPLOAD_KEY_PASSWORD')
             }
         }
     }

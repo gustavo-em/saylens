@@ -1,7 +1,7 @@
 import type {
   NativeDetectionBatch,
   NativeDetectionBox,
-} from 'react-native-saylens-object-detector';
+} from 'react-native-lesingo-object-detector';
 
 import type {
   DetectedObject,

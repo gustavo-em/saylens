@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `NativeDetectionBox`, backed by a C++ struct.
  */
-public typealias NativeDetectionBox = margelo.nitro.saylensobjectdetector.NativeDetectionBox
+public typealias NativeDetectionBox = margelo.nitro.lesingoobjectdetector.NativeDetectionBox
 
 public extension NativeDetectionBox {
-  private typealias bridge = margelo.nitro.saylensobjectdetector.bridge.swift
+  private typealias bridge = margelo.nitro.lesingoobjectdetector.bridge.swift
 
   /**
    * Create a new instance of `NativeDetectionBox`.

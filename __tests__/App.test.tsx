@@ -48,7 +48,7 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
-jest.mock('react-native-saylens-object-detector', () => ({
+jest.mock('react-native-lesingo-object-detector', () => ({
   objectDetector: {
     getRecommendedCpuWorkerCount: () => 8,
     getRecommendedPerformanceProfile: () => 'maximum-performance',
@@ -223,7 +223,8 @@ async function pressCameraMenuItem(
   });
 }
 
-const PREFERENCES_KEY = 'saylens.preferences.v1';
+const PREFERENCES_KEY = 'lesingo.preferences.v1';
+const PROGRESS_KEY = 'lesingo.progress.v1';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -264,7 +265,7 @@ describe('App', () => {
 
     const renderedTree = JSON.stringify(renderer!.toJSON());
 
-    expect(renderedTree).toContain('SayLens');
+    expect(renderedTree).toContain('Lesingo');
     // The destinations are a bar at the bottom rather than a menu to open.
     expect(renderedTree).toContain('camera-open-settings');
     expect(renderedTree).toContain('camera-open-history');

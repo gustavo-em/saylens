@@ -1,6 +1,6 @@
 ///
 /// DetectorWorker.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// One MediaPipe detector on one serial queue. A worker either takes a frame
 /// or refuses it; it never queues one. A queue would only make results older,

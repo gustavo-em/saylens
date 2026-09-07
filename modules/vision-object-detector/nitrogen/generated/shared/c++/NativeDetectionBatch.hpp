@@ -29,12 +29,12 @@
 #endif
 
 // Forward declaration of `NativeDetection` to properly resolve imports.
-namespace margelo::nitro::saylensobjectdetector { struct NativeDetection; }
+namespace margelo::nitro::lesingoobjectdetector { struct NativeDetection; }
 
 #include "NativeDetection.hpp"
 #include <vector>
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   /**
    * A struct which can be represented as a JavaScript object (NativeDetectionBatch).
@@ -55,26 +55,26 @@ namespace margelo::nitro::saylensobjectdetector {
     friend bool operator==(const NativeDetectionBatch& lhs, const NativeDetectionBatch& rhs) = default;
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector
 
 namespace margelo::nitro {
 
   // C++ NativeDetectionBatch <> JS NativeDetectionBatch (object)
   template <>
-  struct JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetectionBatch> final {
-    static inline margelo::nitro::saylensobjectdetector::NativeDetectionBatch fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetectionBatch> final {
+    static inline margelo::nitro::lesingoobjectdetector::NativeDetectionBatch fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::saylensobjectdetector::NativeDetectionBatch(
-        JSIConverter<std::vector<margelo::nitro::saylensobjectdetector::NativeDetection>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "detections"))),
+      return margelo::nitro::lesingoobjectdetector::NativeDetectionBatch(
+        JSIConverter<std::vector<margelo::nitro::lesingoobjectdetector::NativeDetection>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "detections"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "frameWidth"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "frameHeight"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rotationDegrees"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "inferenceTimeMs")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::saylensobjectdetector::NativeDetectionBatch& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::lesingoobjectdetector::NativeDetectionBatch& arg) {
       jsi::Object obj(runtime);
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "detections"), JSIConverter<std::vector<margelo::nitro::saylensobjectdetector::NativeDetection>>::toJSI(runtime, arg.detections));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "detections"), JSIConverter<std::vector<margelo::nitro::lesingoobjectdetector::NativeDetection>>::toJSI(runtime, arg.detections));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "frameWidth"), JSIConverter<double>::toJSI(runtime, arg.frameWidth));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "frameHeight"), JSIConverter<double>::toJSI(runtime, arg.frameHeight));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "rotationDegrees"), JSIConverter<double>::toJSI(runtime, arg.rotationDegrees));
@@ -89,7 +89,7 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
-      if (!JSIConverter<std::vector<margelo::nitro::saylensobjectdetector::NativeDetection>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "detections")))) return false;
+      if (!JSIConverter<std::vector<margelo::nitro::lesingoobjectdetector::NativeDetection>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "detections")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "frameWidth")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "frameHeight")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rotationDegrees")))) return false;

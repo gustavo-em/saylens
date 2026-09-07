@@ -15,12 +15,11 @@ interface NativeSpeechModule {
 const recognitionLocales: Record<LearningLanguage, string> = {
   'pt-BR': 'pt-BR',
   'en-US': 'en-US',
-  'en-GB': 'en-GB',
   es: 'es-ES',
 };
 
 function nativeModule(): NativeSpeechModule {
-  const module = NativeModules.SayLensSpeechRecognition as
+  const module = NativeModules.LesingoSpeechRecognition as
     | NativeSpeechModule
     | undefined;
 

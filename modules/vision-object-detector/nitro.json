@@ -1,21 +1,21 @@
 {
-  "cxxNamespace": ["saylensobjectdetector"],
+  "cxxNamespace": ["lesingoobjectdetector"],
   "ios": {
-    "iosModuleName": "SayLensObjectDetector"
+    "iosModuleName": "LesingoObjectDetector"
   },
   "android": {
-    "androidNamespace": ["saylensobjectdetector"],
-    "androidCxxLibName": "saylensobjectdetector"
+    "androidNamespace": ["lesingoobjectdetector"],
+    "androidCxxLibName": "lesingoobjectdetector"
   },
   "autolinking": {
-    "SayLensObjectDetector": {
+    "LesingoObjectDetector": {
       "android": {
         "language": "kotlin",
-        "implementationClassName": "SayLensObjectDetector"
+        "implementationClassName": "LesingoObjectDetector"
       },
       "ios": {
         "language": "swift",
-        "implementationClassName": "SayLensVisionDetector"
+        "implementationClassName": "LesingoVisionDetector"
       }
     }
   },

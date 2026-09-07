@@ -1,6 +1,6 @@
 ///
 /// UnfairLock.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// The camera queue publishes work and the detector queues finish it, so the
 /// small pieces of state they share need a lock. `os_unfair_lock` is the

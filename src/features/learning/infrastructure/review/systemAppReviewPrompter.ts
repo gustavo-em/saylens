@@ -7,7 +7,7 @@ interface NativeAppReview {
 }
 
 function nativeModule(): NativeAppReview | null {
-  const module = (NativeModules as Record<string, unknown>).SayLensAppReview;
+  const module = (NativeModules as Record<string, unknown>).LesingoAppReview;
 
   return (module as NativeAppReview | undefined) ?? null;
 }

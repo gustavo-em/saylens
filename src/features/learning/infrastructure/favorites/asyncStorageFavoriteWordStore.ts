@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { FavoriteWordStore } from '../../application/ports/FavoriteWordStore';
 
-const STORAGE_KEY = 'saylens.favorites.v1';
+const STORAGE_KEY = 'lesingo.favorites.v1';
 
 export const asyncStorageFavoriteWordStore: FavoriteWordStore = {
   async load() {

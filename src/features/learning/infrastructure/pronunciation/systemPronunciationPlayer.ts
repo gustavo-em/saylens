@@ -11,14 +11,13 @@ interface NativePronunciationModule {
 const speechLocales: Record<LearningLanguage, string> = {
   'pt-BR': 'pt-BR',
   'en-US': 'en-US',
-  'en-GB': 'en-GB',
   es: 'es-ES',
 };
 
 const PRONUNCIATION_RATE = 0.82;
 
 function getNativePronunciationModule(): NativePronunciationModule {
-  const module = NativeModules.SayLensPronunciation as
+  const module = NativeModules.LesingoPronunciation as
     | NativePronunciationModule
     | undefined;
 

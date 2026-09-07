@@ -6,7 +6,7 @@
 
 ## Context
 
-SayLens needs presentation boundaries that remain understandable as camera
+Lesingo needs presentation boundaries that remain understandable as camera
 permissions, live overlays, object selection, and learning details become more
 complex. It also needs a recognizable React Native styling system with a shared
 theme and strong ecosystem adoption.

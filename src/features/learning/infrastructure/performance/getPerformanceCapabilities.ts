@@ -1,4 +1,4 @@
-import { objectDetector } from 'react-native-saylens-object-detector';
+import { objectDetector } from 'react-native-lesingo-object-detector';
 
 import {
   DEFAULT_PERFORMANCE_PROFILE,

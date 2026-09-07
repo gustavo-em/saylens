@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'saylens.last-open.v1';
+const STORAGE_KEY = 'lesingo.last-open.v1';
 
 /**
  * When the app was last opened, which is the only thing kept to answer whether

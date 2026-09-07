@@ -1,14 +1,14 @@
 import { NitroModules } from 'react-native-nitro-modules';
 
-import type { SayLensObjectDetector } from './SayLensObjectDetector.nitro';
+import type { LesingoObjectDetector } from './LesingoObjectDetector.nitro';
 
 export type {
   NativeDetection,
   NativeDetectionBatch,
   NativeDetectionBox,
-} from './SayLensObjectDetector.nitro';
+} from './LesingoObjectDetector.nitro';
 
 export const objectDetector =
-  NitroModules.createHybridObject<SayLensObjectDetector>(
-    'SayLensObjectDetector',
+  NitroModules.createHybridObject<LesingoObjectDetector>(
+    'LesingoObjectDetector',
   );

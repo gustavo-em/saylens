@@ -29,12 +29,13 @@
 #endif
 
 // Forward declaration of `NativeDetectionBox` to properly resolve imports.
-namespace margelo::nitro::saylensobjectdetector { struct NativeDetectionBox; }
+namespace margelo::nitro::lesingoobjectdetector { struct NativeDetectionBox; }
 
 #include <string>
+#include <optional>
 #include "NativeDetectionBox.hpp"
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   /**
    * A struct which can be represented as a JavaScript object (NativeDetection).
@@ -42,37 +43,40 @@ namespace margelo::nitro::saylensobjectdetector {
   struct NativeDetection final {
   public:
     std::string label     SWIFT_PRIVATE;
+    std::optional<std::string> refinedLabel     SWIFT_PRIVATE;
     double score     SWIFT_PRIVATE;
     NativeDetectionBox boundingBox     SWIFT_PRIVATE;
 
   public:
     NativeDetection() = default;
-    explicit NativeDetection(std::string label, double score, NativeDetectionBox boundingBox): label(label), score(score), boundingBox(boundingBox) {}
+    explicit NativeDetection(std::string label, std::optional<std::string> refinedLabel, double score, NativeDetectionBox boundingBox): label(label), refinedLabel(refinedLabel), score(score), boundingBox(boundingBox) {}
 
   public:
     friend bool operator==(const NativeDetection& lhs, const NativeDetection& rhs) = default;
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector
 
 namespace margelo::nitro {
 
   // C++ NativeDetection <> JS NativeDetection (object)
   template <>
-  struct JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetection> final {
-    static inline margelo::nitro::saylensobjectdetector::NativeDetection fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetection> final {
+    static inline margelo::nitro::lesingoobjectdetector::NativeDetection fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::saylensobjectdetector::NativeDetection(
+      return margelo::nitro::lesingoobjectdetector::NativeDetection(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "label"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "refinedLabel"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "score"))),
-        JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetectionBox>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "boundingBox")))
+        JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetectionBox>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "boundingBox")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::saylensobjectdetector::NativeDetection& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::lesingoobjectdetector::NativeDetection& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "label"), JSIConverter<std::string>::toJSI(runtime, arg.label));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "refinedLabel"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.refinedLabel));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "score"), JSIConverter<double>::toJSI(runtime, arg.score));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "boundingBox"), JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetectionBox>::toJSI(runtime, arg.boundingBox));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "boundingBox"), JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetectionBox>::toJSI(runtime, arg.boundingBox));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -84,8 +88,9 @@ namespace margelo::nitro {
         return false;
       }
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "label")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "refinedLabel")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "score")))) return false;
-      if (!JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetectionBox>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "boundingBox")))) return false;
+      if (!JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetectionBox>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "boundingBox")))) return false;
       return true;
     }
   };

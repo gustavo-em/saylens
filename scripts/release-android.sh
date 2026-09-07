@@ -30,14 +30,14 @@ fi
 
 # The Play Store rejects anything signed with the debug key, so say plainly
 # which key this build will carry before spending three minutes on it.
-STORE_FILE="$(read_env SAYLENS_UPLOAD_STORE_FILE)"
+STORE_FILE="$(read_env LESINGO_UPLOAD_STORE_FILE)"
 
 if [ -n "$STORE_FILE" ]; then
   if [ ! -f "$STORE_FILE" ]; then
-    echo "SAYLENS_UPLOAD_STORE_FILE points at '$STORE_FILE', which does not exist." >&2
+    echo "LESINGO_UPLOAD_STORE_FILE points at '$STORE_FILE', which does not exist." >&2
     exit 1
   fi
-  for key in SAYLENS_UPLOAD_STORE_PASSWORD SAYLENS_UPLOAD_KEY_ALIAS SAYLENS_UPLOAD_KEY_PASSWORD; do
+  for key in LESINGO_UPLOAD_STORE_PASSWORD LESINGO_UPLOAD_KEY_ALIAS LESINGO_UPLOAD_KEY_PASSWORD; do
     if [ -z "$(read_env "$key")" ]; then
       echo "$key is empty in .env but a keystore was given." >&2
       exit 1

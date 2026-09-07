@@ -633,16 +633,35 @@ export function CameraView({
         </DetectionLayer>
       ) : null}
 
+      {/* The screen asks for one thing, so it says one thing. It leaves the
+          moment a card arrives and the card takes over the explaining. */}
+      {isActive && viewModel.detectionItems.length === 0 ? (
+        <PointHint pointerEvents="none">
+          <PointHintText>{copy.camera.pointHint}</PointHintText>
+        </PointHint>
+      ) : null}
+
       {isActive ? (
         <Overlay
           edges={['top']}
           pointerEvents="box-none"
+          $bottomInset={insets.bottom}
           $landscape={isLandscape}
         >
           <Header>
-            <HeaderMark accessibilityLabel="SayLens" accessible>
+            <HeaderMark accessibilityLabel="Lesingo" accessible>
               <AppMark height={46} testID="camera-brand-logo" width={46} />
             </HeaderMark>
+            {hasFoundSomething ? (
+              <LevelBadge
+                copy={copy}
+                experience={getExperience(
+                  foundLabels.length,
+                  matchedPronunciations,
+                )}
+                onPress={onOpenHistory}
+              />
+            ) : null}
             <LanguagePill
               accessibilityHint={copy.camera.tapToChangeLanguages}
               accessibilityLabel={languagePairLabel}

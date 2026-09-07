@@ -2,7 +2,7 @@
 
 ## Portfolio intent
 
-SayLens is both a useful camera-based learning product and a realistic mobile
+Lesingo is both a useful camera-based learning product and a realistic mobile
 performance laboratory. Its workload combines a live camera, on-device machine
 learning, native memory ownership, concurrent Kotlin workers, React rendering,
 and UI-thread animation.

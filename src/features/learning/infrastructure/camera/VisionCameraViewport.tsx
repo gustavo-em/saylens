@@ -4,7 +4,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import {
   objectDetector,
   type NativeDetectionBatch,
-} from 'react-native-saylens-object-detector';
+} from 'react-native-lesingo-object-detector';
 import {
   Camera,
   useCameraDevice,
@@ -155,7 +155,7 @@ export const VisionCameraViewport = memo(function CameraViewport({
   const handleSessionConfigSelected = useCallback(
     (config: CameraSessionConfig) => {
       console.info(
-        `[SayLens camera] requested=${targetCameraFPS}fps selected=${
+        `[Lesingo camera] requested=${targetCameraFPS}fps selected=${
           config.selectedFPS ?? 'auto'
         }fps native=${config.nativePixelFormat} binned=${
           config.isBinned

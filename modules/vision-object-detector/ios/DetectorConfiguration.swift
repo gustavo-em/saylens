@@ -1,6 +1,6 @@
 ///
 /// DetectorConfiguration.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// Values that describe the detector runtime and what this device can do with
 /// it. Kept apart from the workers so the numbers can be read, compared with
@@ -11,7 +11,7 @@ import CoreGraphics
 import Foundation
 
 enum DetectorConstants {
-  static let logSubsystem = "com.gustavoem.saylens.detector"
+  static let logSubsystem = "com.gustavoem.lesingo.detector"
   /// Reported to JavaScript and shown in the diagnostics panel.
   static let modelName = DetectorModel.name
 
@@ -107,9 +107,9 @@ enum DetectorError: LocalizedError {
     case .modelMissing:
       return "The \(DetectorModel.name) model is not bundled with this build."
     case .unsupportedFrame:
-      return "The SayLens detector requires a native VisionCamera frame."
+      return "The Lesingo detector requires a native VisionCamera frame."
     case let .unsupportedPixelFormat(format):
-      return "The SayLens detector requires 32BGRA frames, and got \(format)."
+      return "The Lesingo detector requires 32BGRA frames, and got \(format)."
     case let .pixelBufferAllocationFailed(status):
       return "Could not allocate a detector pixel buffer (status \(status))."
     }

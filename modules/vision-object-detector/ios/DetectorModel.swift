@@ -1,6 +1,6 @@
 ///
 /// DetectorModel.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// Finds the model this pod ships. It is the same EfficientDet-Lite0 int8
 /// binary the Android build reads, kept in one place in the repository rather
@@ -17,7 +17,7 @@ enum DetectorModel {
   private static let labellerResourceName = "efficientnet_lite0_int8"
   private static let resourceExtension = "tflite"
   /// Name of the CocoaPods resource bundle declared in the podspec.
-  private static let bundleName = "SayLensObjectDetectorModel"
+  private static let bundleName = "LesingoObjectDetectorModel"
 
   /// The file ships in a CocoaPods resource bundle, which lands inside the app
   /// bundle for a static build and inside the framework for a dynamic one, so
@@ -31,7 +31,7 @@ enum DetectorModel {
   }
 
   private static func resolvePath(named resourceName: String) throws -> String {
-    let ownBundle = Bundle(for: SayLensVisionDetector.self)
+    let ownBundle = Bundle(for: LesingoVisionDetector.self)
     let candidates: [Bundle] = [
       ownBundle.url(forResource: bundleName, withExtension: "bundle")
         .flatMap(Bundle.init(url:)),

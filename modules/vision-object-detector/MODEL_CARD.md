@@ -6,7 +6,7 @@ one copy of these weights in the repository and one set of labels in the app.
 The iOS build briefly used Apple's Vision framework instead; why it does not
 any more is in [ADR-0010](../../docs/adr/0010-ios-shares-the-android-detector.md).
 
-SayLens bundles Google's recommended pre-trained MediaPipe Object Detector
+Lesingo bundles Google's recommended pre-trained MediaPipe Object Detector
 model.
 
 - Model: EfficientDet-Lite0 int8
@@ -41,7 +41,7 @@ recognition and avoid queuing stale frames.
 
 The upstream task guide describes EfficientDet-Lite0 as its recommended balance
 between latency and accuracy. It also documents that the model is trained on
-COCO and therefore recognizes only its supported categories. SayLens must
+COCO and therefore recognizes only its supported categories. Lesingo must
 not imply recognition of arbitrary objects.
 
 References:

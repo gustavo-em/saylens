@@ -1,6 +1,6 @@
-# Contributing to SayLens
+# Contributing to Lesingo
 
-Thanks for helping improve SayLens. The repository is intentionally built in
+Thanks for helping improve Lesingo. The repository is intentionally built in
 small, evidence-producing stages so that decisions and trade-offs remain easy
 to review.
 

@@ -14,10 +14,11 @@
 #include "JNativeDetectionBox.hpp"
 #include "NativeDetection.hpp"
 #include "NativeDetectionBox.hpp"
+#include <optional>
 #include <string>
 #include <vector>
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   using namespace facebook;
 
@@ -26,7 +27,7 @@ namespace margelo::nitro::saylensobjectdetector {
    */
   struct JNativeDetectionBatch final: public jni::JavaClass<JNativeDetectionBatch> {
   public:
-    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/saylensobjectdetector/NativeDetectionBatch;";
+    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/lesingoobjectdetector/NativeDetectionBatch;";
 
   public:
     /**
@@ -93,4 +94,4 @@ namespace margelo::nitro::saylensobjectdetector {
     }
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector

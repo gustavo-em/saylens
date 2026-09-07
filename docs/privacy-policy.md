@@ -1,151 +1,158 @@
-# Privacy Policy — SayLens
+# Privacy Policy — Lesingo
 
-**Last updated: 24 August 2026**
+**Last updated: 28 August 2026**
 
-SayLens is developed by Gustavo Rosa. This policy explains what the app does
-with your data. The short version: SayLens has no account system, no server of
-its own, and does not collect or transmit personal information.
+Lesingo is developed by Gustavo Rosa. This policy explains what information the
+app processes, why it is used, and the choices available to you.
 
-## What SayLens does not collect
+## Camera and microphone
 
-SayLens does not ask for your name, email address, phone number, or any other
-identifying information. There is no sign-up and no user account. The developer
-receives no data about you or your device.
+Lesingo uses the camera to recognise everyday objects. Camera images are
+processed on your device by a model bundled with the app. **Images and video are
+not uploaded or saved.** Each frame is analysed in memory and discarded.
 
-SayLens contains no advertising, no analytics, and no third-party tracking
-software.
+When you practise pronunciation, the app uses the device's speech-recognition
+and text-to-speech services. Depending on your device and selected service,
+Apple, Google, or the device manufacturer may process audio or text under its
+own privacy policy. Lesingo does not save or upload microphone recordings.
 
-## Camera
+## Optional account and cloud sync
 
-SayLens uses the device camera to recognise everyday objects and show the word
-for each one in the language you are learning.
+You may use Lesingo without an account. If you create an account with email and
+password, Firebase Authentication processes those credentials. If you choose
+Google or Apple, it receives the identifier, name, and email address made
+available by that provider. Apple may provide a private relay address.
 
-Camera images are processed entirely on your device by an object-detection
-model bundled inside the app. **Images and video are never uploaded, never sent
-to the developer or to any third party, and are never saved.** Each frame is
-analysed in memory and discarded immediately. The app has no photo or file
-storage permission and cannot write pictures anywhere.
+While you are signed in, Lesingo stores the following in Google Firebase
+Firestore so your learning can continue on another device:
 
-Camera access is requested the first time you open the camera screen, and can be
-withdrawn at any time in the Android system settings.
+- recognised-word history and discovered objects;
+- favourite words;
+- pronunciation progress, streak, and level data;
+- the time the learning record was last updated; and
+- details of the device the account was last used on: the time the app was last
+  opened, the app version, the platform and its version, and the language the
+  device is set to. This is a single record overwritten by whichever device
+  opened the app most recently, not a history. It contains no advertising
+  identifier, no device serial or hardware identifier, and no location.
 
-## Pronunciation
+Firestore access is restricted to the authenticated owner of each record. You
+can delete the account and its cloud learning data from the account screen in
+the app. Learning data already stored locally on a device remains there until
+the app is uninstalled or its local data is cleared.
 
-When you tap a recognised object, SayLens asks Android's own text-to-speech
-service to say that single word out loud.
+## Analytics
 
-Only the word itself is passed to the speech engine — no image, no location, no
-identifier. The speech engine is a separate application supplied by your device
-manufacturer or by Google (for example Samsung Text-to-Speech or Speech Services
-by Google), not by SayLens. Depending on which engine your device uses and which
-voices are installed, that engine may connect to its own provider's servers to
-produce the audio. That processing is governed by the privacy policy of that
-engine's provider, not by this one.
+Lesingo uses Google Firebase Analytics to understand product usage. It records
+screen openings, the interval between app visits, whether a learner returned
+the next day, and the word selected when pronunciation practice begins. It does
+not send camera images, video, microphone recordings, precise location, contact
+lists, or messages. Lesingo currently contains no advertising SDK.
 
-## Settings stored on your device
+## Local storage
 
-SayLens saves your preferences — the language you speak, the language you are
-learning, the app theme, and the performance profile — in the app's own private
-storage on your device.
+The app keeps preferences and learning progress in its private storage on your
+device. Local data is removed when you uninstall the app or clear its data. If
+you are signed in, deleting local data does not automatically delete the cloud
+copy; use **Delete my account** in the app for that.
 
-This data never leaves the device. It is removed when you uninstall the app or
-clear the app's data through the Android system settings.
+## Service providers
 
-## Network access
-
-SayLens declares the Android internet permission, which is required by the
-framework the app is built on. The app itself makes no network requests: there
-is no backend, no remote configuration, and no content downloaded at runtime.
-The object-recognition model and all vocabulary content ship inside the app.
+Authentication, cloud storage, configuration, and analytics are provided by
+Google Firebase. Sign-in is also processed by Google or Apple, depending on the
+option you choose. Their handling of information is governed by their own terms
+and privacy policies.
 
 ## Children
 
-SayLens is a general-audience language-learning tool. It collects no personal
-information from anyone, including children.
+Lesingo is a general-audience language-learning tool and is not directed to
+children under the minimum age required to consent to online services in their
+country. If you believe a child has provided account information without the
+required consent, contact us so it can be deleted.
 
-## Changes to this policy
+## Changes and contact
 
-If this policy changes, the updated version will be published at this address
-and the date at the top will be revised.
-
-## Contact
-
-Questions about this policy: **gustavo.emanuel01@outlook.com**
+If this policy changes, the date above will be updated. Questions or deletion
+requests can be sent to **gustavo.emanuel01@outlook.com**.
 
 ---
 
-# Política de Privacidade — SayLens
+# Política de Privacidade — Lesingo
 
-**Última atualização: 24 de agosto de 2026**
+**Última atualização: 28 de agosto de 2026**
 
-O SayLens é desenvolvido por Gustavo Rosa. Esta política explica o que o
-aplicativo faz com os seus dados. Em resumo: o SayLens não tem cadastro, não tem
-servidor próprio e não coleta nem transmite informações pessoais.
+O Lesingo é desenvolvido por Gustavo Rosa. Esta política explica quais
+informações o aplicativo trata, para que são usadas e quais escolhas você tem.
 
-## O que o SayLens não coleta
+## Câmera e microfone
 
-O SayLens não pede seu nome, e-mail, telefone ou qualquer outro dado que
-identifique você. Não há cadastro nem conta de usuário. O desenvolvedor não
-recebe nenhum dado sobre você ou sobre o seu aparelho.
+O Lesingo usa a câmera para reconhecer objetos do dia a dia. As imagens são
+processadas no próprio aparelho por um modelo incluído no aplicativo. **Imagens
+e vídeos não são enviados nem salvos.** Cada quadro é analisado na memória e
+descartado.
 
-O aplicativo não contém publicidade, análise de uso (analytics) nem qualquer
-software de rastreamento de terceiros.
+No treino de pronúncia, o aplicativo usa os serviços de reconhecimento de fala
+e conversão de texto em voz do aparelho. Conforme o aparelho e o serviço
+selecionado, Apple, Google ou o fabricante podem tratar áudio ou texto de acordo
+com suas próprias políticas. O Lesingo não salva nem envia gravações do
+microfone.
 
-## Câmera
+## Conta opcional e sincronização
 
-O SayLens usa a câmera do aparelho para reconhecer objetos do dia a dia e
-mostrar a palavra correspondente no idioma que você está aprendendo.
+Você pode usar o Lesingo sem uma conta. Ao criar uma conta com e-mail e senha, o
+Firebase Authentication processa essas credenciais. Se escolher Google ou Apple,
+ele recebe o identificador, nome e e-mail disponibilizados pelo provedor. A Apple
+pode fornecer um endereço de retransmissão privado.
 
-As imagens da câmera são processadas inteiramente no seu aparelho, por um modelo
-de reconhecimento que já vem dentro do aplicativo. **As imagens e o vídeo nunca
-são enviados, nunca chegam ao desenvolvedor nem a terceiros, e não são
-salvos.** Cada quadro é analisado na memória e descartado em seguida. O
-aplicativo não possui permissão de fotos ou arquivos e não consegue gravar
-imagens em lugar nenhum.
+Enquanto a conta estiver conectada, o Lesingo guarda no Google Firebase
+Firestore os seguintes dados, para continuar o aprendizado em outro aparelho:
 
-O acesso à câmera é solicitado na primeira vez que você abre a tela da câmera, e
-pode ser revogado a qualquer momento nas configurações do Android.
+- histórico de palavras reconhecidas e objetos descobertos;
+- palavras favoritas;
+- progresso de pronúncia, sequência e nível;
+- horário da última atualização do registro de aprendizado; e
+- dados do aparelho em que a conta foi usada por último: horário da última
+  abertura do aplicativo, versão do aplicativo, plataforma e sua versão, e o
+  idioma configurado no aparelho. É um único registro, sobrescrito por qualquer
+  aparelho que abra o aplicativo depois, e não um histórico. Não contém
+  identificador de publicidade, número de série ou identificador de hardware,
+  nem localização.
 
-## Pronúncia
+O acesso no Firestore é limitado ao dono autenticado de cada registro. Você
+pode excluir a conta e os dados de aprendizado na nuvem pela tela de conta do
+aplicativo. Os dados já guardados localmente continuam no aparelho até que o
+aplicativo seja desinstalado ou seus dados locais sejam apagados.
 
-Ao tocar em um objeto reconhecido, o SayLens pede ao serviço de conversão de
-texto em voz do próprio Android que fale aquela única palavra.
+## Análise de uso
 
-Apenas a palavra é enviada ao mecanismo de voz — nenhuma imagem, nenhuma
-localização, nenhum identificador. Esse mecanismo é um aplicativo separado,
-fornecido pelo fabricante do aparelho ou pelo Google (por exemplo, Samsung
-Text-to-Speech ou Serviços de Voz do Google), e não pelo SayLens. Dependendo do
-mecanismo usado e das vozes instaladas, ele pode se conectar aos servidores do
-próprio fornecedor para gerar o áudio. Esse tratamento é regido pela política de
-privacidade daquele fornecedor, não por esta.
+O Lesingo usa o Google Firebase Analytics para entender o uso do produto. São
+registrados as telas abertas, o intervalo entre visitas, se houve retorno no dia
+seguinte e a palavra escolhida ao iniciar um treino de pronúncia. Não são
+enviados imagens da câmera, vídeo, gravações do microfone, localização precisa,
+contatos ou mensagens. Atualmente o Lesingo não contém SDK de publicidade.
 
-## Configurações guardadas no aparelho
+## Armazenamento local
 
-O SayLens guarda suas preferências — idioma que você fala, idioma que está
-aprendendo, tema do aplicativo e perfil de desempenho — no armazenamento privado
-do próprio aplicativo, no seu aparelho.
+O aplicativo guarda preferências e progresso no armazenamento privado do
+aparelho. Esses dados são removidos ao desinstalar o app ou limpar seus dados.
+Se houver uma conta conectada, apagar os dados locais não exclui automaticamente
+a cópia na nuvem; use **Excluir minha conta** no aplicativo para isso.
 
-Esses dados nunca saem do aparelho. Eles são apagados quando você desinstala o
-aplicativo ou limpa os dados dele nas configurações do Android.
+## Prestadores de serviço
 
-## Acesso à internet
-
-O SayLens declara a permissão de internet do Android, exigida pela plataforma
-sobre a qual o aplicativo é construído. O aplicativo em si não faz requisições
-de rede: não há servidor, não há configuração remota e nenhum conteúdo é baixado
-durante o uso. O modelo de reconhecimento e todo o vocabulário já vêm dentro do
-aplicativo.
+Autenticação, armazenamento na nuvem, configuração e análise de uso são
+fornecidos pelo Google Firebase. O login também é processado por Google ou
+Apple, conforme a opção escolhida. O tratamento feito por essas empresas segue
+seus próprios termos e políticas de privacidade.
 
 ## Crianças
 
-O SayLens é uma ferramenta de aprendizado de idiomas para o público geral. Não
-coleta informações pessoais de ninguém, inclusive de crianças.
+O Lesingo é uma ferramenta de aprendizado para o público geral e não é voltado
+a crianças abaixo da idade mínima exigida para consentir com serviços online no
+seu país. Se você acreditar que uma criança forneceu dados de conta sem o
+consentimento necessário, entre em contato para que sejam excluídos.
 
-## Alterações nesta política
+## Alterações e contato
 
-Se esta política mudar, a versão atualizada será publicada neste mesmo endereço
-e a data no topo será revista.
-
-## Contato
-
-Dúvidas sobre esta política: **gustavo.emanuel01@outlook.com**
+Se esta política mudar, a data acima será atualizada. Dúvidas ou pedidos de
+exclusão podem ser enviados para **gustavo.emanuel01@outlook.com**.

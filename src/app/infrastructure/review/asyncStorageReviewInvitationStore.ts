@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ReviewInvitationStore } from '../../../features/learning/application/ports/ReviewInvitationStore';
 import { sanitizeReviewInvitation } from '../../../features/learning/domain/ReviewInvitation';
 
-const STORAGE_KEY = 'saylens.review-invitation.v1';
+const STORAGE_KEY = 'lesingo.review-invitation.v1';
 
 export const asyncStorageReviewInvitationStore: ReviewInvitationStore = {
   async load() {

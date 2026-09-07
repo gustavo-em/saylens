@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PreferencesStore } from '../../application/ports/PreferencesStore';
 
-const STORAGE_KEY = 'saylens.preferences.v1';
+const STORAGE_KEY = 'lesingo.preferences.v1';
 
 export const asyncStoragePreferencesStore: PreferencesStore = {
   async load() {

@@ -32,7 +32,7 @@
 
 
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   /**
    * A struct which can be represented as a JavaScript object (NativeDetectionBox).
@@ -52,23 +52,23 @@ namespace margelo::nitro::saylensobjectdetector {
     friend bool operator==(const NativeDetectionBox& lhs, const NativeDetectionBox& rhs) = default;
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector
 
 namespace margelo::nitro {
 
   // C++ NativeDetectionBox <> JS NativeDetectionBox (object)
   template <>
-  struct JSIConverter<margelo::nitro::saylensobjectdetector::NativeDetectionBox> final {
-    static inline margelo::nitro::saylensobjectdetector::NativeDetectionBox fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::lesingoobjectdetector::NativeDetectionBox> final {
+    static inline margelo::nitro::lesingoobjectdetector::NativeDetectionBox fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::saylensobjectdetector::NativeDetectionBox(
+      return margelo::nitro::lesingoobjectdetector::NativeDetectionBox(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "left"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "top"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "right"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bottom")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::saylensobjectdetector::NativeDetectionBox& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::lesingoobjectdetector::NativeDetectionBox& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "left"), JSIConverter<double>::toJSI(runtime, arg.left));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "top"), JSIConverter<double>::toJSI(runtime, arg.top));

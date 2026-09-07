@@ -12,7 +12,7 @@
 
 
 
-namespace margelo::nitro::saylensobjectdetector {
+namespace margelo::nitro::lesingoobjectdetector {
 
   using namespace facebook;
 
@@ -21,7 +21,7 @@ namespace margelo::nitro::saylensobjectdetector {
    */
   struct JNativeDetectionBox final: public jni::JavaClass<JNativeDetectionBox> {
   public:
-    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/saylensobjectdetector/NativeDetectionBox;";
+    static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/lesingoobjectdetector/NativeDetectionBox;";
 
   public:
     /**
@@ -66,4 +66,4 @@ namespace margelo::nitro::saylensobjectdetector {
     }
   };
 
-} // namespace margelo::nitro::saylensobjectdetector
+} // namespace margelo::nitro::lesingoobjectdetector

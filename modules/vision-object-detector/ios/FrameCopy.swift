@@ -1,6 +1,6 @@
 ///
 /// FrameCopy.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// A camera frame belongs to the capture session, which recycles it as soon as
 /// the frame callback returns. Inference runs on another queue and outlives

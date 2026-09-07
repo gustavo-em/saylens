@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PronunciationProgressStore } from '../../application/ports/PronunciationProgressStore';
 
-const STORAGE_KEY = 'saylens.pronunciation.v1';
+const STORAGE_KEY = 'lesingo.pronunciation.v1';
 
 export const asyncStoragePronunciationProgressStore: PronunciationProgressStore =
   {

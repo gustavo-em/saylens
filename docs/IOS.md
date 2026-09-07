@@ -1,6 +1,6 @@
 # The iOS native layer
 
-This document is about the Swift half of SayLens: what runs natively on iOS,
+This document is about the Swift half of Lesingo: what runs natively on iOS,
 why it is shaped the way it is, and what has and has not been proven on a
 device.
 
@@ -8,22 +8,22 @@ device.
 
 ```text
 ios/
-  SayLens.xcodeproj/                Application project
-  SayLens/
+  Lesingo.xcodeproj/                Application project
+  Lesingo/
     AppDelegate.swift               React Native entry point
     Info.plist                      Camera, microphone, and speech usage strings
-    Pronunciation/                  SayLensPronunciation native module
-    Speech/                         SayLensSpeechRecognition native module
+    Pronunciation/                  LesingoPronunciation native module
+    Speech/                         LesingoSpeechRecognition native module
   Podfile                           Autolinked pods for the application target
 
 modules/vision-object-detector/
   ios/                              The Nitro detector, in Swift
-  SayLensObjectDetector.podspec     Pod for the detector, linked from node_modules
+  LesingoObjectDetector.podspec     Pod for the detector, linked from node_modules
 ```
 
 ## How this fits the app's architecture
 
-SayLens is a React Native app with a feature-first Clean Architecture and MVVM
+Lesingo is a React Native app with a feature-first Clean Architecture and MVVM
 inside its presentation layer ([ADR-0001](adr/0001-feature-first-clean-architecture.md),
 [ADR-0005](adr/0005-mvvm-and-styled-components.md)). The Swift code here is not
 a second app beside it. It is the iOS implementation of ports the learning
@@ -50,16 +50,16 @@ adapter behind one port:
 
 | Port (TypeScript)     | iOS module                 | Native API           |
 | --------------------- | -------------------------- | -------------------- |
-| detector contract     | `SayLensObjectDetector`    | Vision               |
-| `SpeechRecognizer`    | `SayLensSpeechRecognition` | Speech, AVFoundation |
-| `PronunciationPlayer` | `SayLensPronunciation`     | AVFoundation         |
+| detector contract     | `LesingoObjectDetector`    | Vision               |
+| `SpeechRecognizer`    | `LesingoSpeechRecognition` | Speech, AVFoundation |
+| `PronunciationPlayer` | `LesingoPronunciation`     | AVFoundation         |
 | `CameraAccess`        | VisionCamera               | AVFoundation         |
 
 Within the detector the same separation is applied again, so the scheduling
 rules can be read without reading inference code:
 
 ```text
-SayLensVisionDetector   the Nitro boundary: unwrap a frame, orient it, hand it over
+LesingoVisionDetector   the Nitro boundary: unwrap a frame, orient it, hand it over
 DetectorWorkerPool      which worker gets a frame, which result is current
 DetectorWorker          one Vision pipeline on one serial queue
 FrameCopier             pixels the capture session is about to reuse
@@ -167,7 +167,7 @@ the scheduler already protects the preview from a saturated pool.
 
 ## Speech recognition
 
-`SayLensSpeechRecognition` answers the same four calls as the Android module,
+`LesingoSpeechRecognition` answers the same four calls as the Android module,
 with the same error codes, so the TypeScript adapter has no platform branch.
 
 Two behaviours are genuinely different and deliberate:
@@ -193,7 +193,7 @@ exactly once.
 
 ## Pronunciation
 
-`SayLensPronunciation` speaks one word with `AVSpeechSynthesizer`. The rate
+`LesingoPronunciation` speaks one word with `AVSpeechSynthesizer`. The rate
 arriving from JavaScript is a multiple of a normal speaking pace, which is what
 Android's `setSpeechRate` takes; on iOS the normal pace is
 `AVSpeechUtteranceDefaultSpeechRate`, so the multiple is applied to it rather
@@ -216,7 +216,7 @@ npm ci
 cd ios && pod install
 ```
 
-Then open `ios/SayLens.xcworkspace` — the workspace, not the project — or run:
+Then open `ios/Lesingo.xcworkspace` — the workspace, not the project — or run:
 
 ```sh
 npm start
@@ -230,7 +230,7 @@ detector has nothing to recognise there.
 To check that the whole native layer still compiles without opening Xcode:
 
 ```sh
-xcodebuild -workspace ios/SayLens.xcworkspace -scheme SayLens \
+xcodebuild -workspace ios/Lesingo.xcworkspace -scheme Lesingo \
   -configuration Debug -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' build
 ```

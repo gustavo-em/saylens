@@ -1,4 +1,4 @@
-<h1 align="center">📸 SayLens</h1>
+<h1 align="center">📸 Lesingo</h1>
 
 <p align="center">
   <b>Point your phone at anything. Learn what it is called.</b><br />
@@ -25,7 +25,7 @@
 
 ## ✨ What it does
 
-You open the camera and point it at your desk. SayLens finds the objects in
+You open the camera and point it at your desk. Lesingo finds the objects in
 frame and stands a small card beside each one — the English word, the
 translation, an example sentence, and the pronunciation. Tap **Listen** to hear
 it, tap **Practise** to say it back and find out whether you got it right.
@@ -158,7 +158,7 @@ npm ci
 cd ios && pod install
 ```
 
-Open `ios/SayLens.xcworkspace` — the workspace, not the project — or run:
+Open `ios/Lesingo.xcworkspace` — the workspace, not the project — or run:
 
 ```sh
 npx react-native run-ios --device

@@ -1,6 +1,6 @@
 ///
 /// DetectionMapper.swift
-/// SayLensObjectDetector
+/// LesingoObjectDetector
 ///
 /// Turns a MediaPipe result into the typed batch the JavaScript side reads.
 /// The model is given an upright image, so the boxes come back measured

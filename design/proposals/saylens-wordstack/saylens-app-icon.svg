@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>SayLens app icon — Wordstack</title>
+  <desc>Three rising word bars represent the product loop: see, name, say.</desc>
+  <rect width="1024" height="1024" fill="#070E18"/>
+  <g transform="rotate(-7 512 512)">
+    <path d="M412 286H646A60 60 0 0 1 646 406H412Q374 406 374 368V324Q374 286 412 286Z" fill="#5E41D2"/>
+    <path d="M336 454H710Q748 454 748 492V536Q748 574 710 574H336A60 60 0 0 1 336 454Z" fill="#F7F4EE"/>
+    <path d="M380 622H614A60 60 0 0 1 614 742H380Q342 742 342 704V660Q342 622 380 622Z" fill="#F7F4EE"/>
+  </g>
+</svg>

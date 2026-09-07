@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>SayLens Wordstack mark for dark backgrounds</title>
+  <g transform="rotate(-7 256 256)">
+    <path d="M206 143H323A30 30 0 0 1 323 203H206Q187 203 187 184V162Q187 143 206 143Z" fill="#5E41D2"/>
+    <path d="M168 227H355Q374 227 374 246V268Q374 287 355 287H168A30 30 0 0 1 168 227Z" fill="#F7F4EE"/>
+    <path d="M190 311H307A30 30 0 0 1 307 371H190Q171 371 171 352V330Q171 311 190 311Z" fill="#F7F4EE"/>
+  </g>
+</svg>

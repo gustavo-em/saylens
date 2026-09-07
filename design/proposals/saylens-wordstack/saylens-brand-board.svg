@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 1600 1600">
+  <defs>
+    <g id="mark-dark">
+      <g transform="rotate(-7 256 256)">
+        <path d="M206 143H323A30 30 0 0 1 323 203H206Q187 203 187 184V162Q187 143 206 143Z" fill="#5E41D2"/>
+        <path d="M168 227H355Q374 227 374 246V268Q374 287 355 287H168A30 30 0 0 1 168 227Z" fill="#F7F4EE"/>
+        <path d="M190 311H307A30 30 0 0 1 307 371H190Q171 371 171 352V330Q171 311 190 311Z" fill="#F7F4EE"/>
+      </g>
+    </g>
+    <g id="mark-light">
+      <g transform="rotate(-7 256 256)">
+        <path d="M206 143H323A30 30 0 0 1 323 203H206Q187 203 187 184V162Q187 143 206 143Z" fill="#5E41D2"/>
+        <path d="M168 227H355Q374 227 374 246V268Q374 287 355 287H168A30 30 0 0 1 168 227Z" fill="#070E18"/>
+        <path d="M190 311H307A30 30 0 0 1 307 371H190Q171 371 171 352V330Q171 311 190 311Z" fill="#070E18"/>
+      </g>
+    </g>
+    <g id="mark-white" fill="#FFFFFF">
+      <g transform="rotate(-7 256 256)">
+        <path d="M206 143H323A30 30 0 0 1 323 203H206Q187 203 187 184V162Q187 143 206 143Z"/>
+        <path d="M168 227H355Q374 227 374 246V268Q374 287 355 287H168A30 30 0 0 1 168 227Z"/>
+        <path d="M190 311H307A30 30 0 0 1 307 371H190Q171 371 171 352V330Q171 311 190 311Z"/>
+      </g>
+    </g>
+    <style>
+      .sans { font-family: Inter, SF Pro Display, Helvetica Neue, Arial, sans-serif; }
+      .label { fill:#8293AA; font-size:18px; font-weight:650; letter-spacing:2px; }
+      .body { fill:#AAB7CA; font-size:22px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1600" fill="#090F19"/>
+  <text x="80" y="82" class="sans label">SAYLENS / IDENTITY PROPOSAL 01</text>
+  <text x="80" y="140" class="sans" fill="#F7F4EE" font-size="48" font-weight="780" letter-spacing="-1.5">Wordstack</text>
+  <text x="80" y="180" class="sans body">Words found in the world. Confidence built one line at a time.</text>
+
+  <!-- Hero -->
+  <rect x="80" y="230" width="870" height="810" rx="54" fill="#111A28"/>
+  <rect x="210" y="315" width="610" height="610" rx="138" fill="#070E18"/>
+  <use href="#mark-dark" transform="translate(259 364) scale(1.1)"/>
+  <text x="124" y="984" class="sans" fill="#F7F4EE" font-size="34" font-weight="760">See. Name. Say.</text>
+
+  <!-- Wordmark -->
+  <rect x="990" y="230" width="530" height="235" rx="38" fill="#070E18"/>
+  <use href="#mark-dark" transform="translate(1006 241) scale(.38)"/>
+  <text x="1204" y="369" class="sans" fill="#F7F4EE" font-size="72" font-weight="760" letter-spacing="-3">SayLens</text>
+  <text x="1024" y="425" class="sans label">HORIZONTAL LOCKUP</text>
+
+  <!-- Concept -->
+  <rect x="990" y="500" width="530" height="330" rx="38" fill="#111A28"/>
+  <text x="1030" y="552" class="sans label">ONE MARK / THREE ACTIONS</text>
+  <circle cx="1054" cy="621" r="10" fill="#5E41D2"/>
+  <text x="1080" y="629" class="sans" fill="#F7F4EE" font-size="25" font-weight="700">SEE</text>
+  <text x="1150" y="629" class="sans body">notice the object</text>
+  <circle cx="1054" cy="688" r="10" fill="#F7F4EE"/>
+  <text x="1080" y="696" class="sans" fill="#F7F4EE" font-size="25" font-weight="700">NAME</text>
+  <text x="1170" y="696" class="sans body">attach the word</text>
+  <circle cx="1054" cy="755" r="10" fill="#F7F4EE"/>
+  <text x="1080" y="763" class="sans" fill="#F7F4EE" font-size="25" font-weight="700">SAY</text>
+  <text x="1148" y="763" class="sans body">build confidence</text>
+
+  <!-- Palette -->
+  <rect x="990" y="865" width="530" height="175" rx="38" fill="#111A28"/>
+  <text x="1030" y="915" class="sans label">CORE PALETTE</text>
+  <circle cx="1052" cy="976" r="25" fill="#070E18" stroke="#263348" stroke-width="2"/>
+  <text x="1088" y="984" class="sans" fill="#AAB7CA" font-size="19">#070E18</text>
+  <circle cx="1223" cy="976" r="25" fill="#5E41D2"/>
+  <text x="1259" y="984" class="sans" fill="#AAB7CA" font-size="19">#5E41D2</text>
+  <circle cx="1396" cy="976" r="25" fill="#F7F4EE"/>
+  <text x="1432" y="984" class="sans" fill="#AAB7CA" font-size="19">CREAM</text>
+
+  <!-- Size tests -->
+  <rect x="80" y="1080" width="870" height="440" rx="46" fill="#F3F6FB"/>
+  <text x="122" y="1138" class="sans label" fill="#51647E">REAL-SCALE SURVIVAL TEST</text>
+  <g transform="translate(125 1190)">
+    <rect width="220" height="220" rx="48" fill="#070E18"/>
+    <use href="#mark-dark" transform="translate(0 0) scale(.43)"/>
+    <text x="88" y="260" class="sans" fill="#51647E" font-size="18" font-weight="700">60 px</text>
+  </g>
+  <g transform="translate(405 1230)">
+    <rect width="160" height="160" rx="36" fill="#070E18"/>
+    <use href="#mark-dark" transform="scale(.3125)"/>
+    <text x="50" y="200" class="sans" fill="#51647E" font-size="18" font-weight="700">40 px</text>
+  </g>
+  <g transform="translate(625 1252)">
+    <rect width="116" height="116" rx="26" fill="#070E18"/>
+    <use href="#mark-dark" transform="scale(.22656)"/>
+    <text x="28" y="156" class="sans" fill="#51647E" font-size="18" font-weight="700">29 px</text>
+  </g>
+  <text x="122" y="1476" class="sans" fill="#51647E" font-size="18">Shown at 4× for inspection; the vector is tested at actual pixels in the export set.</text>
+
+  <!-- Modes -->
+  <rect x="990" y="1080" width="530" height="440" rx="46" fill="#111A28"/>
+  <text x="1030" y="1138" class="sans label">LIGHT / DARK / MONOCHROME</text>
+  <rect x="1030" y="1180" width="132" height="132" rx="30" fill="#070E18"/>
+  <use href="#mark-dark" transform="translate(1030 1180) scale(.258)"/>
+  <rect x="1188" y="1180" width="132" height="132" rx="30" fill="#F7F4EE"/>
+  <use href="#mark-light" transform="translate(1188 1180) scale(.258)"/>
+  <rect x="1346" y="1180" width="132" height="132" rx="30" fill="#5E41D2"/>
+  <use href="#mark-white" transform="translate(1346 1180) scale(.258)"/>
+  <text x="1030" y="1378" class="sans" fill="#F7F4EE" font-size="23" font-weight="700">Heavy enough to stay intact.</text>
+  <text x="1030" y="1415" class="sans body">No detail is thinner than 11.7% of the</text>
+  <text x="1030" y="1448" class="sans body">master grid; color is never needed to read it.</text>
+  <text x="1030" y="1490" class="sans label">PACKAGED / IOS + ANDROID</text>
+</svg>

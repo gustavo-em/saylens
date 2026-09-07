@@ -4,6 +4,13 @@ export const appearanceModes: readonly AppearanceMode[] = ['light', 'dark'];
 
 interface ThemeColors {
   accent: string;
+  /** The accent as ink rather than as fill. The two have opposite
+   * contrast needs against the same surface, and one value cannot serve
+   * both: on the dark theme the fill colour reads at 2.6:1 as text. */
+  accentText: string;
+  /** What is written on top of an accent fill. The app background was used
+   * for this, which on the dark theme is near-black on violet: 2.9:1. */
+  onAccent: string;
   background: string;
   card: string;
   cardElevated: string;
@@ -79,9 +86,12 @@ export const darkTheme: AppTheme = {
   ...sharedTheme,
   mode: 'dark',
   colors: {
-    // The brand's indigo rather than a plain blue: the mark is #4153FB, and an
-    // accent that leans away from it makes the app look like someone else's.
-    accent: '#3A44E8',
+    // A calmer indigo than the #4153FB the brand started on: the same family,
+    // but deeper and far less saturated, so the interface stops shouting over
+    // the scene it is sitting on. The mark moved with it.
+    accent: '#5E41D2',
+    accentText: '#A796EE',
+    onAccent: '#FFFFFF',
     // A neutral, near-black navy with only a trace of blue. The saturated
     // borders this replaced drew as much attention as the text inside them.
     background: '#070E18',
@@ -91,7 +101,7 @@ export const darkTheme: AppTheme = {
     borderSubtle: '#1B2534',
     glass: 'rgba(7, 22, 43, 0.72)',
     glassStrong: 'rgba(5, 18, 37, 0.88)',
-    glassBlue: 'rgba(58, 68, 232, 0.42)',
+    glassBlue: 'rgba(94, 65, 210, 0.42)',
     glassBorder: 'rgba(188, 218, 255, 0.24)',
     glassHighlight: 'rgba(255, 255, 255, 0.20)',
     muted: '#8195AF',
@@ -102,13 +112,13 @@ export const darkTheme: AppTheme = {
     overlayCard: '#FFFFFF',
     overlayCardTranslucent: 'rgba(255, 255, 255, 0.82)',
     overlayCardBorder: 'rgba(255, 255, 255, 0.55)',
-    overlayAction: '#4153FB',
+    overlayAction: '#5E41D2',
     overlayGlass: 'rgba(10, 14, 22, 0.55)',
     overlayGlassBorder: 'rgba(255, 255, 255, 0.14)',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',
     overlayRule: '#E5E7EB',
-    translationPrimary: '#3A44E8',
+    translationPrimary: '#5E41D2',
     translationSecondary: '#EF4444',
   },
 };
@@ -117,34 +127,37 @@ export const lightTheme: AppTheme = {
   ...sharedTheme,
   mode: 'light',
   colors: {
-    // The brand's indigo rather than a plain blue: the mark is #4153FB, and an
-    // accent that leans away from it makes the app look like someone else's.
-    accent: '#3A44E8',
-    background: '#EFF5FD',
+    // A calmer indigo than the #4153FB the brand started on: the same family,
+    // but deeper and far less saturated, so the interface stops shouting over
+    // the scene it is sitting on. The mark moved with it.
+    accent: '#5E41D2',
+    accentText: '#5E41D2',
+    onAccent: '#FFFFFF',
+    background: '#F1EFFA',
     card: '#FFFFFF',
-    cardElevated: '#E7F0FC',
-    border: '#9CBCE5',
-    borderSubtle: '#C9DBF1',
+    cardElevated: '#EDE9FA',
+    border: '#BFB6E4',
+    borderSubtle: '#DAD4F2',
     glass: 'rgba(255, 255, 255, 0.78)',
-    glassStrong: 'rgba(247, 251, 255, 0.92)',
-    glassBlue: 'rgba(58, 68, 232, 0.16)',
-    glassBorder: 'rgba(52, 96, 153, 0.20)',
+    glassStrong: 'rgba(250, 249, 255, 0.92)',
+    glassBlue: 'rgba(94, 65, 210, 0.16)',
+    glassBorder: 'rgba(72, 52, 153, 0.20)',
     glassHighlight: 'rgba(255, 255, 255, 0.88)',
-    muted: '#607A9B',
-    mutedStrong: '#3E5D83',
-    text: '#0A1A30',
+    muted: '#67628A',
+    mutedStrong: '#4C3E83',
+    text: '#1A1533',
     success: '#178A52',
     danger: '#D22C2C',
     overlayCard: '#FFFFFF',
     overlayCardTranslucent: 'rgba(255, 255, 255, 0.82)',
     overlayCardBorder: 'rgba(255, 255, 255, 0.55)',
-    overlayAction: '#4153FB',
+    overlayAction: '#5E41D2',
     overlayGlass: 'rgba(10, 14, 22, 0.55)',
     overlayGlassBorder: 'rgba(255, 255, 255, 0.14)',
     overlayInk: '#111827',
     overlayMuted: '#6B7280',
     overlayRule: '#E5E7EB',
-    translationPrimary: '#3A44E8',
+    translationPrimary: '#5E41D2',
     translationSecondary: '#EF4444',
   },
 };

@@ -1,6 +1,6 @@
-# SayLens
+# Lesingo
 
-SayLens is an Android-first React Native side project that turns the camera
+Lesingo is an Android-first React Native side project that turns the camera
 into an interactive English-learning experience.
 
 Point the device at everyday objects and see a compact English-learning card

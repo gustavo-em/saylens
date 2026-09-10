@@ -10,6 +10,13 @@ anchored over each object with its meaning and pronunciation.
 > streams camera frames to EfficientDet and maps detections into live vocabulary
 > overlays without sending images to a server.
 
+## Demo
+
+Live screen recording: object detection, learning cards and device speech, all running
+on the phone with the network off.
+
+https://github.com/user-attachments/assets/21387c11-1fcd-405c-9761-244a7e936b36
+
 <p align="center">
   <img src="docs/assets/android-camera-settings.png" alt="SayLens camera settings running on a physical Samsung device" width="320" />
 </p>

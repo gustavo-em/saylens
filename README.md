@@ -17,10 +17,6 @@ on the phone with the network off.
 
 https://github.com/user-attachments/assets/21387c11-1fcd-405c-9761-244a7e936b36
 
-<p align="center">
-  <img src="docs/assets/android-camera-settings.png" alt="SayLens camera settings running on a physical Samsung device" width="320" />
-</p>
-
 ## Product journey
 
 1. Detect common objects in the live camera preview.
